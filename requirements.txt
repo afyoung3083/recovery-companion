@@ -1,1 +1,2 @@
-# Dependencies will be added in the next sprint task.
+openai>=2.0.0
+python-dotenv>=1.1.0

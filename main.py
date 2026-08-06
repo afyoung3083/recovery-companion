@@ -1,11 +1,28 @@
-"""Recovery Companion command-line entry point.
-
-Sprint 1 will connect this file to the OpenAI API.
-"""
+from app.recovery_engine import respond_to_user
 
 
 def main() -> None:
-    print("Recovery Companion v0.1 — project initialized")
+    print("=" * 50)
+    print("Recovery Companion v0.1")
+    print("=" * 50)
+    print()
+
+    user_message = input("You: ").strip()
+
+    if not user_message:
+        print("Please enter a message.")
+        return
+
+    try:
+        response = respond_to_user(user_message)
+    except Exception as error:
+        print()
+        print(f"Error: {error}")
+        return
+
+    print()
+    print("Recovery Companion:")
+    print(response)
 
 
 if __name__ == "__main__":
