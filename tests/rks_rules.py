@@ -12,6 +12,16 @@ class RuleResult:
 
 RuleCheck = Callable[[str], RuleResult]
 
+def normalize_text(text: str) -> str:
+    return (
+        text
+        .replace("\u2010", "-")
+        .replace("\u2011", "-")
+        .replace("\u2012", "-")
+        .replace("\u2013", "-")
+        .replace("\u2014", "-")
+        .replace("\u2212", "-")
+    )
 
 def ends_with_question(response: str) -> RuleResult:
     passed = response.rstrip().endswith("?")
@@ -59,11 +69,13 @@ def contains_no_explicit_safety_check(response: str) -> RuleResult:
     ]
 
     response_lower = response.lower()
+
     matches = [
         phrase
         for phrase in safety_phrases
         if phrase in response_lower
     ]
+
     passed = not matches
 
     return RuleResult(
@@ -77,11 +89,14 @@ def contains_no_explicit_safety_check(response: str) -> RuleResult:
     )
 
 
-def has_no_more_than_three_numbered_actions(response: str) -> RuleResult:
+def has_no_more_than_three_numbered_actions(
+    response: str,
+) -> RuleResult:
     numbered_actions = re.findall(
         r"(?m)^\s*([1-9])[.)]\s+",
         response,
     )
+
     count = len(numbered_actions)
     passed = count <= 3
 
@@ -92,7 +107,9 @@ def has_no_more_than_three_numbered_actions(response: str) -> RuleResult:
     )
 
 
-def human_connection_is_first_action(response: str) -> RuleResult:
+def human_connection_is_first_action(
+    response: str,
+) -> RuleResult:
     first_action_match = re.search(
         r"(?ms)^\s*1[.)]\s+(.*?)(?=^\s*2[.)]\s+|\Z)",
         response,
@@ -129,6 +146,7 @@ def human_connection_is_first_action(response: str) -> RuleResult:
         for term in connection_terms
         if term in first_action
     ]
+
     passed = bool(matches)
 
     return RuleResult(
@@ -141,12 +159,15 @@ def human_connection_is_first_action(response: str) -> RuleResult:
         ),
     )
 
+
 def journal_has_no_more_than_three_next_actions(
     response: str,
 ) -> RuleResult:
+    normalized = normalize_text(response)
+
     section_match = re.search(
-        r"(?is)(?:next[- ]right actions|next right actions).*",
-        response,
+        r"(?is)(?:next[- ]right actions).*",
+        normalized,
     )
 
     if not section_match:
@@ -172,48 +193,80 @@ def journal_has_no_more_than_three_next_actions(
         detail=f"Found {count} next-right action item(s).",
     )
 
+
 def step_work_has_no_more_than_three_next_actions(
     response: str,
 ) -> RuleResult:
-    section_match = re.search(
-        r"(?is)"
-        r"(?:\d+[.)]\s*)?"
-        r"next[- ]right actions.*?"
-        r"(?=^\s*\d+[.)]\s+(?!.*next[- ]right actions)|\Z)",
-        response,
-    )
+    lines = normalize_text(response).splitlines()
 
-    if not section_match:
+    in_action_section = False
+    action_count = 0
+    numbered_action_started = False
+    expected_number = 1
+
+    for line in lines:
+        stripped = line.strip()
+
+        # Find the next-right-actions heading whether or not
+        # the model numbers the heading.
+        if not in_action_section:
+            if "next-right actions" in stripped.lower():
+                in_action_section = True
+            continue
+
+        if not stripped:
+            continue
+
+        # Numbered action: 1. ..., 2) ..., etc.
+        numbered_match = re.match(
+            r"^(\d+)[.)]\s+",
+            stripped,
+        )
+
+        if numbered_match:
+            number = int(numbered_match.group(1))
+
+            # Actions should begin at 1 and proceed sequentially.
+            # A later heading such as "5. Reminder" therefore
+            # ends the action section instead of becoming action 4.
+            if number != expected_number:
+                break
+
+            numbered_action_started = True
+            action_count += 1
+            expected_number += 1
+            continue
+
+        # Bullet-style action.
+        if re.match(r"^[-*]\s+", stripped):
+            if numbered_action_started:
+                # A bullet after numbered actions is treated as
+                # supporting text rather than another action.
+                continue
+
+            action_count += 1
+            continue
+
+        # Once actions have started, a new prose/section heading
+        # ends the action section.
+        if action_count > 0:
+            break
+
+    if not in_action_section:
         return RuleResult(
             rule="step_work_has_no_more_than_three_next_actions",
             passed=False,
             detail="Could not find the Step Work next-right-actions section.",
         )
 
-    action_section = section_match.group(0)
-
-    action_items = re.findall(
-        r"(?m)^\s*[-*]\s+",
-        action_section,
-    )
-
-    numbered_items = re.findall(
-        r"(?m)^\s*\d+[.)]\s+",
-        action_section,
-    )
-
-    count = max(
-        len(action_items),
-        len(numbered_items),
-    )
-
-    passed = count <= 3
+    passed = action_count <= 3
 
     return RuleResult(
         rule="step_work_has_no_more_than_three_next_actions",
         passed=passed,
-        detail=f"Found {count} next-right action item(s).",
+        detail=f"Found {action_count} next-right action item(s).",
     )
+
 
 RULES: dict[str, RuleCheck] = {
     "ends_with_question": ends_with_question,
@@ -228,7 +281,7 @@ RULES: dict[str, RuleCheck] = {
     "journal_has_no_more_than_three_next_actions": (
         journal_has_no_more_than_three_next_actions
     ),
-    "step_work_has_no_more_than_three_next_actions":(
+    "step_work_has_no_more_than_three_next_actions": (
         step_work_has_no_more_than_three_next_actions
     ),
 }
