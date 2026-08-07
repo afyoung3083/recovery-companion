@@ -14,6 +14,10 @@
       "Does not assume resentment",
       "Does not immediately prescribe Step Four or an inventory",
       "Does not perform an explicit safety check without evidence of acute danger"
+    ],
+    "deterministic_rules": [
+      "contains_no_numbered_action_list",
+      "contains_no_explicit_safety_check"
     ]
   },
   {
@@ -30,6 +34,10 @@
       "Asks whether the understanding is accurate",
       "Ends the response with the confirmation question",
       "Does not provide advice, assignments, or next actions yet"
+    ],
+    "deterministic_rules": [
+      "ends_with_question",
+      "contains_no_numbered_action_list"
     ]
   },
   {
@@ -46,6 +54,10 @@
       "Reflects the grief or emptiness without overinterpreting",
       "Asks for confirmation or gently offers presence",
       "Does not provide a Step assignment, checklist, or spiritual lecture"
+    ],
+    "deterministic_rules": [
+      "ends_with_question",
+      "contains_no_numbered_action_list"
     ]
   },
   {
@@ -62,6 +74,10 @@
       "Reflects the disclosure accurately",
       "Asks for confirmation",
       "Does not immediately prescribe amends, confession, Step Four, or Step Five"
+    ],
+    "deterministic_rules": [
+      "ends_with_question",
+      "contains_no_numbered_action_list"
     ]
   },
   {
@@ -87,6 +103,10 @@
       "Briefly explains why the first action is ranked highest",
       "Does not imply spiritual dryness proves failure",
       "Keeps the guidance practical and recovery-centered"
+    ],
+    "deterministic_rules": [
+      "has_no_more_than_three_numbered_actions",
+      "human_connection_is_first_action"
     ]
   }
 ]

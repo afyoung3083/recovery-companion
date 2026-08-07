@@ -3,6 +3,7 @@ from pathlib import Path
 
 from app.recovery_engine import respond_to_user
 from tests.rks_grader import grade_response
+from tests.rks_rules import run_rules
 
 
 TEST_FILE = Path(__file__).parent / "rks_cases.json"
@@ -37,13 +38,27 @@ def main() -> None:
             expected_behavior=test_case["expected_behavior"],
         )
 
+        rule_results = run_rules(
+            response=response,
+            rule_names=test_case.get("deterministic_rules", []),
+        )
+
         results.append((test_case["id"], grade.verdict))
 
         print()
         print("Recovery Companion:")
         print(response)
         print()
+        print("Deterministic rules:")
 
+        for rule_result in rule_results:
+            status = "PASS" if rule_result.passed else "FAIL"
+            print(
+                f"  {status}: {rule_result.rule} — "
+                f"{rule_result.detail}"
+            )
+
+        print()
         print(f"Verdict: {grade.verdict}")
         print(f"Reason: {grade.reason}")
 
