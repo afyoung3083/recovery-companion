@@ -141,6 +141,36 @@ def human_connection_is_first_action(response: str) -> RuleResult:
         ),
     )
 
+def journal_has_no_more_than_three_next_actions(
+    response: str,
+) -> RuleResult:
+    section_match = re.search(
+        r"(?is)(?:next[- ]right actions|next right actions).*",
+        response,
+    )
+
+    if not section_match:
+        return RuleResult(
+            rule="journal_has_no_more_than_three_next_actions",
+            passed=False,
+            detail="Could not find a next-right-actions section.",
+        )
+
+    action_section = section_match.group(0)
+
+    action_items = re.findall(
+        r"(?m)^\s*(?:[-*]|\d+[.)])\s+",
+        action_section,
+    )
+
+    count = len(action_items)
+    passed = count <= 3
+
+    return RuleResult(
+        rule="journal_has_no_more_than_three_next_actions",
+        passed=passed,
+        detail=f"Found {count} next-right action item(s).",
+    )
 
 RULES: dict[str, RuleCheck] = {
     "ends_with_question": ends_with_question,
@@ -151,6 +181,9 @@ RULES: dict[str, RuleCheck] = {
     ),
     "human_connection_is_first_action": (
         human_connection_is_first_action
+    ),
+    "journal_has_no_more_than_three_next_actions": (
+        journal_has_no_more_than_three_next_actions
     ),
 }
 
