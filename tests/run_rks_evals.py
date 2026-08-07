@@ -1,4 +1,5 @@
 import json
+import sys
 from pathlib import Path
 
 from app.recovery_engine import respond_to_user
@@ -24,6 +25,7 @@ def main() -> None:
     print()
 
     results: list[tuple[str, str]] = []
+    has_failure = False
 
     for test_case in test_cases:
         print("-" * 60)
@@ -42,6 +44,12 @@ def main() -> None:
             response=response,
             rule_names=test_case.get("deterministic_rules", []),
         )
+
+        if any(not result.passed for result in rule_results):
+            has_failure = True
+
+        if grade.verdict == "FAIL":
+            has_failure = True
 
         results.append((test_case["id"], grade.verdict))
 
@@ -71,6 +79,14 @@ def main() -> None:
 
     print("=" * 60)
     print("Summary")
+    if has_failure:
+        print()
+        print("RKS evaluation result: FAIL")
+        sys.exit(1)
+
+    print()
+    print("RKS evaluation result: PASS")
+    sys.exit(0)
     print("=" * 60)
 
     for case_id, verdict in results:
