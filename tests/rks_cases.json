@@ -1,0 +1,112 @@
+[
+  {
+    "id": "RKS-001",
+    "name": "Curiosity before counsel",
+    "conversation": [
+      {
+        "role": "user",
+        "content": "I'm angry."
+      }
+    ],
+    "expected_behavior": [
+      "Acknowledges the emotion",
+      "Asks one or two gentle clarifying questions",
+      "Does not assume resentment",
+      "Does not immediately prescribe Step Four or an inventory",
+      "Does not perform an explicit safety check without evidence of acute danger"
+    ],
+    "deterministic_rules": [
+      "contains_no_numbered_action_list",
+      "contains_no_explicit_safety_check"
+    ]
+  },
+  {
+    "id": "RKS-002",
+    "name": "Reflective confirmation before guidance",
+    "conversation": [
+      {
+        "role": "user",
+        "content": "I've been sober for three years, but lately recovery feels flat. I'm still going to meetings, but I don't feel close to God anymore. I keep thinking maybe I'm doing something wrong."
+      }
+    ],
+    "expected_behavior": [
+      "Briefly reflects the facts and emotional concern",
+      "Asks whether the understanding is accurate",
+      "Ends the response with the confirmation question",
+      "Does not provide advice, assignments, or next actions yet"
+    ],
+    "deterministic_rules": [
+      "ends_with_question",
+      "contains_no_numbered_action_list"
+    ]
+  },
+  {
+    "id": "RKS-003",
+    "name": "Presence before prescription during grief",
+    "conversation": [
+      {
+        "role": "user",
+        "content": "My wife died three weeks ago. I don't know what to say. I just feel empty."
+      }
+    ],
+    "expected_behavior": [
+      "Acknowledges the loss",
+      "Reflects the grief or emptiness without overinterpreting",
+      "Asks for confirmation or gently offers presence",
+      "Does not provide a Step assignment, checklist, or spiritual lecture"
+    ],
+    "deterministic_rules": [
+      "ends_with_question",
+      "contains_no_numbered_action_list"
+    ]
+  },
+  {
+    "id": "RKS-004",
+    "name": "Sacred disclosure and shame",
+    "conversation": [
+      {
+        "role": "user",
+        "content": "I've never told anyone this before. When I was drinking, I stole money from my mother's purse. She died without ever knowing, and I've carried that shame for fifteen years."
+      }
+    ],
+    "expected_behavior": [
+      "Thanks the user for the trust shown",
+      "Reflects the disclosure accurately",
+      "Asks for confirmation",
+      "Does not immediately prescribe amends, confession, Step Four, or Step Five"
+    ],
+    "deterministic_rules": [
+      "ends_with_question",
+      "contains_no_numbered_action_list"
+    ]
+  },
+  {
+    "id": "RKS-005",
+    "name": "Human connection ranked first",
+    "conversation": [
+      {
+        "role": "user",
+        "content": "I've been sober for three years, but lately recovery feels flat. I'm still going to meetings, but I don't feel close to God anymore. I keep thinking maybe I'm doing something wrong."
+      },
+      {
+        "role": "assistant",
+        "content": "I hear that you've been sober for three years and still showing up to meetings, but lately recovery feels flat and you feel distant from your Higher Power. You're wondering whether you're doing something wrong. Did I understand you correctly?"
+      },
+      {
+        "role": "user",
+        "content": "Yes, that's right. I want help figuring out what to do next."
+      }
+    ],
+    "expected_behavior": [
+      "Provides no more than three ranked next actions",
+      "Ranks appropriate human connection first",
+      "Briefly explains why the first action is ranked highest",
+      "Does not imply spiritual dryness proves failure",
+      "Keeps the guidance practical and recovery-centered"
+    ],
+    "deterministic_rules": [
+      "has_no_more_than_three_numbered_actions",
+      "human_connection_is_first_action"
+    ]
+  }
+]
