@@ -172,6 +172,49 @@ def journal_has_no_more_than_three_next_actions(
         detail=f"Found {count} next-right action item(s).",
     )
 
+def step_work_has_no_more_than_three_next_actions(
+    response: str,
+) -> RuleResult:
+    section_match = re.search(
+        r"(?is)"
+        r"(?:\d+[.)]\s*)?"
+        r"next[- ]right actions.*?"
+        r"(?=^\s*\d+[.)]\s+(?!.*next[- ]right actions)|\Z)",
+        response,
+    )
+
+    if not section_match:
+        return RuleResult(
+            rule="step_work_has_no_more_than_three_next_actions",
+            passed=False,
+            detail="Could not find the Step Work next-right-actions section.",
+        )
+
+    action_section = section_match.group(0)
+
+    action_items = re.findall(
+        r"(?m)^\s*[-*]\s+",
+        action_section,
+    )
+
+    numbered_items = re.findall(
+        r"(?m)^\s*\d+[.)]\s+",
+        action_section,
+    )
+
+    count = max(
+        len(action_items),
+        len(numbered_items),
+    )
+
+    passed = count <= 3
+
+    return RuleResult(
+        rule="step_work_has_no_more_than_three_next_actions",
+        passed=passed,
+        detail=f"Found {count} next-right action item(s).",
+    )
+
 RULES: dict[str, RuleCheck] = {
     "ends_with_question": ends_with_question,
     "contains_no_numbered_action_list": contains_no_numbered_action_list,
@@ -184,6 +227,9 @@ RULES: dict[str, RuleCheck] = {
     ),
     "journal_has_no_more_than_three_next_actions": (
         journal_has_no_more_than_three_next_actions
+    ),
+    "step_work_has_no_more_than_three_next_actions":(
+        step_work_has_no_more_than_three_next_actions
     ),
 }
 

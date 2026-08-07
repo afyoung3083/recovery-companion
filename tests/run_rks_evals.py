@@ -2,7 +2,11 @@ import json
 import sys
 from pathlib import Path
 
-from app.recovery_engine import analyze_journal_entry, respond_to_user
+from app.recovery_engine import (
+    analyze_journal_entry,
+    analyze_step_work,
+    respond_to_user,
+)
 from tests.rks_grader import grade_response
 from tests.rks_rules import run_rules
 
@@ -37,6 +41,11 @@ def main() -> None:
         if mode == "journal_analysis":
             entry_text = test_case["conversation"][-1]["content"]
             response = analyze_journal_entry(entry_text)
+
+        elif mode == "step_work_analysis":
+            step_work_text = test_case["conversation"][-1]["content"]
+            response = analyze_step_work(step_work_text)
+
         else:
             response = respond_to_user(test_case["conversation"])
 

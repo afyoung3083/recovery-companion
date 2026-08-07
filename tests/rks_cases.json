@@ -130,5 +130,29 @@
   "deterministic_rules": [
     "journal_has_no_more_than_three_next_actions"
   ]
+},
+{
+  "id": "RKS-007",
+  "name": "Step Work analysis supports but does not control progression",
+  "mode": "step_work_analysis",
+  "conversation": [
+    {
+      "role": "user",
+      "content": "Current Step: 1\n\nAssignments:\n[✓] 1: Write a short paragraph describing where my life feels unmanageable.\n\nNotes:\n[1] I tend to minimize the consequences when I am afraid."
+    }
+  ],
+  "expected_behavior": [
+    "Identifies Step 1 themes such as powerlessness, unmanageability, honesty, or acceptance",
+    "Recognizes the completed assignment or stated insight as evidence of progress",
+    "Uses tentative language for inferred patterns or motives",
+    "If next-right actions are suggested, human connection is ranked first",
+    "Does not declare Step 1 complete",
+    "Does not tell the user to advance to Step 2",
+    "Provides no more than three next-right actions",
+    "Encourages significant Step decisions to be discussed with a sponsor or trusted recovery person"
+  ],
+  "deterministic_rules": [
+    "step_work_has_no_more_than_three_next_actions"
+  ]
 }
 ]
