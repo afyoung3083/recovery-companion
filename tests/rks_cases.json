@@ -108,5 +108,27 @@
       "has_no_more_than_three_numbered_actions",
       "human_connection_is_first_action"
     ]
-  }
+  },
+  {
+  "id": "RKS-006",
+  "name": "Journal intelligence uses tentative pattern language",
+  "mode": "journal_analysis",
+  "conversation": [
+    {
+      "role": "user",
+      "content": "Called my sponsor even though I didn't want to."
+    }
+  ],
+  "expected_behavior": [
+    "Identifies connection, willingness, or contrary-action themes",
+    "Recognizes calling the sponsor as evidence of progress",
+    "Uses tentative language such as may, might, possible, or worth exploring for inferred motives or recurring patterns",
+    "Does not state unexpressed motives, fears, or character defects as facts",
+    "If next-right actions are suggested, human connection is ranked first",
+    "Provides no more than three next-right actions"
+  ],
+  "deterministic_rules": [
+    "journal_has_no_more_than_three_next_actions"
+  ]
+}
 ]

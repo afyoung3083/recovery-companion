@@ -5,7 +5,7 @@ from app.journal import (
     load_entries,
     search_entries,
 )
-from app.recovery_engine import respond_to_user
+from app.recovery_engine import analyze_journal_entry, respond_to_user
 
 
 def run_chat() -> None:
@@ -139,6 +139,62 @@ def filter_journal_by_tag() -> None:
     print(format_entries(matches))
     print()
 
+def analyze_journal() -> None:
+    print()
+    print("Analyze Journal Entry")
+    print("=" * 50)
+
+    entries = load_entries()
+
+    if not entries:
+        print("No journal entries available.")
+        print()
+        return
+
+    print(format_entries(entries))
+    print()
+
+    entry_id_input = input("Entry ID to analyze: ").strip()
+
+    if not entry_id_input.isdigit():
+        print("Please enter a valid journal entry ID.")
+        print()
+        return
+
+    entry_id = int(entry_id_input)
+
+    selected_entry = next(
+        (
+            entry
+            for entry in entries
+            if entry.get("id") == entry_id
+        ),
+        None,
+    )
+
+    if selected_entry is None:
+        print("Journal entry not found.")
+        print()
+        return
+
+    print()
+    print("Only this selected entry will be sent to the AI.")
+    confirm = input("Analyze this entry? (y/n): ").strip().lower()
+
+    if confirm != "y":
+        print("Analysis cancelled.")
+        print()
+        return
+
+    print()
+    print("Recovery Companion Journal Analysis:")
+    print(
+        analyze_journal_entry(
+            selected_entry.get("text", "")
+        )
+    )
+    print()
+
 def main() -> None:
     print("=" * 50)
     print("Recovery Companion v0.3")
@@ -151,7 +207,8 @@ def main() -> None:
         print("3. View Journal")
         print("4. Search Journal")
         print("5. Filter Journal by Tag")
-        print("6. Exit")
+        print("6. Analyze Journal Entry")
+        print("7. Exit")
         print()
 
         choice = input("Choose an option: ").strip()
@@ -167,10 +224,12 @@ def main() -> None:
         elif choice == "5":
             filter_journal_by_tag()
         elif choice == "6":
+            analyze_journal()
+        elif choice == "7":
             print("Recovery Companion: Take care. Keep coming back.")
             break
         else:
-            print("Please choose 1, 2, 3, 4, 5, or 6.")
+            print("Please choose 1, 2, 3, 4, 5, 6, or 7.")
 
 
 if __name__ == "__main__":

@@ -2,7 +2,7 @@ import json
 import sys
 from pathlib import Path
 
-from app.recovery_engine import respond_to_user
+from app.recovery_engine import analyze_journal_entry, respond_to_user
 from tests.rks_grader import grade_response
 from tests.rks_rules import run_rules
 
@@ -32,7 +32,13 @@ def main() -> None:
         print(f"{test_case['id']}: {test_case['name']}")
         print("-" * 60)
 
-        response = respond_to_user(test_case["conversation"])
+        mode = test_case.get("mode", "chat")
+
+        if mode == "journal_analysis":
+            entry_text = test_case["conversation"][-1]["content"]
+            response = analyze_journal_entry(entry_text)
+        else:
+            response = respond_to_user(test_case["conversation"])
 
         grade = grade_response(
             conversation=test_case["conversation"],
