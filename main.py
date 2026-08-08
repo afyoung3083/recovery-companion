@@ -25,6 +25,9 @@ from app.fellowship import (
     recommend_contacts,
     set_contact_active,
 )
+from app.dashboard import build_dashboard
+from datetime import date
+from app.profile import set_sobriety_date
 
 def run_chat() -> None:
     conversation: list[dict[str, str]] = []
@@ -511,6 +514,11 @@ def who_should_i_call() -> None:
 
     print()
 
+def view_dashboard() -> None:
+    print()
+    print(build_dashboard())
+    print()    
+
 def run_fellowship_menu() -> None:
     while True:
         print()
@@ -538,22 +546,52 @@ def run_fellowship_menu() -> None:
         else:
             print("Please choose 1, 2, 3, 4, or 5.")
 
+def change_sobriety_date() -> None:
+    print()
+    print("Set Sobriety Date")
+    print("=" * 50)
+
+    sobriety_date_input = input(
+        "Sobriety date (YYYY-MM-DD): "
+    ).strip()
+
+    try:
+        sobriety_date = date.fromisoformat(sobriety_date_input)
+    except ValueError:
+        print("Please enter a valid date in YYYY-MM-DD format.")
+        print()
+        return
+
+    if sobriety_date > date.today():
+        print("Sobriety date cannot be in the future.")
+        print()
+        return
+
+    set_sobriety_date(sobriety_date.isoformat())
+
+    print(
+        f"Sobriety date set to {sobriety_date.isoformat()}."
+    )
+    print()
+
 def main() -> None:
     print("=" * 50)
-    print("Recovery Companion v0.7")
+    print("Recovery Companion v0.8")
     print("=" * 50)
 
     while True:
         print()
-        print("1. Chat")
-        print("2. Write Journal Entry")
-        print("3. View Journal")
-        print("4. Search Journal")
-        print("5. Filter Journal by Tag")
-        print("6. Analyze Journal Entry")
-        print("7. Step Work")
-        print("8. Fellowship")
-        print("9. Exit")
+        print("1. Dashboard")
+        print("2. Set Sobriety Date")
+        print("3. Chat")
+        print("4. Write Journal Entry")
+        print("5. View Journal")
+        print("6. Search Journal")
+        print("7. Filter Journal by Tag")
+        print("8. Analyze Journal Entry")
+        print("9. Step Work")
+        print("10. Fellowship")
+        print("11. Exit")
         print()
 
         choice = input(
@@ -561,22 +599,26 @@ def main() -> None:
         ).strip()
 
         if choice == "1":
-            run_chat()
+            view_dashboard()
         elif choice == "2":
-            write_journal_entry()
+            change_sobriety_date()
         elif choice == "3":
-            view_journal()
+            run_chat()
         elif choice == "4":
-            search_journal()
+            write_journal_entry()
         elif choice == "5":
-            filter_journal_by_tag()
+            view_journal()
         elif choice == "6":
-            analyze_journal()
+            search_journal()
         elif choice == "7":
-            run_step_work_menu()
+            filter_journal_by_tag()
         elif choice == "8":
-            run_fellowship_menu()
+            analyze_journal()
         elif choice == "9":
+            run_step_work_menu()
+        elif choice == "10":
+            run_fellowship_menu()
+        elif choice == "11":
             print(
                 "Recovery Companion: "
                 "Take care. Keep coming back."
@@ -584,8 +626,7 @@ def main() -> None:
             break
         else:
             print(
-                "Please choose 1, 2, 3, 4, "
-                "5, 6, 7, 8, or 9."
+                "Please choose 1 through 11."
             )
 
 
