@@ -18,7 +18,13 @@ from app.step_work import (
     load_step_work,
     set_current_step,
 )
-
+from app.fellowship import (
+    add_contact,
+    format_contacts,
+    load_contacts,
+    recommend_contacts,
+    set_contact_active,
+)
 
 def run_chat() -> None:
     conversation: list[dict[str, str]] = []
@@ -380,10 +386,161 @@ def run_step_work_menu() -> None:
                 "Please choose 1, 2, 3, 4, 5, 6, or 7."
             )
 
+def view_fellowship_contacts() -> None:
+    print()
+    print("Fellowship Contacts")
+    print("=" * 50)
+    print(format_contacts(load_contacts()))
+    print()
+
+
+def create_fellowship_contact() -> None:
+    print()
+    print("Add Fellowship Contact")
+    print("=" * 50)
+
+    handle = input("Handle or name: ").strip()
+
+    if not handle:
+        print("Contact was not saved.")
+        print()
+        return
+
+    contact_type = input(
+        "Type (sponsor, sponsee, dsr, fellowship, "
+        "therapist, clergy, family, other): "
+    ).strip()
+
+    contact_method = input(
+        "Contact method (optional): "
+    ).strip()
+
+    notes = input(
+        "Notes (optional): "
+    ).strip()
+
+    try:
+        contact = add_contact(
+            handle=handle,
+            contact_type=contact_type,
+            contact_method=contact_method,
+            notes=notes,
+        )
+    except ValueError as error:
+        print(error)
+        print()
+        return
+
+    print()
+    print(
+        f"Contact {contact['id']} saved: "
+        f"{contact['handle']} ({contact['contact_type']})."
+    )
+    print()
+
+
+def change_fellowship_contact_status() -> None:
+    print()
+
+    contact_id_input = input(
+        "Contact ID: "
+    ).strip()
+
+    if not contact_id_input.isdigit():
+        print("Please enter a valid contact ID.")
+        print()
+        return
+
+    active_input = input(
+        "Set active? (y/n): "
+    ).strip().lower()
+
+    if active_input not in {"y", "n"}:
+        print("Please enter y or n.")
+        print()
+        return
+
+    contact = set_contact_active(
+        contact_id=int(contact_id_input),
+        active=(active_input == "y"),
+    )
+
+    if contact is None:
+        print("Contact not found.")
+    else:
+        status = "active" if contact["active"] else "inactive"
+        print(
+            f"{contact['handle']} is now {status}."
+        )
+
+    print()
+
+def who_should_i_call() -> None:
+    print()
+    print("Who Should I Call?")
+    print("=" * 50)
+
+    contacts = recommend_contacts(
+        contacts=load_contacts(),
+        limit=3,
+    )
+
+    if not contacts:
+        print("No active fellowship contacts are available.")
+        print()
+        return
+
+    print("Recommended contacts:")
+    print()
+
+    for index, contact in enumerate(contacts, start=1):
+        print(
+            f"{index}. {contact['handle']} "
+            f"({contact['contact_type']})"
+        )
+
+        if contact.get("contact_method"):
+            print(
+                f"   Contact: {contact['contact_method']}"
+            )
+
+        if contact.get("notes"):
+            print(
+                f"   Notes: {contact['notes']}"
+            )
+
+    print()
+
+def run_fellowship_menu() -> None:
+    while True:
+        print()
+        print("Fellowship")
+        print("=" * 50)
+        print("1. View Contacts")
+        print("2. Add Contact")
+        print("3. Change Contact Status")
+        print("4. Who Should I Call?")
+        print("5. Back")
+        print()
+
+        choice = input("Choose an option: ").strip()
+
+        if choice == "1":
+            view_fellowship_contacts()
+        elif choice == "2":
+            create_fellowship_contact()
+        elif choice == "3":
+            change_fellowship_contact_status()
+        elif choice == "4":
+            who_should_i_call()
+        elif choice == "5":
+            return
+        else:
+            print("Please choose 1, 2, 3, 4, or 5.")
 
 def main() -> None:
     print("=" * 50)
-    print("Recovery Companion v0.6")
+    print("Recovery Companion v0.7")
     print("=" * 50)
 
     while True:
@@ -395,7 +552,8 @@ def main() -> None:
         print("5. Filter Journal by Tag")
         print("6. Analyze Journal Entry")
         print("7. Step Work")
-        print("8. Exit")
+        print("8. Fellowship")
+        print("9. Exit")
         print()
 
         choice = input(
@@ -417,6 +575,8 @@ def main() -> None:
         elif choice == "7":
             run_step_work_menu()
         elif choice == "8":
+            run_fellowship_menu()
+        elif choice == "9":
             print(
                 "Recovery Companion: "
                 "Take care. Keep coming back."
@@ -425,7 +585,7 @@ def main() -> None:
         else:
             print(
                 "Please choose 1, 2, 3, 4, "
-                "5, 6, 7, or 8."
+                "5, 6, 7, 8, or 9."
             )
 
 
