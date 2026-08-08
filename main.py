@@ -25,6 +25,11 @@ from app.fellowship import (
     recommend_contacts,
     set_contact_active,
 )
+from app.daily_checkin import(
+    format_checkin,
+    get_checkin_for_date,
+    save_daily_checkin,
+)
 from app.dashboard import build_dashboard
 from datetime import date
 from app.profile import set_sobriety_date
@@ -574,24 +579,77 @@ def change_sobriety_date() -> None:
     )
     print()
 
+def run_daily_checkin() -> None:
+    print()
+    print("Daily Check-In")
+    print("=" * 50)
+
+    prompts = [
+        ("prayer_meditation", "Prayer / meditation"),
+        ("recovery_contact", "Recovery contact"),
+        ("meeting", "Meeting"),
+        ("step_work", "Step work"),
+        ("journal", "Journal"),
+        ("service", "Service"),
+    ]
+
+    values: dict[str, bool] = {}
+
+    for field, label in prompts:
+        response = input(
+            f"{label} completed today? (y/n): "
+        ).strip().lower()
+
+        values[field] = response == "y"
+
+    print()
+    note = input(
+        "Daily note (optional): "
+    ).strip()
+
+    checkin = save_daily_checkin(
+        values=values,
+        note=note,
+    )
+
+    print()
+    print("Daily check-in saved.")
+    print()
+    print(format_checkin(checkin))
+    print()
+
+
+def view_today_checkin() -> None:
+    print()
+    print(
+        format_checkin(
+            get_checkin_for_date(
+                date.today().isoformat()
+            )
+        )
+    )
+    print()
+
 def main() -> None:
     print("=" * 50)
-    print("Recovery Companion v0.8")
+    print("Recovery Companion v0.9")
     print("=" * 50)
 
     while True:
         print()
         print("1. Dashboard")
-        print("2. Set Sobriety Date")
-        print("3. Chat")
-        print("4. Write Journal Entry")
-        print("5. View Journal")
-        print("6. Search Journal")
-        print("7. Filter Journal by Tag")
-        print("8. Analyze Journal Entry")
-        print("9. Step Work")
-        print("10. Fellowship")
-        print("11. Exit")
+        print("2. Daily Check-In")
+        print("3. View Today's Check-In")
+        print("4. Set Sobriety Date")
+        print("5. Chat")
+        print("6. Write Journal Entry")
+        print("7. View Journal")
+        print("8. Search Journal")
+        print("9. Filter Journal by Tag")
+        print("10. Analyze Journal Entry")
+        print("11. Step Work")
+        print("12. Fellowship")
+        print("13. Exit")
         print()
 
         choice = input(
@@ -601,24 +659,28 @@ def main() -> None:
         if choice == "1":
             view_dashboard()
         elif choice == "2":
-            change_sobriety_date()
+            run_daily_checkin()
         elif choice == "3":
-            run_chat()
+            view_today_checkin()
         elif choice == "4":
-            write_journal_entry()
+            change_sobriety_date()
         elif choice == "5":
-            view_journal()
+            run_chat()
         elif choice == "6":
-            search_journal()
+            write_journal_entry()
         elif choice == "7":
-            filter_journal_by_tag()
+            view_journal()
         elif choice == "8":
-            analyze_journal()
+            search_journal()
         elif choice == "9":
-            run_step_work_menu()
+            filter_journal_by_tag()
         elif choice == "10":
-            run_fellowship_menu()
+            analyze_journal()
         elif choice == "11":
+            run_step_work_menu()
+        elif choice == "12":
+            run_fellowship_menu()
+        elif choice == "13":
             print(
                 "Recovery Companion: "
                 "Take care. Keep coming back."
