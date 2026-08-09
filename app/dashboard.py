@@ -1,11 +1,15 @@
 from datetime import date, datetime
+from datetime import date
 from typing import Any
 
 from app.fellowship import load_contacts, recommend_contacts
 from app.journal import load_entries
 from app.step_work import load_step_work
 from app.profile import load_profile
-
+from app.daily_checkin import (
+    CHECKIN_FIELDS,
+    get_checkin_for_date,
+)
 
 def calculate_sobriety_days(sobriety_date: str | None) -> int | None:
     if not sobriety_date:
@@ -72,6 +76,9 @@ def build_dashboard() -> str:
             f"Sobriety: {sobriety_days} day(s)"
         )
 
+    lines.append(format_today_checkin())
+    lines.append("")
+    
     lines.append(f"Current Step: {current_step}")
     lines.append("")
 
@@ -117,5 +124,32 @@ def build_dashboard() -> str:
     lines.append(
         f"Generated: {datetime.now().isoformat(timespec='seconds')}"
     )
+
+    return "\n".join(lines)
+
+def format_today_checkin() -> str:
+    checkin = get_checkin_for_date(
+        date.today().isoformat()
+    )
+
+    if checkin is None:
+        return "Today's Check-In: not completed"
+
+    completed = sum(
+        1
+        for field in CHECKIN_FIELDS
+        if checkin.get(field, False)
+    )
+
+    total = len(CHECKIN_FIELDS)
+
+    lines = [
+        f"Today's Check-In: {completed}/{total} completed"
+    ]
+
+    note = checkin.get("note", "").strip()
+
+    if note:
+        lines.append(f"Daily Note: {note}")
 
     return "\n".join(lines)
