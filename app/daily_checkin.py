@@ -118,3 +118,101 @@ def format_checkin(checkin: dict[str, Any] | None) -> str:
     )
 
     return "\n".join(lines)
+
+def get_recent_checkins(
+    limit: int = 7,
+) -> list[dict[str, Any]]:
+    checkins = load_checkins()
+
+    sorted_checkins = sorted(
+        checkins,
+        key=lambda checkin: checkin.get("date", ""),
+        reverse=True,
+    )
+
+    return sorted_checkins[:limit]
+
+
+def count_completed_actions(
+    checkin: dict[str, Any],
+) -> int:
+    return sum(
+        1
+        for field in CHECKIN_FIELDS
+        if checkin.get(field, False)
+    )
+
+
+def summarize_checkin_trends(
+    checkins: list[dict[str, Any]],
+) -> dict[str, Any]:
+    totals = {
+        field: 0
+        for field in CHECKIN_FIELDS
+    }
+
+    for checkin in checkins:
+        for field in CHECKIN_FIELDS:
+            if checkin.get(field, False):
+                totals[field] += 1
+
+    return {
+        "days": len(checkins),
+        "totals": totals,
+    }
+
+def format_checkin_history(
+    checkins: list[dict[str, Any]],
+) -> str:
+    if not checkins:
+        return "No check-in history yet."
+
+    lines: list[str] = []
+
+    for checkin in checkins:
+        completed = count_completed_actions(checkin)
+
+        lines.append(
+            f"{checkin.get('date', 'unknown')}: "
+            f"{completed}/{len(CHECKIN_FIELDS)} completed"
+        )
+
+        note = checkin.get("note", "").strip()
+
+        if note:
+            lines.append(
+                f"  Note: {note}"
+            )
+
+    return "\n".join(lines)
+
+def format_checkin_trends(
+    checkins: list[dict[str, Any]],
+) -> str:
+    if not checkins:
+        return "No check-in trends yet."
+
+    summary = summarize_checkin_trends(checkins)
+    days = summary["days"]
+    totals = summary["totals"]
+
+    labels = {
+        "prayer_meditation": "Prayer / meditation",
+        "recovery_contact": "Recovery contact",
+        "meeting": "Meeting",
+        "step_work": "Step work",
+        "journal": "Journal",
+        "service": "Service",
+    }
+
+    lines = [
+        f"Recent Recovery Trends — {days} day(s)",
+        "=" * 50,
+    ]
+
+    for field in CHECKIN_FIELDS:
+        lines.append(
+            f"{labels[field]}: {totals[field]}/{days}"
+        )
+
+    return "\n".join(lines)

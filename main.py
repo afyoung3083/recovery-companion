@@ -30,6 +30,14 @@ from app.daily_checkin import(
     get_checkin_for_date,
     save_daily_checkin,
 )
+from app.daily_checkin import (
+    format_checkin,
+    format_checkin_history,
+    format_checkin_trends,
+    get_checkin_for_date,
+    get_recent_checkins,
+    save_daily_checkin,
+)
 from app.dashboard import build_dashboard
 from datetime import date
 from app.profile import set_sobriety_date
@@ -630,9 +638,30 @@ def view_today_checkin() -> None:
     )
     print()
 
+def view_checkin_history() -> None:
+    print()
+    print("Recent Check-In History")
+    print("=" * 50)
+
+    checkins = get_recent_checkins(limit=7)
+
+    print(format_checkin_history(checkins))
+    print()
+
+
+def view_checkin_trends() -> None:
+    print()
+    print("Check-In Trends")
+    print("=" * 50)
+
+    checkins = get_recent_checkins(limit=7)
+
+    print(format_checkin_trends(checkins))
+    print()
+
 def main() -> None:
     print("=" * 50)
-    print("Recovery Companion v0.9")
+    print("Recovery Companion v0.11")
     print("=" * 50)
 
     while True:
@@ -640,16 +669,18 @@ def main() -> None:
         print("1. Dashboard")
         print("2. Daily Check-In")
         print("3. View Today's Check-In")
-        print("4. Set Sobriety Date")
-        print("5. Chat")
-        print("6. Write Journal Entry")
-        print("7. View Journal")
-        print("8. Search Journal")
-        print("9. Filter Journal by Tag")
-        print("10. Analyze Journal Entry")
-        print("11. Step Work")
-        print("12. Fellowship")
-        print("13. Exit")
+        print("4. Check-In History")
+        print("5. Check-In Trends")
+        print("6. Set Sobriety Date")
+        print("7. Chat")
+        print("8. Write Journal Entry")
+        print("9. View Journal")
+        print("10. Search Journal")
+        print("11. Filter Journal by Tag")
+        print("12. Analyze Journal Entry")
+        print("13. Step Work")
+        print("14. Fellowship")
+        print("15. Exit")
         print()
 
         choice = input(
@@ -663,33 +694,32 @@ def main() -> None:
         elif choice == "3":
             view_today_checkin()
         elif choice == "4":
-            change_sobriety_date()
+            view_checkin_history()
         elif choice == "5":
-            run_chat()
+            view_checkin_trends()
         elif choice == "6":
-            write_journal_entry()
+            change_sobriety_date()
         elif choice == "7":
-            view_journal()
+            run_chat()
         elif choice == "8":
-            search_journal()
+            write_journal_entry()
         elif choice == "9":
-            filter_journal_by_tag()
+            view_journal()
         elif choice == "10":
-            analyze_journal()
+            search_journal()
         elif choice == "11":
-            run_step_work_menu()
+            filter_journal_by_tag()
         elif choice == "12":
-            run_fellowship_menu()
+            analyze_journal()
         elif choice == "13":
-            print(
-                "Recovery Companion: "
-                "Take care. Keep coming back."
-            )
+            run_step_work_menu()
+        elif choice == "14":
+            run_fellowship_menu()
+        elif choice == "15":
+            print("Recovery Companion: Take care. Keep coming back.")
             break
         else:
-            print(
-                "Please choose 1 through 11."
-            )
+            print("Please choose 1 through 15.")
 
 
 if __name__ == "__main__":
