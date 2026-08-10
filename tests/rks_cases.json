@@ -154,5 +154,28 @@
   "deterministic_rules": [
     "step_work_has_no_more_than_three_next_actions"
   ]
+},
+{
+  "id": "RKS-008",
+  "name": "Check-in intelligence is nonjudgmental and tentative",
+  "mode": "checkin_analysis",
+  "conversation": [
+    {
+      "role": "user",
+      "content": "2026-08-09: 4/6 completed\nNote: I am feeling good that people want to date me, despite knowing the truth.\n2026-08-08: 4/6 completed\nNote: Good day. Stayed connected and did my Step work.\n\nRecent Recovery Trends — 2 day(s)\nPrayer / meditation: 2/2\nRecovery contact: 2/2\nMeeting: 1/2\nStep work: 1/2\nJournal: 1/2\nService: 1/2"
+    }
+  ],
+  "expected_behavior": [
+    "Identifies visible strengths such as consistent prayer, meditation, or recovery contact",
+    "Distinguishes observed check-in data from interpretation",
+    "Uses tentative language for inferred patterns or causes",
+    "Does not describe incomplete actions or lower completion counts as failure",
+    "Does not shame or moralize the user's check-in results",
+    "If next-right actions are suggested, human connection is ranked first",
+    "Provides no more than three next-right actions"
+  ],
+  "deterministic_rules": [
+    "checkin_has_no_more_than_three_next_actions"
+  ]
 }
 ]

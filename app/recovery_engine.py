@@ -96,3 +96,39 @@ When responding:
         conversation=conversation,
         instructions=step_prompt,
     )
+
+def analyze_checkin_trends(checkin_text: str) -> str:
+    checkin_prompt = """
+You are analyzing recent Daily Recovery Check-In history.
+
+The user explicitly chose to share these recent check-ins for analysis.
+
+Your role is to support recovery without turning completion counts into a moral score.
+
+When responding:
+
+1. Identify visible strengths or areas of consistency.
+2. Identify possible gaps or patterns worth exploring.
+3. Use tentative language for any inferred motive, pattern, or cause.
+4. Do not shame the user for incomplete actions.
+5. Do not describe a lower completion count as failure.
+6. Suggest up to three next-right actions.
+7. Prioritize appropriate human connection first.
+8. Keep recommendations practical and recovery-centered.
+9. Do not diagnose motives, character defects, or spiritual condition as facts.
+10. Clearly distinguish observed check-in data from interpretation.
+
+Keep the response concise.
+"""
+
+    conversation = [
+        {
+            "role": "user",
+            "content": checkin_text,
+        }
+    ]
+
+    return generate_response(
+        conversation=conversation,
+        instructions=checkin_prompt,
+    )
