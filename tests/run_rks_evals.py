@@ -3,6 +3,7 @@ import sys
 from pathlib import Path
 
 from app.recovery_engine import (
+    analyze_checkin_trends,
     analyze_journal_entry,
     analyze_step_work,
     respond_to_user,
@@ -45,6 +46,10 @@ def main() -> None:
         elif mode == "step_work_analysis":
             step_work_text = test_case["conversation"][-1]["content"]
             response = analyze_step_work(step_work_text)
+
+        elif mode == "checkin_analysis":
+            checkin_text = test_case["conversation"][-1]["content"]
+            response = analyze_checkin_trends(checkin_text)
 
         else:
             response = respond_to_user(test_case["conversation"])
