@@ -42,6 +42,7 @@ from app.daily_checkin import (
 from app.dashboard import build_dashboard
 from datetime import date
 from app.profile import set_sobriety_date
+from app.version import __version__
 
 def run_chat() -> None:
     conversation: list[dict[str, str]] = []
@@ -703,7 +704,7 @@ def analyze_recent_checkins() -> None:
 
 def main() -> None:
     print("=" * 50)
-    print("Recovery Companion v0.12")
+    print(f"Recovery Companion v{__version__}")
     print("=" * 50)
 
     while True:
