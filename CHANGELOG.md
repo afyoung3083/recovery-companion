@@ -2,11 +2,20 @@
 
 All notable changes to Recovery Companion are documented here.
 
-## [Unreleased]
+## [1.0.0] - 2026-08-10
 
-### Goal
+### Release
 
-Complete the v1.0.0 readiness audit and final regression testing for the first stable command-line MVP.
+First stable command-line MVP.
+
+### Validation
+
+- v1.0.0 acceptance checklist complete.
+- 18/18 pytest tests passing.
+- 8/8 RKS evaluations passing.
+- Fresh-clone installation verified.
+- Clean-environment startup verified.
+- Local data persistence verified.
 
 ## [0.14.0] - 2026-08-10
 

@@ -16,7 +16,7 @@ These values guide the design of Recovery Companion.
 
 Recovery Companion is currently approaching its first stable `v1.0.0` release.
 
-Current development version: **v0.14.0**
+Current development version: **v1.0.0**
 
 Implemented capabilities include:
 
