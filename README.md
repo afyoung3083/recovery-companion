@@ -2,28 +2,7 @@
 
 Recovery Companion is an AI-powered Twelve-Step recovery companion designed to help people pursue long-term recovery through connection, honesty, and spiritual growth.
 
-Its purpose is **not** to replace sponsors, meetings, therapists, clergy, or a Higher Power. Instead, it serves as an intelligent recovery assistant that encourages the principles of the Twelve Steps while promoting human connection and lasting transformation.
-
----
-
-## Vision
-
-Recovery Companion exists to help anyone, anywhere, begin and sustain recovery.
-
-The long-term vision is an AI companion that:
-
-- Encourages real-world fellowship and sponsor relationships
-- Supports daily step work
-- Learns long-term recovery patterns (with user permission)
-- Recognizes spiritual growth over time
-- Helps sponsors and sponsees transfer knowledge without "starting over"
-- Protects anonymity, privacy, and user ownership of all recovery data
-
-The goal is not merely sobriety.
-
-The goal is a deeper relationship with one's Higher Power, greater freedom from addiction, and a life of service.
-
----
+It does **not** replace sponsors, meetings, therapists, clergy, or a Higher Power. It is designed to supplement recovery while consistently encouraging real-world human connection.
 
 ## Immutable Values
 
@@ -31,160 +10,207 @@ The goal is a deeper relationship with one's Higher Power, greater freedom from 
 - **Connection**
 - **Rigorous Honesty**
 
-These values guide every design and engineering decision.
-
----
+These values guide the design of Recovery Companion.
 
 ## Current Status
 
-Current Version:
+Recovery Companion is currently approaching its first stable `v1.0.0` release.
 
-**v0.1.0**
+Current development version: **v0.14.0**
 
-Completed:
+Implemented capabilities include:
 
-- Python project initialized
-- GitHub repository established
-- Secure OpenAI API integration
-- Environment variable configuration
-- Modular application architecture
-- External system prompt
-- First end-to-end Recovery Companion conversation
+- Recovery-focused AI chat
+- Recovery Knowledge Standard (RKS) behavioral safeguards
+- Local structured journal
+- Journal search and tag filtering
+- User-initiated AI journal analysis
+- Step Work assignments and reflection
+- AI-assisted Step Work without AI-controlled progression
+- Local Fellowship contacts
+- Human-connection prioritization
+- Daily Recovery Dashboard
+- Sobriety-date tracking
+- Daily Recovery Check-In
+- Check-In history and trends
+- User-initiated AI Check-In analysis
+- Local recovery data storage
+- Automated unit tests
+- Automated RKS evaluations
 
-In Progress:
+The current command-line application is an MVP and development platform for the larger Recovery Companion product.
 
-- Recovery Knowledge System (RKS)
-- Prompt engineering
-- Conversation architecture
-- Long-term memory design
+## Recovery Knowledge Standard
 
-Planned:
+Recovery Companion uses a Recovery Knowledge Standard (RKS) to test important AI behaviors.
 
-- Journal
-- Step work
-- Sponsor dashboard
-- Fellowship hub
-- Mobile application
-- Cloud memory infrastructure
-- Azure/AWS deployment
+Examples include:
 
----
+- Curiosity before counsel
+- Reflection before guidance
+- Presence before prescription during grief
+- Careful handling of shame and sacred disclosures
+- Human connection before AI dependence
+- Tentative language when identifying possible patterns
+- Supporting Step Work without controlling progression
+- Nonjudgmental Daily Check-In analysis
+
+The RKS evaluation suite runs automatically through GitHub Actions.
+
+## Local Data
+
+The current MVP stores recovery data locally on the user's computer.
+
+Local data includes:
+
+- Journal entries
+- Step Work
+- Fellowship contacts
+- Sobriety profile information
+- Daily Check-Ins
+
+AI analysis is explicitly user initiated where designed.
 
 ## Project Structure
 
-```
+```text
 recovery-companion/
-│
-├── app/
-├── docs/
-├── prompts/
-├── main.py
-├── README.md
-├── requirements.txt
-└── .env
+|-- app/
+|-- data/
+|-- docs/
+|-- prompts/
+|-- tests/
+|-- main.py
+|-- README.md
+|-- requirements.txt
+`-- .env
 ```
-
----
 
 ## Getting Started
 
-Clone the repository:
+### Requirements
+
+- Python 3.12+
+- Git
+- OpenAI API key
+
+### 1. Clone the repository
 
 ```bash
 git clone https://github.com/afyoung3083/recovery-companion.git
 cd recovery-companion
 ```
 
-Create a virtual environment:
+### 2. Create a virtual environment
 
 ```bash
 python -m venv .venv
 ```
 
-Activate it:
+### 3. Activate the virtual environment
 
-Windows PowerShell
+Windows PowerShell:
 
 ```powershell
 .\.venv\Scripts\Activate.ps1
 ```
 
-Install dependencies:
+macOS/Linux:
 
 ```bash
-pip install -r requirements.txt
+source .venv/bin/activate
 ```
 
-Create a `.env` file:
+### 4. Install dependencies
+
+```bash
+python -m pip install -r requirements.txt
+```
+
+### 5. Configure the environment
+
+Create a `.env` file in the project root:
 
 ```text
 OPENAI_API_KEY=your_api_key_here
 ```
 
-Run the application:
+Do not commit `.env` or API keys to source control.
+
+### 6. Run Recovery Companion
 
 ```bash
 python main.py
 ```
 
----
+## Testing
+
+Run the conventional unit-test suite:
+
+```bash
+python -m pytest -v
+```
+
+Run the Recovery Knowledge Standard evaluation suite:
+
+```bash
+python -m tests.run_rks_evals
+```
+
+Both test layers also run automatically through GitHub Actions.
 
 ## Technology Stack
 
 - Python 3.12+
 - OpenAI API
 - python-dotenv
-- Git / GitHub
-
-Future:
-
-- Flutter
-- Azure or AWS
-- PostgreSQL
-- Azure OpenAI (optional)
-- Azure Key Vault
-- Azure App Service / Container Apps
-
----
+- pytest
+- Git
+- GitHub Actions
 
 ## Guiding Principles
 
-Recovery Companion always seeks to:
+Recovery Companion seeks to:
 
-- Put safety first
 - Encourage human connection before AI dependence
 - Reflect before advising
-- Promote action over analysis
-- Celebrate progress, not perfection
-- Support—not replace—the Twelve-Step program
+- Use curiosity before prescription
+- Promote practical recovery action
+- Recognize progress without shame
+- Treat inferred motives and patterns tentatively
+- Support rather than control Twelve-Step progression
+- Protect user choice over when recovery information is analyzed by AI
 
----
+## v1.0.0 Readiness
+
+Release readiness is tracked in:
+
+```text
+docs/V1_ACCEPTANCE.md
+```
+
+`v1.0.0` will represent the first stable command-line MVP after the acceptance checklist and final regression testing are complete.
+
+## Longer-Term Direction
+
+Future development may include:
+
+- Mobile application
+- Secure cloud synchronization
+- Long-term recovery memory
+- Sponsor/sponsee sharing controlled by the user
+- Expanded fellowship tools
+- Notifications and recovery routines
+- Production cloud infrastructure
 
 ## Disclaimer
 
-Recovery Companion is an educational and recovery-support tool.
+Recovery Companion is a recovery-support and educational tool.
 
 It is **not** a sponsor, therapist, physician, attorney, clergy member, or emergency service.
 
-Users experiencing an emergency should immediately contact local emergency services or an appropriate crisis resource.
-
----
-
-## Roadmap
-
-- Sprint 1 — Foundation ✅
-- Sprint 2 — Recovery Knowledge System
-- Sprint 3 — Conversation Memory
-- Sprint 4 — Journal
-- Sprint 5 — Step Work
-- Sprint 6 — Fellowship
-- Sprint 7 — Sponsor Dashboard
-- Sprint 8 — Cloud Memory
-- Sprint 9 — Mobile Application
-- Sprint 10 — Public Beta
-
----
+In an emergency, users should contact appropriate local emergency services.
 
 ## License
 
-To be determined.
+See `LICENSE.md`.
