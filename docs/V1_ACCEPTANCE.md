@@ -4,38 +4,38 @@ Recovery Companion may be released as v1.0.0 when all items below are satisfied.
 
 ## Core Recovery Experience
 
-- [ ] Chat follows Recovery Knowledge Standard behavior.
-- [ ] Journal entries can be created, viewed, searched, filtered, and analyzed.
-- [ ] Step Work supports assignments and AI-assisted reflection without controlling progression.
-- [ ] Fellowship contacts can be stored locally and prioritized for connection.
-- [ ] Daily Check-In can be completed and reviewed.
-- [ ] Dashboard summarizes current recovery information.
-- [ ] Check-In history and trends are available.
-- [ ] Check-In AI analysis is explicitly user initiated.
+- [x] Chat follows Recovery Knowledge Standard behavior.
+- [x] Journal entries can be created, viewed, searched, filtered, and analyzed.
+- [x] Step Work supports assignments and AI-assisted reflection without controlling progression.
+- [x] Fellowship contacts can be stored locally and prioritized for connection.
+- [x] Daily Check-In can be completed and reviewed.
+- [x] Dashboard summarizes current recovery information.
+- [x] Check-In history and trends are available.
+- [x] Check-In AI analysis is explicitly user initiated.
 
 ## Recovery Safety and Behavior
 
-- [ ] Full RKS evaluation suite passes.
-- [ ] Human connection is prioritized where appropriate.
-- [ ] AI uses tentative language for inferred motives and patterns.
-- [ ] AI does not shame incomplete recovery actions.
-- [ ] AI does not independently determine Step progression.
-- [ ] AI analysis requires explicit user initiation where designed.
+- [x] Full RKS evaluation suite passes.
+- [x] Human connection is prioritized where appropriate.
+- [x] AI uses tentative language for inferred motives and patterns.
+- [x] AI does not shame incomplete recovery actions.
+- [x] AI does not independently determine Step progression.
+- [x] AI analysis requires explicit user initiation where designed.
 
 ## Reliability
 
-- [ ] Full pytest suite passes.
-- [ ] GitHub Actions runs unit tests automatically.
-- [ ] GitHub Actions runs RKS evaluations automatically.
-- [ ] Application starts successfully in a clean environment.
-- [ ] Local data survives application restart.
-- [ ] No known critical defects remain.
+- [x] Full pytest suite passes.
+- [x] GitHub Actions runs unit tests automatically.
+- [x] GitHub Actions runs RKS evaluations automatically.
+- [x] Application starts successfully in a clean environment.
+- [x] Local data survives application restart.
+- [x] No known critical defects remain.
 
 ## Release Readiness
 
-- [ ] Application version comes from one centralized source.
-- [ ] README accurately describes the current product.
-- [ ] CHANGELOG documents the path to v1.0.0.
-- [ ] Installation instructions work from a fresh clone.
-- [ ] Required environment variables are documented without exposing secrets.
-- [ ] Final v1.0.0 regression test passes.
+- [x] Application version comes from one centralized source.
+- [x] README accurately describes the current product.
+- [x] CHANGELOG documents the path to v1.0.0.
+- [x] Installation instructions work from a fresh clone.
+- [x] Required environment variables are documented without exposing secrets.
+- [x] Final v1.0.0 regression test passes.
