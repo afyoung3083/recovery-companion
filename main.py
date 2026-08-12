@@ -43,6 +43,7 @@ from app.dashboard import build_dashboard
 from datetime import date
 from app.profile import set_sobriety_date
 from app.version import __version__
+from app.weekly_review import build_weekly_review
 
 def run_chat() -> None:
     conversation: list[dict[str, str]] = []
@@ -702,6 +703,11 @@ def analyze_recent_checkins() -> None:
     print(analyze_checkin_trends(checkin_text))
     print()
 
+def view_weekly_review() -> None:
+    print()
+    print(build_weekly_review())
+    print()
+
 def main() -> None:
     print("=" * 50)
     print(f"Recovery Companion v{__version__}")
@@ -710,21 +716,22 @@ def main() -> None:
     while True:
         print()
         print("1. Dashboard")
-        print("2. Daily Check-In")
-        print("3. View Today's Check-In")
-        print("4. Check-In History")
-        print("5. Check-In Trends")
-        print("6. Analyze Recent Check-Ins")
-        print("7. Set Sobriety Date")
-        print("8. Chat")
-        print("9. Write Journal Entry")
-        print("10. View Journal")
-        print("11. Search Journal")
-        print("12. Filter Journal by Tag")
-        print("13. Analyze Journal Entry")
-        print("14. Step Work")
-        print("15. Fellowship")
-        print("16. Exit")
+        print("2. Weekly Recovery Review")
+        print("3. Daily Check-In")
+        print("4. View Today's Check-In")
+        print("5. Check-In History")
+        print("6. Check-In Trends")
+        print("7. Analyze Recent Check-Ins")
+        print("8. Set Sobriety Date")
+        print("9. Chat")
+        print("10. Write Journal Entry")
+        print("11. View Journal")
+        print("12. Search Journal")
+        print("13. Filter Journal by Tag")
+        print("14. Analyze Journal Entry")
+        print("15. Step Work")
+        print("16. Fellowship")
+        print("17. Exit")
         print()
 
         choice = input(
@@ -734,38 +741,40 @@ def main() -> None:
         if choice == "1":
             view_dashboard()
         elif choice == "2":
-            run_daily_checkin()
+            view_weekly_review()
         elif choice == "3":
-            view_today_checkin()
+            run_daily_checkin()
         elif choice == "4":
-            view_checkin_history()
+            view_today_checkin()
         elif choice == "5":
-            view_checkin_trends()
+            view_checkin_history()
         elif choice == "6":
-            analyze_recent_checkins()
+            view_checkin_trends()
         elif choice == "7":
-            change_sobriety_date()
+            analyze_recent_checkins()
         elif choice == "8":
-            run_chat()
+            change_sobriety_date()
         elif choice == "9":
-            write_journal_entry()
+            run_chat()
         elif choice == "10":
-            view_journal()
+            write_journal_entry()
         elif choice == "11":
-            search_journal()
+            view_journal()
         elif choice == "12":
-            filter_journal_by_tag()
+            search_journal()
         elif choice == "13":
-            analyze_journal()
+            filter_journal_by_tag()
         elif choice == "14":
-            run_step_work_menu()
+            analyze_journal()
         elif choice == "15":
-            run_fellowship_menu()
+            run_step_work_menu()
         elif choice == "16":
+            run_fellowship_menu()
+        elif choice == "17":
             print("Recovery Companion: Take care. Keep coming back.")
             break
         else:
-            print("Please choose 1 through 16.")
+            print("Please choose 1 through 17.")
 
 
 if __name__ == "__main__":
