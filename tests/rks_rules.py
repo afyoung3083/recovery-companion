@@ -329,6 +329,68 @@ def checkin_has_no_more_than_three_next_actions(
         detail=f"Found {action_count} next-right action item(s).",
     )
 
+def weekly_review_has_no_more_than_three_next_actions(
+    response: str,
+) -> RuleResult:
+    lines = normalize_text(response).splitlines()
+
+    in_action_section = False
+    action_count = 0
+    numbered_action_started = False
+    expected_number = 1
+
+    for line in lines:
+        stripped = line.strip()
+
+        if not in_action_section:
+            if "next-right actions" in stripped.lower():
+                in_action_section = True
+            continue
+
+        if not stripped:
+            continue
+
+        numbered_match = re.match(
+            r"^(\d+)[.)]\s+",
+            stripped,
+        )
+
+        if numbered_match:
+            number = int(numbered_match.group(1))
+
+            if number != expected_number:
+                break
+
+            numbered_action_started = True
+            action_count += 1
+            expected_number += 1
+            continue
+
+        if re.match(r"^[-*]\s+", stripped):
+            if numbered_action_started:
+                continue
+
+            action_count += 1
+            continue
+
+        if action_count > 0:
+            break
+
+    if not in_action_section:
+        return RuleResult(
+            rule="weekly_review_has_no_more_than_three_next_actions",
+            passed=False,
+            detail="Could not find the weekly-review next-right-actions section.",
+        )
+
+    passed = action_count <= 3
+
+    return RuleResult(
+        rule="weekly_review_has_no_more_than_three_next_actions",
+        passed=passed,
+        detail=f"Found {action_count} next-right action item(s).",
+    )
+
 RULES: dict[str, RuleCheck] = {
     "ends_with_question": ends_with_question,
     "contains_no_numbered_action_list": contains_no_numbered_action_list,
@@ -347,6 +409,9 @@ RULES: dict[str, RuleCheck] = {
     ),
     "checkin_has_no_more_than_three_next_actions": (
     checkin_has_no_more_than_three_next_actions
+    ),
+    "weekly_review_has_no_more_than_three_next_actions": (
+    weekly_review_has_no_more_than_three_next_actions
     ),
 }
 

@@ -9,6 +9,7 @@ from app.recovery_engine import (
     analyze_checkin_trends,
     analyze_journal_entry,
     analyze_step_work,
+    analyze_weekly_review,
     respond_to_user,
 )
 from app.step_work import (
@@ -708,6 +709,34 @@ def view_weekly_review() -> None:
     print(build_weekly_review())
     print()
 
+def analyze_weekly_recovery_review() -> None:
+    print()
+    print("Analyze Weekly Recovery Review")
+    print("=" * 50)
+
+    weekly_review_text = build_weekly_review()
+
+    print(weekly_review_text)
+    print()
+    print(
+        "Only the weekly recovery summary shown above "
+        "will be sent to the AI."
+    )
+
+    confirm = input(
+        "Analyze this weekly review? (y/n): "
+    ).strip().lower()
+
+    if confirm != "y":
+        print("Analysis cancelled.")
+        print()
+        return
+
+    print()
+    print("Recovery Companion Weekly Review Analysis:")
+    print(analyze_weekly_review(weekly_review_text))
+    print()
+
 def main() -> None:
     print("=" * 50)
     print(f"Recovery Companion v{__version__}")
@@ -717,64 +746,65 @@ def main() -> None:
         print()
         print("1. Dashboard")
         print("2. Weekly Recovery Review")
-        print("3. Daily Check-In")
-        print("4. View Today's Check-In")
-        print("5. Check-In History")
-        print("6. Check-In Trends")
-        print("7. Analyze Recent Check-Ins")
-        print("8. Set Sobriety Date")
-        print("9. Chat")
-        print("10. Write Journal Entry")
-        print("11. View Journal")
-        print("12. Search Journal")
-        print("13. Filter Journal by Tag")
-        print("14. Analyze Journal Entry")
-        print("15. Step Work")
-        print("16. Fellowship")
-        print("17. Exit")
+        print("3. Analyze Weekly Recovery Review")
+        print("4. Daily Check-In")
+        print("5. View Today's Check-In")
+        print("6. Check-In History")
+        print("7. Check-In Trends")
+        print("8. Analyze Recent Check-Ins")
+        print("9. Set Sobriety Date")
+        print("10. Chat")
+        print("11. Write Journal Entry")
+        print("12. View Journal")
+        print("13. Search Journal")
+        print("14. Filter Journal by Tag")
+        print("15. Analyze Journal Entry")
+        print("16. Step Work")
+        print("17. Fellowship")
+        print("18. Exit")
         print()
 
-        choice = input(
-            "Choose an option: "
-        ).strip()
+        choice = input("Choose an option: ").strip()
 
         if choice == "1":
             view_dashboard()
         elif choice == "2":
             view_weekly_review()
         elif choice == "3":
-            run_daily_checkin()
+            analyze_weekly_recovery_review()
         elif choice == "4":
-            view_today_checkin()
+            run_daily_checkin()
         elif choice == "5":
-            view_checkin_history()
+            view_today_checkin()
         elif choice == "6":
-            view_checkin_trends()
+            view_checkin_history()
         elif choice == "7":
-            analyze_recent_checkins()
+            view_checkin_trends()
         elif choice == "8":
-            change_sobriety_date()
+            analyze_recent_checkins()
         elif choice == "9":
-            run_chat()
+            change_sobriety_date()
         elif choice == "10":
-            write_journal_entry()
+            run_chat()
         elif choice == "11":
-            view_journal()
+            write_journal_entry()
         elif choice == "12":
-            search_journal()
+            view_journal()
         elif choice == "13":
-            filter_journal_by_tag()
+            search_journal()
         elif choice == "14":
-            analyze_journal()
+            filter_journal_by_tag()
         elif choice == "15":
-            run_step_work_menu()
+            analyze_journal()
         elif choice == "16":
-            run_fellowship_menu()
+            run_step_work_menu()
         elif choice == "17":
+            run_fellowship_menu()
+        elif choice == "18":
             print("Recovery Companion: Take care. Keep coming back.")
             break
         else:
-            print("Please choose 1 through 17.")
+            print("Please choose 1 through 18.")
 
 
 if __name__ == "__main__":
