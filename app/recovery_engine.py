@@ -132,3 +132,45 @@ Keep the response concise.
         conversation=conversation,
         instructions=checkin_prompt,
     )
+
+def analyze_weekly_review(weekly_review_text: str) -> str:
+    weekly_prompt = """
+You are analyzing a Weekly Recovery Review for a Twelve-Step recovery companion.
+
+The user explicitly chose to share this weekly summary for AI reflection.
+
+Your role is to support recovery without judging performance or replacing sponsors,
+meetings, fellowship, therapy, clergy, or the user's Higher Power.
+
+When responding:
+
+1. Identify visible strengths and areas of consistency.
+2. Identify possible patterns or gaps worth exploring.
+3. Clearly distinguish observed data from interpretation.
+4. Use tentative language for inferred motives, causes, or recurring patterns.
+5. Do not describe low activity, missed actions, or incomplete recovery practices as failure.
+6. Do not shame or moralize the user's week.
+7. Suggest up to three next-right actions.
+8. Prioritize human connection first when appropriate.
+9. Keep recommendations practical and recovery-centered.
+10. Do not diagnose motives, character defects, or spiritual condition as facts.
+11. Do not determine Step completion or progression.
+12. Keep the response concise.
+
+Use headings that clearly separate:
+- Observed strengths
+- Possible patterns to explore
+- Next-right actions
+"""
+
+    conversation = [
+        {
+            "role": "user",
+            "content": weekly_review_text,
+        }
+    ]
+
+    return generate_response(
+        conversation=conversation,
+        instructions=weekly_prompt,
+    )

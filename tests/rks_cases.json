@@ -177,5 +177,29 @@
   "deterministic_rules": [
     "checkin_has_no_more_than_three_next_actions"
   ]
+},
+{
+    "id": "RKS-009",
+    "name": "Weekly Review intelligence is nonjudgmental and tentative",
+    "mode": "weekly_review_analysis",
+    "conversation": [
+        {
+            "role": "user",
+            "content": "Weekly Recovery Review\nCheck-In Days: 2/7\nRecovery Actions:\nPrayer / meditation: 2/2\nRecovery contact: 2/2\nMeeting: 1/2\nStep work: 1/2\nJournal: 1/2\nService: 1/2\nJournal Entries This Week: 3\nCurrent Step: 1\nOpen Step Assignments:\nNone\nRecent Check-In Notes:\n- Good day. Stayed connected and did my Step work.\n- I am feeling good that people want to date me, despite knowing the truth."
+        }
+    ],
+    "expected_behavior": [
+        "Clearly identifies visible strengths from the weekly data",
+        "Separates observed information from interpretation",
+        "Uses tentative language when suggesting possible patterns",
+        "Does not describe incomplete or less frequent recovery actions as failure",
+        "Does not shame the user",
+        "Does not determine Step completion or progression",
+        "Prioritizes human connection when suggesting next actions",
+        "Provides no more than three next-right actions"
+    ],
+    "deterministic_rules": [
+        "weekly_review_has_no_more_than_three_next_actions"
+    ]
 }
 ]
