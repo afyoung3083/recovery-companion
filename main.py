@@ -1,3 +1,25 @@
+from datetime import date
+
+# ============================================================
+# Application modules
+# ============================================================
+
+from app.daily_checkin import (
+    format_checkin,
+    format_checkin_history,
+    format_checkin_trends,
+    get_checkin_for_date,
+    get_recent_checkins,
+    save_daily_checkin,
+)
+from app.dashboard import build_dashboard
+from app.fellowship import (
+    add_contact,
+    format_contacts,
+    load_contacts,
+    recommend_contacts,
+    set_contact_active,
+)
 from app.journal import (
     add_entry,
     filter_entries_by_tag,
@@ -5,6 +27,7 @@ from app.journal import (
     load_entries,
     search_entries,
 )
+from app.profile import set_sobriety_date
 from app.recovery_engine import (
     analyze_checkin_trends,
     analyze_journal_entry,
@@ -20,33 +43,23 @@ from app.step_work import (
     load_step_work,
     set_current_step,
 )
-from app.fellowship import (
-    add_contact,
-    format_contacts,
-    load_contacts,
-    recommend_contacts,
-    set_contact_active,
-)
-from app.daily_checkin import(
-    format_checkin,
-    get_checkin_for_date,
-    save_daily_checkin,
-)
-from app.daily_checkin import (
-    format_checkin,
-    format_checkin_history,
-    format_checkin_trends,
-    get_checkin_for_date,
-    get_recent_checkins,
-    save_daily_checkin,
-)
-from app.dashboard import build_dashboard
-from datetime import date
-from app.profile import set_sobriety_date
 from app.version import __version__
-from app.weekly_review import build_weekly_review
+from app.weekly_review import (
+    build_weekly_review,
+    compare_latest_weekly_reviews,
+    format_weekly_review_history,
+    load_weekly_review_history,
+    save_weekly_review_snapshot,
+)
+
+
+# ============================================================
+# Chat
+# ============================================================
 
 def run_chat() -> None:
+    """Run the conversational Recovery Companion chat."""
+
     conversation: list[dict[str, str]] = []
 
     print()
@@ -94,7 +107,13 @@ def run_chat() -> None:
         print()
 
 
+# ============================================================
+# Journal
+# ============================================================
+
 def write_journal_entry() -> None:
+    """Create and save a local journal entry."""
+
     print()
     print("New Journal Entry")
     print("Enter your journal entry on one line.")
@@ -108,6 +127,7 @@ def write_journal_entry() -> None:
         return
 
     print()
+
     tag_input = input(
         "Tags (comma-separated, optional): "
     ).strip()
@@ -129,6 +149,8 @@ def write_journal_entry() -> None:
 
 
 def view_journal() -> None:
+    """Display all saved journal entries."""
+
     print()
     print("Journal Entries")
     print("=" * 50)
@@ -137,6 +159,8 @@ def view_journal() -> None:
 
 
 def search_journal() -> None:
+    """Search journal text and tags."""
+
     print()
     print("Search Journal")
     print("=" * 50)
@@ -159,6 +183,8 @@ def search_journal() -> None:
 
 
 def filter_journal_by_tag() -> None:
+    """Show journal entries containing a specific tag."""
+
     print()
     print("Filter Journal by Tag")
     print("=" * 50)
@@ -181,6 +207,8 @@ def filter_journal_by_tag() -> None:
 
 
 def analyze_journal() -> None:
+    """Send one explicitly selected journal entry to the AI."""
+
     print()
     print("Analyze Journal Entry")
     print("=" * 50)
@@ -195,7 +223,9 @@ def analyze_journal() -> None:
     print(format_entries(entries))
     print()
 
-    entry_id_input = input("Entry ID to analyze: ").strip()
+    entry_id_input = input(
+        "Entry ID to analyze: "
+    ).strip()
 
     if not entry_id_input.isdigit():
         print("Please enter a valid journal entry ID.")
@@ -240,7 +270,13 @@ def analyze_journal() -> None:
     print()
 
 
+# ============================================================
+# Step Work
+# ============================================================
+
 def view_step_work() -> None:
+    """Display the user's current Step Work."""
+
     print()
     print("Step Work")
     print("=" * 50)
@@ -249,6 +285,8 @@ def view_step_work() -> None:
 
 
 def change_current_step() -> None:
+    """Change the locally stored current Step."""
+
     print()
 
     step_input = input(
@@ -274,6 +312,8 @@ def change_current_step() -> None:
 
 
 def create_step_assignment() -> None:
+    """Add an assignment to the current Step."""
+
     print()
 
     text = input("Assignment: ").strip()
@@ -293,6 +333,8 @@ def create_step_assignment() -> None:
 
 
 def mark_step_assignment_complete() -> None:
+    """Mark a Step assignment complete by ID."""
+
     print()
 
     assignment_input = input(
@@ -320,6 +362,8 @@ def mark_step_assignment_complete() -> None:
 
 
 def create_step_note() -> None:
+    """Add a note to the current Step."""
+
     print()
 
     text = input("Step note: ").strip()
@@ -339,6 +383,8 @@ def create_step_note() -> None:
 
 
 def analyze_current_step_work() -> None:
+    """Explicitly send the current Step Work summary to the AI."""
+
     print()
     print("Analyze Current Step Work")
     print("=" * 50)
@@ -370,6 +416,8 @@ def analyze_current_step_work() -> None:
 
 
 def run_step_work_menu() -> None:
+    """Run the Step Work submenu."""
+
     while True:
         print()
         print("Step Work")
@@ -406,7 +454,14 @@ def run_step_work_menu() -> None:
                 "Please choose 1, 2, 3, 4, 5, 6, or 7."
             )
 
+
+# ============================================================
+# Fellowship
+# ============================================================
+
 def view_fellowship_contacts() -> None:
+    """Display locally stored fellowship contacts."""
+
     print()
     print("Fellowship Contacts")
     print("=" * 50)
@@ -415,6 +470,8 @@ def view_fellowship_contacts() -> None:
 
 
 def create_fellowship_contact() -> None:
+    """Add a new fellowship/support contact."""
+
     print()
     print("Add Fellowship Contact")
     print("=" * 50)
@@ -460,6 +517,8 @@ def create_fellowship_contact() -> None:
 
 
 def change_fellowship_contact_status() -> None:
+    """Activate or deactivate a stored fellowship contact."""
+
     print()
 
     contact_id_input = input(
@@ -488,14 +547,22 @@ def change_fellowship_contact_status() -> None:
     if contact is None:
         print("Contact not found.")
     else:
-        status = "active" if contact["active"] else "inactive"
+        status = (
+            "active"
+            if contact["active"]
+            else "inactive"
+        )
+
         print(
             f"{contact['handle']} is now {status}."
         )
 
     print()
 
+
 def who_should_i_call() -> None:
+    """Recommend up to three active human contacts."""
+
     print()
     print("Who Should I Call?")
     print("=" * 50)
@@ -513,7 +580,10 @@ def who_should_i_call() -> None:
     print("Recommended contacts:")
     print()
 
-    for index, contact in enumerate(contacts, start=1):
+    for index, contact in enumerate(
+        contacts,
+        start=1,
+    ):
         print(
             f"{index}. {contact['handle']} "
             f"({contact['contact_type']})"
@@ -531,12 +601,10 @@ def who_should_i_call() -> None:
 
     print()
 
-def view_dashboard() -> None:
-    print()
-    print(build_dashboard())
-    print()    
 
 def run_fellowship_menu() -> None:
+    """Run the Fellowship submenu."""
+
     while True:
         print()
         print("Fellowship")
@@ -548,7 +616,9 @@ def run_fellowship_menu() -> None:
         print("5. Back")
         print()
 
-        choice = input("Choose an option: ").strip()
+        choice = input(
+            "Choose an option: "
+        ).strip()
 
         if choice == "1":
             view_fellowship_contacts()
@@ -561,37 +631,18 @@ def run_fellowship_menu() -> None:
         elif choice == "5":
             return
         else:
-            print("Please choose 1, 2, 3, 4, or 5.")
+            print(
+                "Please choose 1, 2, 3, 4, or 5."
+            )
 
-def change_sobriety_date() -> None:
-    print()
-    print("Set Sobriety Date")
-    print("=" * 50)
 
-    sobriety_date_input = input(
-        "Sobriety date (YYYY-MM-DD): "
-    ).strip()
-
-    try:
-        sobriety_date = date.fromisoformat(sobriety_date_input)
-    except ValueError:
-        print("Please enter a valid date in YYYY-MM-DD format.")
-        print()
-        return
-
-    if sobriety_date > date.today():
-        print("Sobriety date cannot be in the future.")
-        print()
-        return
-
-    set_sobriety_date(sobriety_date.isoformat())
-
-    print(
-        f"Sobriety date set to {sobriety_date.isoformat()}."
-    )
-    print()
+# ============================================================
+# Daily Check-In
+# ============================================================
 
 def run_daily_checkin() -> None:
+    """Create or update today's Daily Recovery Check-In."""
+
     print()
     print("Daily Check-In")
     print("=" * 50)
@@ -615,6 +666,7 @@ def run_daily_checkin() -> None:
         values[field] = response == "y"
 
     print()
+
     note = input(
         "Daily note (optional): "
     ).strip()
@@ -632,6 +684,8 @@ def run_daily_checkin() -> None:
 
 
 def view_today_checkin() -> None:
+    """Display today's saved check-in."""
+
     print()
     print(
         format_checkin(
@@ -642,7 +696,10 @@ def view_today_checkin() -> None:
     )
     print()
 
+
 def view_checkin_history() -> None:
+    """Display the seven most recent check-ins."""
+
     print()
     print("Recent Check-In History")
     print("=" * 50)
@@ -654,6 +711,8 @@ def view_checkin_history() -> None:
 
 
 def view_checkin_trends() -> None:
+    """Display deterministic trends from recent check-ins."""
+
     print()
     print("Check-In Trends")
     print("=" * 50)
@@ -663,7 +722,10 @@ def view_checkin_trends() -> None:
     print(format_checkin_trends(checkins))
     print()
 
+
 def analyze_recent_checkins() -> None:
+    """Explicitly send recent check-in summaries to the AI."""
+
     print()
     print("Analyze Recent Check-Ins")
     print("=" * 50)
@@ -685,6 +747,7 @@ def analyze_recent_checkins() -> None:
 
     print(checkin_text)
     print()
+
     print(
         "Only the recent check-in summary shown above "
         "will be sent to the AI."
@@ -704,12 +767,22 @@ def analyze_recent_checkins() -> None:
     print(analyze_checkin_trends(checkin_text))
     print()
 
+
+# ============================================================
+# Weekly Recovery Review
+# ============================================================
+
 def view_weekly_review() -> None:
+    """Build and display the current deterministic weekly review."""
+
     print()
     print(build_weekly_review())
     print()
 
+
 def analyze_weekly_recovery_review() -> None:
+    """Explicitly send the current weekly review to the AI."""
+
     print()
     print("Analyze Weekly Recovery Review")
     print("=" * 50)
@@ -718,6 +791,7 @@ def analyze_weekly_recovery_review() -> None:
 
     print(weekly_review_text)
     print()
+
     print(
         "Only the weekly recovery summary shown above "
         "will be sent to the AI."
@@ -737,7 +811,103 @@ def analyze_weekly_recovery_review() -> None:
     print(analyze_weekly_review(weekly_review_text))
     print()
 
+
+def save_current_weekly_review() -> None:
+    """Save or replace the current week's local snapshot."""
+
+    print()
+    print("Save Weekly Recovery Review")
+    print("=" * 50)
+
+    snapshot = save_weekly_review_snapshot()
+
+    print(
+        "Saved weekly review: "
+        f"{snapshot['week_start']} to {snapshot['week_end']}"
+    )
+    print()
+
+
+def view_weekly_review_history() -> None:
+    """Display previously saved weekly snapshots."""
+
+    print()
+    print(
+        format_weekly_review_history(
+            load_weekly_review_history()
+        )
+    )
+    print()
+
+
+def compare_weekly_reviews() -> None:
+    """Compare the two most recently saved weekly snapshots."""
+
+    print()
+    print(
+        compare_latest_weekly_reviews(
+            load_weekly_review_history()
+        )
+    )
+    print()
+
+
+# ============================================================
+# Dashboard and Profile
+# ============================================================
+
+def view_dashboard() -> None:
+    """Display the Daily Recovery Dashboard."""
+
+    print()
+    print(build_dashboard())
+    print()
+
+
+def change_sobriety_date() -> None:
+    """Validate and save the user's sobriety date."""
+
+    print()
+    print("Set Sobriety Date")
+    print("=" * 50)
+
+    sobriety_date_input = input(
+        "Sobriety date (YYYY-MM-DD): "
+    ).strip()
+
+    try:
+        sobriety_date = date.fromisoformat(
+            sobriety_date_input
+        )
+    except ValueError:
+        print(
+            "Please enter a valid date in YYYY-MM-DD format."
+        )
+        print()
+        return
+
+    if sobriety_date > date.today():
+        print("Sobriety date cannot be in the future.")
+        print()
+        return
+
+    set_sobriety_date(
+        sobriety_date.isoformat()
+    )
+
+    print(
+        f"Sobriety date set to {sobriety_date.isoformat()}."
+    )
+    print()
+
+
+# ============================================================
+# Main Menu
+# ============================================================
+
 def main() -> None:
+    """Start Recovery Companion and run the main CLI menu."""
+
     print("=" * 50)
     print(f"Recovery Companion v{__version__}")
     print("=" * 50)
@@ -747,24 +917,29 @@ def main() -> None:
         print("1. Dashboard")
         print("2. Weekly Recovery Review")
         print("3. Analyze Weekly Recovery Review")
-        print("4. Daily Check-In")
-        print("5. View Today's Check-In")
-        print("6. Check-In History")
-        print("7. Check-In Trends")
-        print("8. Analyze Recent Check-Ins")
-        print("9. Set Sobriety Date")
-        print("10. Chat")
-        print("11. Write Journal Entry")
-        print("12. View Journal")
-        print("13. Search Journal")
-        print("14. Filter Journal by Tag")
-        print("15. Analyze Journal Entry")
-        print("16. Step Work")
-        print("17. Fellowship")
-        print("18. Exit")
+        print("4. Save Weekly Recovery Review")
+        print("5. Weekly Review History")
+        print("6. Compare Weekly Reviews")
+        print("7. Daily Check-In")
+        print("8. View Today's Check-In")
+        print("9. Check-In History")
+        print("10. Check-In Trends")
+        print("11. Analyze Recent Check-Ins")
+        print("12. Set Sobriety Date")
+        print("13. Chat")
+        print("14. Write Journal Entry")
+        print("15. View Journal")
+        print("16. Search Journal")
+        print("17. Filter Journal by Tag")
+        print("18. Analyze Journal Entry")
+        print("19. Step Work")
+        print("20. Fellowship")
+        print("21. Exit")
         print()
 
-        choice = input("Choose an option: ").strip()
+        choice = input(
+            "Choose an option: "
+        ).strip()
 
         if choice == "1":
             view_dashboard()
@@ -773,39 +948,50 @@ def main() -> None:
         elif choice == "3":
             analyze_weekly_recovery_review()
         elif choice == "4":
-            run_daily_checkin()
+            save_current_weekly_review()
         elif choice == "5":
-            view_today_checkin()
+            view_weekly_review_history()
         elif choice == "6":
-            view_checkin_history()
+            compare_weekly_reviews()
         elif choice == "7":
-            view_checkin_trends()
+            run_daily_checkin()
         elif choice == "8":
-            analyze_recent_checkins()
+            view_today_checkin()
         elif choice == "9":
-            change_sobriety_date()
+            view_checkin_history()
         elif choice == "10":
-            run_chat()
+            view_checkin_trends()
         elif choice == "11":
-            write_journal_entry()
+            analyze_recent_checkins()
         elif choice == "12":
-            view_journal()
+            change_sobriety_date()
         elif choice == "13":
-            search_journal()
+            run_chat()
         elif choice == "14":
-            filter_journal_by_tag()
+            write_journal_entry()
         elif choice == "15":
-            analyze_journal()
+            view_journal()
         elif choice == "16":
-            run_step_work_menu()
+            search_journal()
         elif choice == "17":
-            run_fellowship_menu()
+            filter_journal_by_tag()
         elif choice == "18":
-            print("Recovery Companion: Take care. Keep coming back.")
+            analyze_journal()
+        elif choice == "19":
+            run_step_work_menu()
+        elif choice == "20":
+            run_fellowship_menu()
+        elif choice == "21":
+            print(
+                "Recovery Companion: "
+                "Take care. Keep coming back."
+            )
             break
         else:
-            print("Please choose 1 through 18.")
+            print("Please choose 1 through 21.")
 
 
+# Only start the CLI when this file is executed directly.
+# Importing main.py from a test or another module will not launch the menu.
 if __name__ == "__main__":
     main()
