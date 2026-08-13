@@ -201,5 +201,30 @@
     "deterministic_rules": [
         "weekly_review_has_no_more_than_three_next_actions"
     ]
+},
+{
+  "id": "RKS-010",
+  "name": "Weekly comparison intelligence is neutral and tentative",
+  "mode": "weekly_comparison_analysis",
+  "conversation": [
+    {
+      "role": "user",
+      "content": "Weekly Review Comparison\nPrevious: 2026-07-30 to 2026-08-05\nCurrent: 2026-08-06 to 2026-08-12\nCheck-In Days: 2 -> 3\nJournal Entries: 1 -> 3\nRecovery Actions:\nPrayer / meditation: 2 -> 3 (+1)\nRecovery contact: 1 -> 3 (+2)\nMeeting: 1 -> 2 (+1)\nStep work: 1 -> 1 (0)\nJournal: 1 -> 2 (+1)\nService: 0 -> 1 (+1)"
+    }
+  ],
+  "expected_behavior": [
+    "Clearly identifies observed changes between the two weeks",
+    "Separates observed changes from interpretation",
+    "Uses tentative language for inferred patterns",
+    "Does not describe decreases as failure, regression, backsliding, or worsening recovery",
+    "Does not describe increases as proof that recovery is improving",
+    "Does not shame or moralize the comparison",
+    "Does not determine Step completion or progression",
+    "Prioritizes human connection when suggesting next actions",
+    "Provides no more than three next-right actions"
+  ],
+  "deterministic_rules": [
+    "weekly_comparison_has_no_more_than_three_next_actions"
+  ]
 }
 ]

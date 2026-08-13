@@ -7,6 +7,7 @@ from app.recovery_engine import (
     analyze_journal_entry,
     analyze_step_work,
     analyze_weekly_review,
+    analyze_weekly_comparison,
     respond_to_user,
 )
 from tests.rks_grader import grade_response
@@ -47,7 +48,9 @@ def main() -> None:
         elif mode == "step_work_analysis":
             step_work_text = test_case["conversation"][-1]["content"]
             response = analyze_step_work(step_work_text)
-
+        elif mode == "weekly_comparison_analysis":
+            comparison_text = test_case["conversation"][-1]["content"]
+            response = analyze_weekly_comparison(comparison_text)
         elif mode == "checkin_analysis":
             checkin_text = test_case["conversation"][-1]["content"]
             response = analyze_checkin_trends(checkin_text)
