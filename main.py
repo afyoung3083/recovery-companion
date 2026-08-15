@@ -44,6 +44,7 @@ from app.recovery_engine import (
     analyze_weekly_comparison,
     analyze_weekly_review,
     respond_to_user,
+    analyze_monthly_comparison,
 )
 from app.step_work import (
     add_assignment,
@@ -1352,6 +1353,58 @@ def compare_monthly_reviews() -> None:
 
     print()
 
+def analyze_saved_monthly_comparison() -> None:
+    """Explicitly send the latest saved monthly comparison to the AI."""
+
+    print()
+    print("Analyze Monthly Review Comparison")
+    print("=" * 50)
+
+    history = load_monthly_review_history()
+
+    if len(history) < 2:
+        print(
+            "At least two saved monthly reviews are needed "
+            "for AI comparison."
+        )
+        print()
+        return
+
+    comparison_text = compare_latest_monthly_reviews(
+        history
+    )
+
+    print(
+        comparison_text
+    )
+    print()
+
+    print(
+        "Only the monthly comparison shown above "
+        "will be sent to the AI."
+    )
+
+    confirm = input(
+        "Analyze this monthly comparison? (y/n): "
+    ).strip().lower()
+
+    if confirm != "y":
+        print("Analysis cancelled.")
+        print()
+        return
+
+    print()
+    print(
+        "Recovery Companion Monthly Comparison Analysis:"
+    )
+
+    print(
+        analyze_monthly_comparison(
+            comparison_text
+        )
+    )
+
+    print()
 
 # ============================================================
 # Reviews & Trends
@@ -1411,6 +1464,10 @@ def run_reviews_menu() -> None:
             (
                 "Compare Monthly Reviews",
                 compare_monthly_reviews,
+            ),
+            (
+                "Analyze Monthly Comparison",
+                analyze_saved_monthly_comparison,
             ),
         ],
     )

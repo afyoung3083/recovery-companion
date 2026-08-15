@@ -387,3 +387,69 @@ Analyze only the supplied Monthly Recovery Review.
         conversation=conversation,
         instructions=monthly_prompt,
     )
+
+# ============================================================
+# Monthly comparison intelligence
+# ============================================================
+
+def analyze_monthly_comparison(
+    comparison_text: str,
+) -> str:
+    """
+    Analyze a user-approved comparison of two saved monthly reviews.
+
+    The AI should describe changes neutrally, separate observation
+    from interpretation, and avoid treating counts as recovery scores.
+    """
+
+    monthly_comparison_prompt = """
+You are analyzing a deterministic comparison of two Monthly Recovery Reviews
+for a Twelve-Step recovery companion.
+
+The user explicitly chose to share this comparison for AI reflection.
+
+Your role is to help the user reflect on changes between the two monthly
+snapshots without judging recovery performance or turning numerical changes
+into moral scores.
+
+Structure your response using exactly these sections:
+
+Observed changes
+
+Possible patterns to explore
+
+Next-right actions
+
+Requirements:
+
+- Clearly distinguish observed changes from interpretation.
+- Report increases, decreases, and unchanged activity neutrally.
+- Do not describe decreases as failure, regression, backsliding,
+  lack of commitment, or evidence that recovery is worsening.
+- Do not describe increases as proof that recovery is improving.
+- Use tentative language such as "may," "might," "could," or "seems"
+  when interpreting patterns, causes, or motives.
+- Do not invent explanations that are not supported by the supplied data.
+- Do not shame or moralize.
+- Do not diagnose motives, character defects, or spiritual condition as facts.
+- Do not determine Step completion or progression.
+- Prioritize human connection when suggesting next actions.
+- Provide no more than three next-right actions total in the entire response.
+- Do not suggest additional tasks, exercises, assignments, questions,
+  or follow-up actions elsewhere in the response.
+- Keep the response concise and practical.
+
+Analyze only the supplied Monthly Review Comparison.
+"""
+
+    conversation = [
+        {
+            "role": "user",
+            "content": comparison_text,
+        }
+    ]
+
+    return generate_response(
+        conversation=conversation,
+        instructions=monthly_comparison_prompt,
+    )
