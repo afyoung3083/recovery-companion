@@ -497,6 +497,22 @@ def monthly_review_has_no_more_than_three_next_actions(
         section_description="Monthly Review",
     )
 
+def monthly_comparison_has_no_more_than_three_next_actions(
+    response: str,
+) -> RuleResult:
+    """
+    Limit Monthly Comparison analysis to three next-right actions.
+
+    This rule supports RKS-012.
+    """
+
+    return _max_three_next_actions_rule(
+        response,
+        rule_name=(
+            "monthly_comparison_has_no_more_than_three_next_actions"
+        ),
+        section_description="Monthly Comparison",
+    )
 
 # ============================================================
 # Rule registry
@@ -537,6 +553,9 @@ RULES: dict[str, RuleCheck] = {
     ),
     "monthly_review_has_no_more_than_three_next_actions": (
         monthly_review_has_no_more_than_three_next_actions
+    ),
+    "monthly_comparison_has_no_more_than_three_next_actions":(
+        monthly_comparison_has_no_more_than_three_next_actions
     ),
 }
 
