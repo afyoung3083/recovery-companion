@@ -52,6 +52,7 @@ from app.weekly_review import (
     load_weekly_review_history,
     save_weekly_review_snapshot,
 )
+from app.monthly_review import build_monthly_review
 
 
 # ============================================================
@@ -893,6 +894,13 @@ def analyze_saved_weekly_comparison() -> None:
     print(analyze_weekly_comparison(comparison_text))
     print()
 
+def view_monthly_review() -> None:
+    """Display the rolling four-week Monthly Recovery Review."""
+
+    print()
+    print(build_monthly_review())
+    print()
+
 # ============================================================
 # Dashboard and Profile
 # ============================================================
@@ -962,21 +970,22 @@ def main() -> None:
         print("5. Weekly Review History")
         print("6. Compare Weekly Reviews")
         print("7. Analyze Weekly Comparison")
-        print("8. Daily Check-In")
-        print("9. View Today's Check-In")
-        print("10. Check-In History")
-        print("11. Check-In Trends")
-        print("12. Analyze Recent Check-Ins")
-        print("13. Set Sobriety Date")
-        print("14. Chat")
-        print("15. Write Journal Entry")
-        print("16. View Journal")
-        print("17. Search Journal")
-        print("18. Filter Journal by Tag")
-        print("19. Analyze Journal Entry")
-        print("20. Step Work")
-        print("21. Fellowship")
-        print("22. Exit")
+        print("8. Monthly Recovery Review")
+        print("9. Daily Check-In")
+        print("10. View Today's Check-In")
+        print("11. Check-In History")
+        print("12. Check-In Trends")
+        print("13. Analyze Recent Check-Ins")
+        print("14. Set Sobriety Date")
+        print("15. Chat")
+        print("16. Write Journal Entry")
+        print("17. View Journal")
+        print("18. Search Journal")
+        print("19. Filter Journal by Tag")
+        print("20. Analyze Journal Entry")
+        print("21. Step Work")
+        print("22. Fellowship")
+        print("23. Exit")
         print()
 
         choice = input(
@@ -998,41 +1007,43 @@ def main() -> None:
         elif choice == "7":
             analyze_saved_weekly_comparison()
         elif choice == "8":
-            run_daily_checkin()
+            view_monthly_review()
         elif choice == "9":
-            view_today_checkin()
+            run_daily_checkin()
         elif choice == "10":
-            view_checkin_history()
+            view_today_checkin()
         elif choice == "11":
-            view_checkin_trends()
+            view_checkin_history()
         elif choice == "12":
-            analyze_recent_checkins()
+            view_checkin_trends()
         elif choice == "13":
-            change_sobriety_date()
+            analyze_recent_checkins()
         elif choice == "14":
-            run_chat()
+            change_sobriety_date()
         elif choice == "15":
-            write_journal_entry()
+            run_chat()
         elif choice == "16":
-            view_journal()
+            write_journal_entry()
         elif choice == "17":
-            search_journal()
+            view_journal()
         elif choice == "18":
-            filter_journal_by_tag()
+            search_journal()
         elif choice == "19":
-            analyze_journal()
+            filter_journal_by_tag()
         elif choice == "20":
-            run_step_work_menu()
+            analyze_journal()
         elif choice == "21":
-            run_fellowship_menu()
+            run_step_work_menu()
         elif choice == "22":
+            run_fellowship_menu()
+        elif choice == "23":
             print(
                 "Recovery Companion: "
                 "Take care. Keep coming back."
             )
             break
         else:
-            print("Please choose 1 through 22.")
+            print("Please choose 1 through 23.")
 
 
 # Only start the CLI when this file is executed directly.
