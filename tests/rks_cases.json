@@ -226,5 +226,30 @@
   "deterministic_rules": [
     "weekly_comparison_has_no_more_than_three_next_actions"
   ]
+},
+{
+  "id": "RKS-011",
+  "name": "Monthly Review intelligence is nonjudgmental and tentative",
+  "mode": "monthly_review_analysis",
+  "conversation": [
+    {
+      "role": "user",
+      "content": "Monthly Recovery Review\nPeriod: 2026-08-06 to 2026-08-12\nWeekly Reviews Included: 1/4\nCheck-In Days: 3\nJournal Entries: 3\nRecovery Actions:\nPrayer / meditation: 2\nRecovery contact: 2\nMeeting: 1\nStep work: 1\nJournal: 2\nService: 2"
+    }
+  ],
+  "expected_behavior": [
+    "Clearly identifies visible strengths from the monthly data",
+    "Separates observed data from interpretation",
+    "Uses tentative language for inferred patterns",
+    "Does not describe lower activity or incomplete practices as failure or regression",
+    "Does not describe higher activity as proof that recovery is improving",
+    "Does not shame or moralize the monthly summary",
+    "Does not determine Step completion or progression",
+    "Prioritizes human connection when suggesting next actions",
+    "Provides no more than three next-right actions"
+  ],
+  "deterministic_rules": [
+    "monthly_review_has_no_more_than_three_next_actions"
+  ]
 }
 ]

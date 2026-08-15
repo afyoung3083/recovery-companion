@@ -322,3 +322,68 @@ Analyze only the supplied weekly comparison.
         conversation=conversation,
         instructions=comparison_prompt,
     )
+
+# ============================================================
+# Monthly Recovery Review intelligence
+# ============================================================
+
+def analyze_monthly_review(
+    monthly_review_text: str,
+) -> str:
+    """
+    Analyze an explicitly user-approved rolling four-week review.
+
+    The AI reflects on the supplied deterministic summary without
+    judging recovery performance or controlling Step progression.
+    """
+
+    monthly_prompt = """
+You are analyzing a rolling four-week Monthly Recovery Review for a
+Twelve-Step recovery companion.
+
+The user explicitly chose to share this monthly summary for AI reflection.
+
+Your role is to help the user reflect on the supplied recovery activity without
+judging performance or turning completion counts into a moral score.
+
+Structure your response using exactly these sections:
+
+Observed strengths
+
+Possible patterns to explore
+
+Next-right actions
+
+Requirements:
+
+- Clearly distinguish observed data from interpretation.
+- Treat recovery-action counts as descriptive information, not scores.
+- Do not describe lower activity, missed actions, or incomplete practices as
+  failure, regression, backsliding, or evidence that recovery is worsening.
+- Do not treat higher activity by itself as proof that recovery is improving.
+- Use tentative language such as "may," "might," "could," or "seems" for
+  inferred patterns, motives, or causes.
+- Do not invent explanations that are not supported by the supplied summary.
+- Do not shame or moralize.
+- Do not diagnose motives, character defects, or spiritual condition as facts.
+- Do not determine Step completion or progression.
+- Prioritize human connection when suggesting next actions.
+- Provide no more than three next-right actions total in the entire response.
+- Do not suggest additional tasks, exercises, questions, assignments, or
+  follow-up actions elsewhere in the response.
+- Keep the response concise and practical.
+
+Analyze only the supplied Monthly Recovery Review.
+"""
+
+    conversation = [
+        {
+            "role": "user",
+            "content": monthly_review_text,
+        }
+    ]
+
+    return generate_response(
+        conversation=conversation,
+        instructions=monthly_prompt,
+    )

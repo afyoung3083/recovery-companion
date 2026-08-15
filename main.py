@@ -33,6 +33,7 @@ from app.recovery_engine import (
     analyze_journal_entry,
     analyze_step_work,
     analyze_weekly_review,
+    analyze_monthly_review,
     analyze_weekly_comparison,
     respond_to_user,
 )
@@ -901,6 +902,40 @@ def view_monthly_review() -> None:
     print(build_monthly_review())
     print()
 
+def analyze_monthly_recovery_review() -> None:
+    """Explicitly send the rolling four-week review to the AI."""
+
+    print()
+    print("Analyze Monthly Recovery Review")
+    print("=" * 50)
+
+    monthly_review_text = build_monthly_review()
+
+    print(monthly_review_text)
+    print()
+
+    if "No saved weekly reviews are available yet." in monthly_review_text:
+        return
+
+    print(
+        "Only the monthly recovery summary shown above "
+        "will be sent to the AI."
+    )
+
+    confirm = input(
+        "Analyze this monthly review? (y/n): "
+    ).strip().lower()
+
+    if confirm != "y":
+        print("Analysis cancelled.")
+        print()
+        return
+
+    print()
+    print("Recovery Companion Monthly Review Analysis:")
+    print(analyze_monthly_review(monthly_review_text))
+    print()
+
 # ============================================================
 # Dashboard and Profile
 # ============================================================
@@ -971,21 +1006,22 @@ def main() -> None:
         print("6. Compare Weekly Reviews")
         print("7. Analyze Weekly Comparison")
         print("8. Monthly Recovery Review")
-        print("9. Daily Check-In")
-        print("10. View Today's Check-In")
-        print("11. Check-In History")
-        print("12. Check-In Trends")
-        print("13. Analyze Recent Check-Ins")
-        print("14. Set Sobriety Date")
-        print("15. Chat")
-        print("16. Write Journal Entry")
-        print("17. View Journal")
-        print("18. Search Journal")
-        print("19. Filter Journal by Tag")
-        print("20. Analyze Journal Entry")
-        print("21. Step Work")
-        print("22. Fellowship")
-        print("23. Exit")
+        print("9. Analyze Monthly Recovery Review")
+        print("10. Daily Check-In")
+        print("11. View Today's Check-In")
+        print("12. Check-In History")
+        print("13. Check-In Trends")
+        print("14. Analyze Recent Check-Ins")
+        print("15. Set Sobriety Date")
+        print("16. Chat")
+        print("17. Write Journal Entry")
+        print("18. View Journal")
+        print("19. Search Journal")
+        print("20. Filter Journal by Tag")
+        print("21. Analyze Journal Entry")
+        print("22. Step Work")
+        print("23. Fellowship")
+        print("24. Exit")
         print()
 
         choice = input(
@@ -1009,34 +1045,36 @@ def main() -> None:
         elif choice == "8":
             view_monthly_review()
         elif choice == "9":
-            run_daily_checkin()
+            analyze_monthly_recovery_review()
         elif choice == "10":
-            view_today_checkin()
+            run_daily_checkin()
         elif choice == "11":
-            view_checkin_history()
+            view_today_checkin()
         elif choice == "12":
-            view_checkin_trends()
+            view_checkin_history()
         elif choice == "13":
-            analyze_recent_checkins()
+            view_checkin_trends()
         elif choice == "14":
-            change_sobriety_date()
+            analyze_recent_checkins()
         elif choice == "15":
-            run_chat()
+            change_sobriety_date()
         elif choice == "16":
-            write_journal_entry()
+            run_chat()
         elif choice == "17":
-            view_journal()
+            write_journal_entry()
         elif choice == "18":
-            search_journal()
+            view_journal()
         elif choice == "19":
-            filter_journal_by_tag()
+            search_journal()
         elif choice == "20":
-            analyze_journal()
+            filter_journal_by_tag()
         elif choice == "21":
-            run_step_work_menu()
+            analyze_journal()
         elif choice == "22":
-            run_fellowship_menu()
+            run_step_work_menu()
         elif choice == "23":
+            run_fellowship_menu()
+        elif choice == "24":
             print(
                 "Recovery Companion: "
                 "Take care. Keep coming back."
