@@ -1,3 +1,4 @@
+from collections.abc import Callable
 from datetime import date
 
 # ============================================================
@@ -27,14 +28,21 @@ from app.journal import (
     load_entries,
     search_entries,
 )
+from app.monthly_review import (
+    build_monthly_review,
+    compare_latest_monthly_reviews,
+    format_monthly_review_history,
+    load_monthly_review_history,
+    save_monthly_review_snapshot,
+)
 from app.profile import set_sobriety_date
 from app.recovery_engine import (
     analyze_checkin_trends,
     analyze_journal_entry,
-    analyze_step_work,
-    analyze_weekly_review,
     analyze_monthly_review,
+    analyze_step_work,
     analyze_weekly_comparison,
+    analyze_weekly_review,
     respond_to_user,
 )
 from app.step_work import (
@@ -53,7 +61,82 @@ from app.weekly_review import (
     load_weekly_review_history,
     save_weekly_review_snapshot,
 )
-from app.monthly_review import build_monthly_review
+
+
+# ============================================================
+# Menu framework
+# ============================================================
+
+# Every menu item is simply:
+#
+#     ("Label shown to user", function_to_run)
+#
+# This means new features can usually be added to a menu with one
+# line instead of manually renumbering a large elif chain.
+MenuAction = Callable[[], None]
+MenuItem = tuple[str, MenuAction]
+
+
+def run_menu(
+    title: str,
+    items: list[MenuItem],
+    *,
+    final_label: str = "Back",
+) -> None:
+    """
+    Display and run a reusable numbered CLI menu.
+
+    The final numbered choice automatically returns to the caller.
+
+    For submenus this means "Back".
+
+    The main menu also uses this behavior, but its final choice is
+    labeled "Exit". Returning from the main menu causes main() to end.
+    """
+
+    while True:
+        print()
+        print(title)
+        print("=" * 50)
+
+        for index, (label, _) in enumerate(
+            items,
+            start=1,
+        ):
+            print(f"{index}. {label}")
+
+        final_choice = len(items) + 1
+        print(f"{final_choice}. {final_label}")
+        print()
+
+        choice = input(
+            "Choose an option: "
+        ).strip()
+
+        if not choice.isdigit():
+            print(
+                f"Please choose 1 through {final_choice}."
+            )
+            continue
+
+        choice_number = int(choice)
+
+        if choice_number == final_choice:
+            return
+
+        if not 1 <= choice_number <= len(items):
+            print(
+                f"Please choose 1 through {final_choice}."
+            )
+            continue
+
+        # Convert the user's 1-based menu choice to the list's
+        # 0-based index and execute the associated function.
+        _, action = items[
+            choice_number - 1
+        ]
+
+        action()
 
 
 # ============================================================
@@ -67,11 +150,14 @@ def run_chat() -> None:
 
     print()
     print("Recovery Companion Chat")
+    print("=" * 50)
     print("Type 'back' to return to the main menu.")
     print()
 
     while True:
-        user_message = input("You: ").strip()
+        user_message = input(
+            "You: "
+        ).strip()
 
         if user_message.lower() == "back":
             print()
@@ -89,11 +175,16 @@ def run_chat() -> None:
         )
 
         try:
-            response = respond_to_user(conversation)
+            response = respond_to_user(
+                conversation
+            )
         except Exception as error:
             print()
             print(f"Error: {error}")
             print()
+
+            # Remove the unsent user turn so the conversation
+            # remains internally consistent.
             conversation.pop()
             continue
 
@@ -119,10 +210,13 @@ def write_journal_entry() -> None:
 
     print()
     print("New Journal Entry")
+    print("=" * 50)
     print("Enter your journal entry on one line.")
     print()
 
-    text = input("Journal: ").strip()
+    text = input(
+        "Journal: "
+    ).strip()
 
     if not text:
         print("Journal entry was not saved.")
@@ -147,7 +241,9 @@ def write_journal_entry() -> None:
     )
 
     print()
-    print(f"Journal entry {entry['id']} saved.")
+    print(
+        f"Journal entry {entry['id']} saved."
+    )
     print()
 
 
@@ -157,7 +253,11 @@ def view_journal() -> None:
     print()
     print("Journal Entries")
     print("=" * 50)
-    print(format_entries(load_entries()))
+    print(
+        format_entries(
+            load_entries()
+        )
+    )
     print()
 
 
@@ -168,7 +268,9 @@ def search_journal() -> None:
     print("Search Journal")
     print("=" * 50)
 
-    query = input("Search term or tag: ").strip()
+    query = input(
+        "Search term or tag: "
+    ).strip()
 
     if not query:
         print("No search term entered.")
@@ -181,7 +283,9 @@ def search_journal() -> None:
     )
 
     print()
-    print(format_entries(matches))
+    print(
+        format_entries(matches)
+    )
     print()
 
 
@@ -192,7 +296,9 @@ def filter_journal_by_tag() -> None:
     print("Filter Journal by Tag")
     print("=" * 50)
 
-    tag = input("Tag: ").strip()
+    tag = input(
+        "Tag: "
+    ).strip()
 
     if not tag:
         print("No tag entered.")
@@ -205,7 +311,9 @@ def filter_journal_by_tag() -> None:
     )
 
     print()
-    print(format_entries(matches))
+    print(
+        format_entries(matches)
+    )
     print()
 
 
@@ -223,7 +331,9 @@ def analyze_journal() -> None:
         print()
         return
 
-    print(format_entries(entries))
+    print(
+        format_entries(entries)
+    )
     print()
 
     entry_id_input = input(
@@ -231,11 +341,15 @@ def analyze_journal() -> None:
     ).strip()
 
     if not entry_id_input.isdigit():
-        print("Please enter a valid journal entry ID.")
+        print(
+            "Please enter a valid journal entry ID."
+        )
         print()
         return
 
-    entry_id = int(entry_id_input)
+    entry_id = int(
+        entry_id_input
+    )
 
     selected_entry = next(
         (
@@ -252,7 +366,9 @@ def analyze_journal() -> None:
         return
 
     print()
-    print("Only this selected entry will be sent to the AI.")
+    print(
+        "Only this selected entry will be sent to the AI."
+    )
 
     confirm = input(
         "Analyze this entry? (y/n): "
@@ -264,13 +380,50 @@ def analyze_journal() -> None:
         return
 
     print()
-    print("Recovery Companion Journal Analysis:")
+    print(
+        "Recovery Companion Journal Analysis:"
+    )
+
     print(
         analyze_journal_entry(
-            selected_entry.get("text", "")
+            selected_entry.get(
+                "text",
+                "",
+            )
         )
     )
+
     print()
+
+
+def run_journal_menu() -> None:
+    """Run the Journal submenu."""
+
+    run_menu(
+        "Journal",
+        [
+            (
+                "Write Journal Entry",
+                write_journal_entry,
+            ),
+            (
+                "View Journal",
+                view_journal,
+            ),
+            (
+                "Search Journal",
+                search_journal,
+            ),
+            (
+                "Filter Journal by Tag",
+                filter_journal_by_tag,
+            ),
+            (
+                "Analyze Journal Entry",
+                analyze_journal,
+            ),
+        ],
+    )
 
 
 # ============================================================
@@ -283,7 +436,11 @@ def view_step_work() -> None:
     print()
     print("Step Work")
     print("=" * 50)
-    print(format_step_work(load_step_work()))
+    print(
+        format_step_work(
+            load_step_work()
+        )
+    )
     print()
 
 
@@ -297,20 +454,28 @@ def change_current_step() -> None:
     ).strip()
 
     if not step_input.isdigit():
-        print("Please enter a number from 1 to 12.")
+        print(
+            "Please enter a number from 1 to 12."
+        )
         print()
         return
 
-    step_number = int(step_input)
+    step_number = int(
+        step_input
+    )
 
     try:
-        set_current_step(step_number)
+        set_current_step(
+            step_number
+        )
     except ValueError as error:
         print(error)
         print()
         return
 
-    print(f"Current Step set to {step_number}.")
+    print(
+        f"Current Step set to {step_number}."
+    )
     print()
 
 
@@ -319,14 +484,20 @@ def create_step_assignment() -> None:
 
     print()
 
-    text = input("Assignment: ").strip()
+    text = input(
+        "Assignment: "
+    ).strip()
 
     if not text:
-        print("Assignment was not saved.")
+        print(
+            "Assignment was not saved."
+        )
         print()
         return
 
-    assignment = add_assignment(text)
+    assignment = add_assignment(
+        text
+    )
 
     print(
         f"Assignment {assignment['id']} added "
@@ -345,7 +516,9 @@ def mark_step_assignment_complete() -> None:
     ).strip()
 
     if not assignment_input.isdigit():
-        print("Please enter a valid assignment ID.")
+        print(
+            "Please enter a valid assignment ID."
+        )
         print()
         return
 
@@ -369,14 +542,18 @@ def create_step_note() -> None:
 
     print()
 
-    text = input("Step note: ").strip()
+    text = input(
+        "Step note: "
+    ).strip()
 
     if not text:
         print("Note was not saved.")
         print()
         return
 
-    note = add_step_note(text)
+    note = add_step_note(
+        text
+    )
 
     print(
         f"Note {note['id']} added "
@@ -393,9 +570,14 @@ def analyze_current_step_work() -> None:
     print("=" * 50)
 
     step_work = load_step_work()
-    step_work_text = format_step_work(step_work)
 
-    print(step_work_text)
+    step_work_text = format_step_work(
+        step_work
+    )
+
+    print(
+        step_work_text
+    )
     print()
 
     print(
@@ -413,49 +595,51 @@ def analyze_current_step_work() -> None:
         return
 
     print()
-    print("Recovery Companion Step Work Analysis:")
-    print(analyze_step_work(step_work_text))
+    print(
+        "Recovery Companion Step Work Analysis:"
+    )
+
+    print(
+        analyze_step_work(
+            step_work_text
+        )
+    )
+
     print()
 
 
 def run_step_work_menu() -> None:
     """Run the Step Work submenu."""
 
-    while True:
-        print()
-        print("Step Work")
-        print("=" * 50)
-        print("1. View Step Work")
-        print("2. Change Current Step")
-        print("3. Add Assignment")
-        print("4. Mark Assignment Complete")
-        print("5. Add Step Note")
-        print("6. Analyze Current Step Work")
-        print("7. Back")
-        print()
-
-        choice = input(
-            "Choose an option: "
-        ).strip()
-
-        if choice == "1":
-            view_step_work()
-        elif choice == "2":
-            change_current_step()
-        elif choice == "3":
-            create_step_assignment()
-        elif choice == "4":
-            mark_step_assignment_complete()
-        elif choice == "5":
-            create_step_note()
-        elif choice == "6":
-            analyze_current_step_work()
-        elif choice == "7":
-            return
-        else:
-            print(
-                "Please choose 1, 2, 3, 4, 5, 6, or 7."
-            )
+    run_menu(
+        "Step Work",
+        [
+            (
+                "View Step Work",
+                view_step_work,
+            ),
+            (
+                "Change Current Step",
+                change_current_step,
+            ),
+            (
+                "Add Assignment",
+                create_step_assignment,
+            ),
+            (
+                "Mark Assignment Complete",
+                mark_step_assignment_complete,
+            ),
+            (
+                "Add Step Note",
+                create_step_note,
+            ),
+            (
+                "Analyze Current Step Work",
+                analyze_current_step_work,
+            ),
+        ],
+    )
 
 
 # ============================================================
@@ -468,7 +652,11 @@ def view_fellowship_contacts() -> None:
     print()
     print("Fellowship Contacts")
     print("=" * 50)
-    print(format_contacts(load_contacts()))
+    print(
+        format_contacts(
+            load_contacts()
+        )
+    )
     print()
 
 
@@ -479,7 +667,9 @@ def create_fellowship_contact() -> None:
     print("Add Fellowship Contact")
     print("=" * 50)
 
-    handle = input("Handle or name: ").strip()
+    handle = input(
+        "Handle or name: "
+    ).strip()
 
     if not handle:
         print("Contact was not saved.")
@@ -506,16 +696,20 @@ def create_fellowship_contact() -> None:
             contact_method=contact_method,
             notes=notes,
         )
+
     except ValueError as error:
         print(error)
         print()
         return
 
     print()
+
     print(
         f"Contact {contact['id']} saved: "
-        f"{contact['handle']} ({contact['contact_type']})."
+        f"{contact['handle']} "
+        f"({contact['contact_type']})."
     )
+
     print()
 
 
@@ -529,7 +723,9 @@ def change_fellowship_contact_status() -> None:
     ).strip()
 
     if not contact_id_input.isdigit():
-        print("Please enter a valid contact ID.")
+        print(
+            "Please enter a valid contact ID."
+        )
         print()
         return
 
@@ -537,18 +733,28 @@ def change_fellowship_contact_status() -> None:
         "Set active? (y/n): "
     ).strip().lower()
 
-    if active_input not in {"y", "n"}:
-        print("Please enter y or n.")
+    if active_input not in {
+        "y",
+        "n",
+    }:
+        print(
+            "Please enter y or n."
+        )
         print()
         return
 
     contact = set_contact_active(
-        contact_id=int(contact_id_input),
-        active=(active_input == "y"),
+        contact_id=int(
+            contact_id_input
+        ),
+        active=(
+            active_input == "y"
+        ),
     )
 
     if contact is None:
         print("Contact not found.")
+
     else:
         status = (
             "active"
@@ -557,7 +763,8 @@ def change_fellowship_contact_status() -> None:
         )
 
         print(
-            f"{contact['handle']} is now {status}."
+            f"{contact['handle']} "
+            f"is now {status}."
         )
 
     print()
@@ -576,11 +783,15 @@ def who_should_i_call() -> None:
     )
 
     if not contacts:
-        print("No active fellowship contacts are available.")
+        print(
+            "No active fellowship contacts are available."
+        )
         print()
         return
 
-    print("Recommended contacts:")
+    print(
+        "Recommended contacts:"
+    )
     print()
 
     for index, contact in enumerate(
@@ -592,14 +803,20 @@ def who_should_i_call() -> None:
             f"({contact['contact_type']})"
         )
 
-        if contact.get("contact_method"):
+        if contact.get(
+            "contact_method"
+        ):
             print(
-                f"   Contact: {contact['contact_method']}"
+                f"   Contact: "
+                f"{contact['contact_method']}"
             )
 
-        if contact.get("notes"):
+        if contact.get(
+            "notes"
+        ):
             print(
-                f"   Notes: {contact['notes']}"
+                f"   Notes: "
+                f"{contact['notes']}"
             )
 
     print()
@@ -608,39 +825,31 @@ def who_should_i_call() -> None:
 def run_fellowship_menu() -> None:
     """Run the Fellowship submenu."""
 
-    while True:
-        print()
-        print("Fellowship")
-        print("=" * 50)
-        print("1. View Contacts")
-        print("2. Add Contact")
-        print("3. Change Contact Status")
-        print("4. Who Should I Call?")
-        print("5. Back")
-        print()
-
-        choice = input(
-            "Choose an option: "
-        ).strip()
-
-        if choice == "1":
-            view_fellowship_contacts()
-        elif choice == "2":
-            create_fellowship_contact()
-        elif choice == "3":
-            change_fellowship_contact_status()
-        elif choice == "4":
-            who_should_i_call()
-        elif choice == "5":
-            return
-        else:
-            print(
-                "Please choose 1, 2, 3, 4, or 5."
-            )
+    run_menu(
+        "Fellowship",
+        [
+            (
+                "View Contacts",
+                view_fellowship_contacts,
+            ),
+            (
+                "Add Contact",
+                create_fellowship_contact,
+            ),
+            (
+                "Change Contact Status",
+                change_fellowship_contact_status,
+            ),
+            (
+                "Who Should I Call?",
+                who_should_i_call,
+            ),
+        ],
+    )
 
 
 # ============================================================
-# Daily Check-In
+# Daily Recovery
 # ============================================================
 
 def run_daily_checkin() -> None:
@@ -651,12 +860,30 @@ def run_daily_checkin() -> None:
     print("=" * 50)
 
     prompts = [
-        ("prayer_meditation", "Prayer / meditation"),
-        ("recovery_contact", "Recovery contact"),
-        ("meeting", "Meeting"),
-        ("step_work", "Step work"),
-        ("journal", "Journal"),
-        ("service", "Service"),
+        (
+            "prayer_meditation",
+            "Prayer / meditation",
+        ),
+        (
+            "recovery_contact",
+            "Recovery contact",
+        ),
+        (
+            "meeting",
+            "Meeting",
+        ),
+        (
+            "step_work",
+            "Step work",
+        ),
+        (
+            "journal",
+            "Journal",
+        ),
+        (
+            "service",
+            "Service",
+        ),
     ]
 
     values: dict[str, bool] = {}
@@ -666,7 +893,9 @@ def run_daily_checkin() -> None:
             f"{label} completed today? (y/n): "
         ).strip().lower()
 
-        values[field] = response == "y"
+        values[field] = (
+            response == "y"
+        )
 
     print()
 
@@ -680,9 +909,15 @@ def run_daily_checkin() -> None:
     )
 
     print()
-    print("Daily check-in saved.")
+    print(
+        "Daily check-in saved."
+    )
     print()
-    print(format_checkin(checkin))
+    print(
+        format_checkin(
+            checkin
+        )
+    )
     print()
 
 
@@ -690,6 +925,7 @@ def view_today_checkin() -> None:
     """Display today's saved check-in."""
 
     print()
+
     print(
         format_checkin(
             get_checkin_for_date(
@@ -697,6 +933,7 @@ def view_today_checkin() -> None:
             )
         )
     )
+
     print()
 
 
@@ -707,9 +944,16 @@ def view_checkin_history() -> None:
     print("Recent Check-In History")
     print("=" * 50)
 
-    checkins = get_recent_checkins(limit=7)
+    checkins = get_recent_checkins(
+        limit=7
+    )
 
-    print(format_checkin_history(checkins))
+    print(
+        format_checkin_history(
+            checkins
+        )
+    )
+
     print()
 
 
@@ -720,9 +964,16 @@ def view_checkin_trends() -> None:
     print("Check-In Trends")
     print("=" * 50)
 
-    checkins = get_recent_checkins(limit=7)
+    checkins = get_recent_checkins(
+        limit=7
+    )
 
-    print(format_checkin_trends(checkins))
+    print(
+        format_checkin_trends(
+            checkins
+        )
+    )
+
     print()
 
 
@@ -733,22 +984,33 @@ def analyze_recent_checkins() -> None:
     print("Analyze Recent Check-Ins")
     print("=" * 50)
 
-    checkins = get_recent_checkins(limit=7)
+    checkins = get_recent_checkins(
+        limit=7
+    )
 
     if not checkins:
-        print("No recent check-ins available.")
+        print(
+            "No recent check-ins available."
+        )
         print()
         return
 
-    history_text = format_checkin_history(checkins)
-    trends_text = format_checkin_trends(checkins)
+    history_text = format_checkin_history(
+        checkins
+    )
+
+    trends_text = format_checkin_trends(
+        checkins
+    )
 
     checkin_text = (
         f"{history_text}\n\n"
         f"{trends_text}"
     )
 
-    print(checkin_text)
+    print(
+        checkin_text
+    )
     print()
 
     print(
@@ -761,14 +1023,54 @@ def analyze_recent_checkins() -> None:
     ).strip().lower()
 
     if confirm != "y":
-        print("Analysis cancelled.")
+        print(
+            "Analysis cancelled."
+        )
         print()
         return
 
     print()
-    print("Recovery Companion Check-In Analysis:")
-    print(analyze_checkin_trends(checkin_text))
+    print(
+        "Recovery Companion Check-In Analysis:"
+    )
+
+    print(
+        analyze_checkin_trends(
+            checkin_text
+        )
+    )
+
     print()
+
+
+def run_daily_recovery_menu() -> None:
+    """Run Daily Check-In, history, trends, and analysis tools."""
+
+    run_menu(
+        "Daily Recovery",
+        [
+            (
+                "Daily Check-In",
+                run_daily_checkin,
+            ),
+            (
+                "View Today's Check-In",
+                view_today_checkin,
+            ),
+            (
+                "Check-In History",
+                view_checkin_history,
+            ),
+            (
+                "Check-In Trends",
+                view_checkin_trends,
+            ),
+            (
+                "Analyze Recent Check-Ins",
+                analyze_recent_checkins,
+            ),
+        ],
+    )
 
 
 # ============================================================
@@ -779,7 +1081,9 @@ def view_weekly_review() -> None:
     """Build and display the current deterministic weekly review."""
 
     print()
-    print(build_weekly_review())
+    print(
+        build_weekly_review()
+    )
     print()
 
 
@@ -792,7 +1096,9 @@ def analyze_weekly_recovery_review() -> None:
 
     weekly_review_text = build_weekly_review()
 
-    print(weekly_review_text)
+    print(
+        weekly_review_text
+    )
     print()
 
     print(
@@ -805,13 +1111,23 @@ def analyze_weekly_recovery_review() -> None:
     ).strip().lower()
 
     if confirm != "y":
-        print("Analysis cancelled.")
+        print(
+            "Analysis cancelled."
+        )
         print()
         return
 
     print()
-    print("Recovery Companion Weekly Review Analysis:")
-    print(analyze_weekly_review(weekly_review_text))
+    print(
+        "Recovery Companion Weekly Review Analysis:"
+    )
+
+    print(
+        analyze_weekly_review(
+            weekly_review_text
+        )
+    )
+
     print()
 
 
@@ -826,8 +1142,10 @@ def save_current_weekly_review() -> None:
 
     print(
         "Saved weekly review: "
-        f"{snapshot['week_start']} to {snapshot['week_end']}"
+        f"{snapshot['week_start']} "
+        f"to {snapshot['week_end']}"
     )
+
     print()
 
 
@@ -835,11 +1153,13 @@ def view_weekly_review_history() -> None:
     """Display previously saved weekly snapshots."""
 
     print()
+
     print(
         format_weekly_review_history(
             load_weekly_review_history()
         )
     )
+
     print()
 
 
@@ -847,15 +1167,18 @@ def compare_weekly_reviews() -> None:
     """Compare the two most recently saved weekly snapshots."""
 
     print()
+
     print(
         compare_latest_weekly_reviews(
             load_weekly_review_history()
         )
     )
+
     print()
 
+
 def analyze_saved_weekly_comparison() -> None:
-    """Explicitly send the latest saved week-to-week comparison to the AI."""
+    """Explicitly send the latest saved weekly comparison to AI."""
 
     print()
     print("Analyze Weekly Review Comparison")
@@ -871,9 +1194,13 @@ def analyze_saved_weekly_comparison() -> None:
         print()
         return
 
-    comparison_text = compare_latest_weekly_reviews(history)
+    comparison_text = compare_latest_weekly_reviews(
+        history
+    )
 
-    print(comparison_text)
+    print(
+        comparison_text
+    )
     print()
 
     print(
@@ -886,21 +1213,39 @@ def analyze_saved_weekly_comparison() -> None:
     ).strip().lower()
 
     if confirm != "y":
-        print("Analysis cancelled.")
+        print(
+            "Analysis cancelled."
+        )
         print()
         return
 
     print()
-    print("Recovery Companion Weekly Comparison Analysis:")
-    print(analyze_weekly_comparison(comparison_text))
+    print(
+        "Recovery Companion Weekly Comparison Analysis:"
+    )
+
+    print(
+        analyze_weekly_comparison(
+            comparison_text
+        )
+    )
+
     print()
+
+
+# ============================================================
+# Monthly Recovery Review
+# ============================================================
 
 def view_monthly_review() -> None:
     """Display the rolling four-week Monthly Recovery Review."""
 
     print()
-    print(build_monthly_review())
+    print(
+        build_monthly_review()
+    )
     print()
+
 
 def analyze_monthly_recovery_review() -> None:
     """Explicitly send the rolling four-week review to the AI."""
@@ -911,10 +1256,15 @@ def analyze_monthly_recovery_review() -> None:
 
     monthly_review_text = build_monthly_review()
 
-    print(monthly_review_text)
+    print(
+        monthly_review_text
+    )
     print()
 
-    if "No saved weekly reviews are available yet." in monthly_review_text:
+    if (
+        "No saved weekly reviews are available yet."
+        in monthly_review_text
+    ):
         return
 
     print(
@@ -927,24 +1277,156 @@ def analyze_monthly_recovery_review() -> None:
     ).strip().lower()
 
     if confirm != "y":
-        print("Analysis cancelled.")
+        print(
+            "Analysis cancelled."
+        )
         print()
         return
 
     print()
-    print("Recovery Companion Monthly Review Analysis:")
-    print(analyze_monthly_review(monthly_review_text))
+    print(
+        "Recovery Companion Monthly Review Analysis:"
+    )
+
+    print(
+        analyze_monthly_review(
+            monthly_review_text
+        )
+    )
+
     print()
 
+
+def save_current_monthly_review() -> None:
+    """Save the current rolling four-week Monthly Recovery Review."""
+
+    print()
+    print("Save Monthly Recovery Review")
+    print("=" * 50)
+
+    try:
+        snapshot = save_monthly_review_snapshot()
+
+    except ValueError as error:
+        print(error)
+        print()
+        return
+
+    print(
+        "Saved monthly review snapshot: "
+        f"{snapshot['snapshot_date']}"
+    )
+
+    print(
+        f"Period: {snapshot['period_start']} "
+        f"to {snapshot['period_end']}"
+    )
+
+    print()
+
+
+def view_monthly_review_history() -> None:
+    """Display saved Monthly Recovery Review snapshots."""
+
+    print()
+
+    print(
+        format_monthly_review_history(
+            load_monthly_review_history()
+        )
+    )
+
+    print()
+
+
+def compare_monthly_reviews() -> None:
+    """Compare the two most recent saved monthly snapshots."""
+
+    print()
+
+    print(
+        compare_latest_monthly_reviews(
+            load_monthly_review_history()
+        )
+    )
+
+    print()
+
+
 # ============================================================
-# Dashboard and Profile
+# Reviews & Trends
+# ============================================================
+
+def run_reviews_menu() -> None:
+    """
+    Run weekly and monthly recovery-review tools.
+
+    All longitudinal review features live here so the main menu
+    remains small even as new review capabilities are added.
+    """
+
+    run_menu(
+        "Reviews & Trends",
+        [
+            (
+                "Weekly Recovery Review",
+                view_weekly_review,
+            ),
+            (
+                "Analyze Weekly Recovery Review",
+                analyze_weekly_recovery_review,
+            ),
+            (
+                "Save Weekly Recovery Review",
+                save_current_weekly_review,
+            ),
+            (
+                "Weekly Review History",
+                view_weekly_review_history,
+            ),
+            (
+                "Compare Weekly Reviews",
+                compare_weekly_reviews,
+            ),
+            (
+                "Analyze Weekly Comparison",
+                analyze_saved_weekly_comparison,
+            ),
+            (
+                "Monthly Recovery Review",
+                view_monthly_review,
+            ),
+            (
+                "Analyze Monthly Recovery Review",
+                analyze_monthly_recovery_review,
+            ),
+            (
+                "Save Monthly Recovery Review",
+                save_current_monthly_review,
+            ),
+            (
+                "Monthly Review History",
+                view_monthly_review_history,
+            ),
+            (
+                "Compare Monthly Reviews",
+                compare_monthly_reviews,
+            ),
+        ],
+    )
+
+
+# ============================================================
+# Dashboard and Settings
 # ============================================================
 
 def view_dashboard() -> None:
     """Display the Daily Recovery Dashboard."""
 
     print()
-    print(build_dashboard())
+    print(
+        build_dashboard()
+    )
     print()
 
 
@@ -963,15 +1445,19 @@ def change_sobriety_date() -> None:
         sobriety_date = date.fromisoformat(
             sobriety_date_input
         )
+
     except ValueError:
         print(
-            "Please enter a valid date in YYYY-MM-DD format."
+            "Please enter a valid date "
+            "in YYYY-MM-DD format."
         )
         print()
         return
 
     if sobriety_date > date.today():
-        print("Sobriety date cannot be in the future.")
+        print(
+            "Sobriety date cannot be in the future."
+        )
         print()
         return
 
@@ -980,111 +1466,93 @@ def change_sobriety_date() -> None:
     )
 
     print(
-        f"Sobriety date set to {sobriety_date.isoformat()}."
+        "Sobriety date set to "
+        f"{sobriety_date.isoformat()}."
     )
+
     print()
 
 
+def run_settings_menu() -> None:
+    """Run Recovery Companion settings."""
+
+    run_menu(
+        "Settings",
+        [
+            (
+                "Set Sobriety Date",
+                change_sobriety_date,
+            ),
+        ],
+    )
+
+
 # ============================================================
-# Main Menu
+# Main menu
 # ============================================================
 
 def main() -> None:
-    """Start Recovery Companion and run the main CLI menu."""
+    """
+    Start Recovery Companion.
 
+    The main menu intentionally stays small. Detailed features live
+    inside domain-specific submenus.
+    """
+
+    print()
     print("=" * 50)
-    print(f"Recovery Companion v{__version__}")
+    print(
+        f"Recovery Companion v{__version__}"
+    )
     print("=" * 50)
 
-    while True:
-        print()
-        print("1. Dashboard")
-        print("2. Weekly Recovery Review")
-        print("3. Analyze Weekly Recovery Review")
-        print("4. Save Weekly Recovery Review")
-        print("5. Weekly Review History")
-        print("6. Compare Weekly Reviews")
-        print("7. Analyze Weekly Comparison")
-        print("8. Monthly Recovery Review")
-        print("9. Analyze Monthly Recovery Review")
-        print("10. Daily Check-In")
-        print("11. View Today's Check-In")
-        print("12. Check-In History")
-        print("13. Check-In Trends")
-        print("14. Analyze Recent Check-Ins")
-        print("15. Set Sobriety Date")
-        print("16. Chat")
-        print("17. Write Journal Entry")
-        print("18. View Journal")
-        print("19. Search Journal")
-        print("20. Filter Journal by Tag")
-        print("21. Analyze Journal Entry")
-        print("22. Step Work")
-        print("23. Fellowship")
-        print("24. Exit")
-        print()
+    run_menu(
+        "Main Menu",
+        [
+            (
+                "Dashboard",
+                view_dashboard,
+            ),
+            (
+                "Daily Recovery",
+                run_daily_recovery_menu,
+            ),
+            (
+                "Reviews & Trends",
+                run_reviews_menu,
+            ),
+            (
+                "Journal",
+                run_journal_menu,
+            ),
+            (
+                "Step Work",
+                run_step_work_menu,
+            ),
+            (
+                "Fellowship",
+                run_fellowship_menu,
+            ),
+            (
+                "Chat",
+                run_chat,
+            ),
+            (
+                "Settings",
+                run_settings_menu,
+            ),
+        ],
+        final_label="Exit",
+    )
 
-        choice = input(
-            "Choose an option: "
-        ).strip()
-
-        if choice == "1":
-            view_dashboard()
-        elif choice == "2":
-            view_weekly_review()
-        elif choice == "3":
-            analyze_weekly_recovery_review()
-        elif choice == "4":
-            save_current_weekly_review()
-        elif choice == "5":
-            view_weekly_review_history()
-        elif choice == "6":
-            compare_weekly_reviews()
-        elif choice == "7":
-            analyze_saved_weekly_comparison()
-        elif choice == "8":
-            view_monthly_review()
-        elif choice == "9":
-            analyze_monthly_recovery_review()
-        elif choice == "10":
-            run_daily_checkin()
-        elif choice == "11":
-            view_today_checkin()
-        elif choice == "12":
-            view_checkin_history()
-        elif choice == "13":
-            view_checkin_trends()
-        elif choice == "14":
-            analyze_recent_checkins()
-        elif choice == "15":
-            change_sobriety_date()
-        elif choice == "16":
-            run_chat()
-        elif choice == "17":
-            write_journal_entry()
-        elif choice == "18":
-            view_journal()
-        elif choice == "19":
-            search_journal()
-        elif choice == "20":
-            filter_journal_by_tag()
-        elif choice == "21":
-            analyze_journal()
-        elif choice == "22":
-            run_step_work_menu()
-        elif choice == "23":
-            run_fellowship_menu()
-        elif choice == "24":
-            print(
-                "Recovery Companion: "
-                "Take care. Keep coming back."
-            )
-            break
-        else:
-            print("Please choose 1 through 23.")
+    print()
+    print(
+        "Recovery Companion: "
+        "Take care. Keep coming back."
+    )
 
 
 # Only start the CLI when this file is executed directly.
-# Importing main.py from a test or another module will not launch the menu.
+# Importing main.py from tests or another module will not launch it.
 if __name__ == "__main__":
     main()

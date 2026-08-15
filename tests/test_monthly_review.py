@@ -6,7 +6,13 @@ from app.monthly_review import (
 )
 
 
+# ============================================================
+# Test data
+# ============================================================
+
 def sample_history():
+    """Return four representative saved weekly review snapshots."""
+
     return [
         {
             "week_start": "2026-07-16",
@@ -67,8 +73,16 @@ def sample_history():
     ]
 
 
+# ============================================================
+# Recent weekly-review selection
+# ============================================================
+
 @patch("app.monthly_review.load_weekly_review_history")
-def test_get_recent_weekly_reviews_returns_latest_four(mock_history):
+def test_get_recent_weekly_reviews_returns_latest_four(
+    mock_history,
+):
+    """Only the four most recent weekly snapshots should be returned."""
+
     history = sample_history() + [
         {
             "week_start": "2026-07-09",
@@ -78,15 +92,25 @@ def test_get_recent_weekly_reviews_returns_latest_four(mock_history):
 
     mock_history.return_value = history
 
-    reviews = get_recent_weekly_reviews(limit=4)
+    reviews = get_recent_weekly_reviews(
+        limit=4
+    )
 
     assert len(reviews) == 4
     assert reviews[-1]["week_end"] == "2026-08-12"
     assert reviews[0]["week_end"] == "2026-07-22"
 
 
+# ============================================================
+# Monthly aggregation
+# ============================================================
+
 @patch("app.monthly_review.get_recent_weekly_reviews")
-def test_build_monthly_review_aggregates_four_weeks(mock_reviews):
+def test_build_monthly_review_aggregates_four_weeks(
+    mock_reviews,
+):
+    """Four weekly snapshots should aggregate into one monthly review."""
+
     mock_reviews.return_value = sample_history()
 
     result = build_monthly_review()
@@ -100,7 +124,11 @@ def test_build_monthly_review_aggregates_four_weeks(mock_reviews):
 
 
 @patch("app.monthly_review.get_recent_weekly_reviews")
-def test_build_monthly_review_handles_partial_month(mock_reviews):
+def test_build_monthly_review_handles_partial_month(
+    mock_reviews,
+):
+    """A monthly review should work before four weeks are available."""
+
     mock_reviews.return_value = sample_history()[-2:]
 
     result = build_monthly_review()
@@ -111,9 +139,16 @@ def test_build_monthly_review_handles_partial_month(mock_reviews):
 
 
 @patch("app.monthly_review.get_recent_weekly_reviews")
-def test_build_monthly_review_handles_no_history(mock_reviews):
+def test_build_monthly_review_handles_no_history(
+    mock_reviews,
+):
+    """No weekly history should produce a useful empty-state message."""
+
     mock_reviews.return_value = []
 
     result = build_monthly_review()
 
-    assert "No saved weekly reviews are available yet." in result
+    assert (
+        "No saved weekly reviews are available yet."
+        in result
+    )
