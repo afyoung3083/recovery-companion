@@ -514,6 +514,23 @@ def monthly_comparison_has_no_more_than_three_next_actions(
         section_description="Monthly Comparison",
     )
 
+def recovery_insights_has_no_more_than_three_next_actions(
+    response: str,
+) -> RuleResult:
+    """
+    Limit Recovery Insights analysis to three next-right actions.
+
+    This rule supports RKS-013.
+    """
+
+    return _max_three_next_actions_rule(
+        response,
+        rule_name=(
+            "recovery_insights_has_no_more_than_three_next_actions"
+        ),
+        section_description="Recovery Insights",
+    )
+
 # ============================================================
 # Rule registry
 # ============================================================
@@ -556,6 +573,9 @@ RULES: dict[str, RuleCheck] = {
     ),
     "monthly_comparison_has_no_more_than_three_next_actions":(
         monthly_comparison_has_no_more_than_three_next_actions
+    ),
+    "recovery_insights_has_no_more_than_three_next_actions":(
+        recovery_insights_has_no_more_than_three_next_actions
     ),
 }
 
