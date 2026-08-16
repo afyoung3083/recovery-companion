@@ -16,6 +16,7 @@ from app.recovery_engine import (
     analyze_weekly_review,
     respond_to_user,
     analyze_monthly_comparison,
+    analyze_recovery_insights,
 )
 from tests.rks_grader import grade_response
 from tests.rks_rules import RuleResult, run_rules
@@ -178,6 +179,9 @@ def generate_candidate_response(
 
     if mode == "monthly_comparison_analysis":
         return analyze_monthly_comparison(latest_content)
+
+    if mode == "recovery_insights_analysis":
+        return analyze_recovery_insights(latest_content)
 
     # Unknown modes should fail explicitly instead of silently
     # running as ordinary chat.

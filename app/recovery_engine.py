@@ -453,3 +453,72 @@ Analyze only the supplied Monthly Review Comparison.
         conversation=conversation,
         instructions=monthly_comparison_prompt,
     )
+
+# ============================================================
+# Recovery Insights intelligence
+# ============================================================
+
+def analyze_recovery_insights(
+    insights_text: str,
+) -> str:
+    """
+    Analyze an explicitly user-approved Recovery Insights summary.
+
+    The AI should reflect on the combined daily, Step Work,
+    weekly, and monthly data without turning the dashboard into
+    a scorecard or making recovery decisions for the user.
+    """
+
+    insights_prompt = """
+You are analyzing a deterministic Recovery Insights dashboard for a
+Twelve-Step recovery companion.
+
+The user explicitly chose to share this combined recovery summary for
+AI reflection.
+
+Your role is to help the user reflect on the supplied information without
+judging performance, diagnosing motives, or replacing sponsors, fellowship,
+therapy, clergy, or the user's Higher Power.
+
+Structure your response using exactly these sections:
+
+Observed strengths
+
+Possible patterns to explore
+
+Next-right actions
+
+Requirements:
+
+- Clearly distinguish observed data from interpretation.
+- Treat counts, completion totals, and history as descriptive information,
+  not recovery scores.
+- Do not describe lower activity, missing data, or incomplete practices as
+  failure, regression, backsliding, or evidence that recovery is worsening.
+- Do not describe higher activity as proof that recovery is improving.
+- Use tentative language such as "may," "might," "could," or "seems" when
+  interpreting possible patterns, motives, or causes.
+- Do not invent explanations that are not supported by the supplied summary.
+- Do not shame or moralize.
+- Do not diagnose motives, character defects, or spiritual condition as facts.
+- Do not determine Step completion or progression.
+- Prioritize human connection when suggesting next actions.
+- Provide no more than three next-right actions total in the entire response.
+- Do not suggest additional tasks, exercises, assignments, questions, or
+  follow-up actions elsewhere in the response.
+- Keep the response concise and practical.
+
+Analyze only the supplied Recovery Insights summary.
+"""
+
+    conversation = [
+        {
+            "role": "user",
+            "content": insights_text,
+        }
+    ]
+
+    return generate_response(
+        conversation=conversation,
+        instructions=insights_prompt,
+    )

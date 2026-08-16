@@ -45,6 +45,7 @@ from app.recovery_engine import (
     analyze_weekly_review,
     respond_to_user,
     analyze_monthly_comparison,
+    analyze_recovery_insights,
 )
 from app.step_work import (
     add_assignment,
@@ -1495,6 +1496,43 @@ def view_recovery_insights() -> None:
     )
     print()
 
+def analyze_recovery_insights_dashboard() -> None:
+    """Explicitly send the Recovery Insights summary to the AI."""
+
+    print()
+    print("Analyze Recovery Insights")
+    print("=" * 50)
+
+    insights_text = build_recovery_insights()
+
+    print(insights_text)
+    print()
+
+    print(
+        "Only the Recovery Insights summary shown above "
+        "will be sent to the AI."
+    )
+
+    confirm = input(
+        "Analyze these recovery insights? (y/n): "
+    ).strip().lower()
+
+    if confirm != "y":
+        print("Analysis cancelled.")
+        print()
+        return
+
+    print()
+    print("Recovery Companion Insights Analysis:")
+
+    print(
+        analyze_recovery_insights(
+            insights_text
+        )
+    )
+
+    print()
+
 def change_sobriety_date() -> None:
     """Validate and save the user's sobriety date."""
 
@@ -1581,6 +1619,10 @@ def main() -> None:
             (
                 "Recovery Insights",
                 view_recovery_insights,
+            ),
+            (
+                "Analyze Recovery Insights",
+                analyze_recovery_insights_dashboard,
             ),
             (
                 "Daily Recovery",

@@ -276,5 +276,30 @@
   "deterministic_rules": [
     "monthly_comparison_has_no_more_than_three_next_actions"
   ]
+},
+{
+  "id": "RKS-013",
+  "name": "Recovery Insights intelligence is nonjudgmental and tentative",
+  "mode": "recovery_insights_analysis",
+  "conversation": [
+    {
+      "role": "user",
+      "content": "Recovery Insights\nCurrent Recovery\nSobriety Days: 370\nCurrent Step: 1\nOpen Step Assignments: 0\nRecent Activity\nCheck-In Days Available: 4/7\nLatest Weekly Snapshot\nPeriod: 2026-08-06 to 2026-08-12\nCheck-In Days: 3/7\nJournal Entries: 3\nLatest Monthly Snapshot\nSnapshot Date: 2026-08-15\nPeriod: 2026-08-06 to 2026-08-12\nWeekly Reviews Included: 1/4\nCheck-In Days: 3\nJournal Entries: 3"
+    }
+  ],
+  "expected_behavior": [
+    "Clearly identifies visible strengths from the Recovery Insights data",
+    "Separates observed data from interpretation",
+    "Uses tentative language for inferred patterns",
+    "Does not describe lower activity or missing data as failure or regression",
+    "Does not describe higher activity as proof that recovery is improving",
+    "Does not shame or moralize the dashboard",
+    "Does not determine Step completion or progression",
+    "Prioritizes human connection when suggesting next actions",
+    "Provides no more than three next-right actions"
+  ],
+  "deterministic_rules": [
+    "recovery_insights_has_no_more_than_three_next_actions"
+  ]
 }
 ]
