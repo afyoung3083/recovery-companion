@@ -64,6 +64,14 @@ from app.weekly_review import (
     save_weekly_review_snapshot,
 )
 from app.recovery_insights import build_recovery_insights
+from app.goals import (
+    add_goal,
+    complete_goal,
+    format_goals,
+    get_active_goals,
+    load_goals,
+    reactivate_goal,
+)
 
 # ============================================================
 # Menu framework
@@ -1589,6 +1597,165 @@ def run_settings_menu() -> None:
         ],
     )
 
+# ============================================================
+# Goals & Commitments
+# ============================================================
+
+def view_goals() -> None:
+    """Display all saved recovery goals."""
+
+    print()
+    print("Recovery Goals")
+    print("=" * 50)
+    print(
+        format_goals(
+            load_goals()
+        )
+    )
+    print()
+
+
+def view_active_goals() -> None:
+    """Display active recovery goals only."""
+
+    print()
+    print("Active Recovery Goals")
+    print("=" * 50)
+    print(
+        format_goals(
+            get_active_goals()
+        )
+    )
+    print()
+
+
+def create_goal() -> None:
+    """Create a new recovery goal."""
+
+    print()
+    print("Add Recovery Goal")
+    print("=" * 50)
+
+    text = input(
+        "Goal: "
+    ).strip()
+
+    area = input(
+        "Area "
+        "(connection, step_work, meetings, prayer, "
+        "journal, service, health, other): "
+    ).strip()
+
+    target_date = input(
+        "Target date (YYYY-MM-DD, optional): "
+    ).strip()
+
+    try:
+        goal = add_goal(
+            text=text,
+            area=area,
+            target_date=target_date,
+        )
+    except ValueError as error:
+        print(error)
+        print()
+        return
+
+    print()
+    print(
+        f"Goal {goal['id']} saved."
+    )
+    print()
+
+
+def mark_goal_complete() -> None:
+    """Mark a saved goal complete."""
+
+    print()
+
+    goal_id_input = input(
+        "Goal ID: "
+    ).strip()
+
+    if not goal_id_input.isdigit():
+        print(
+            "Please enter a valid goal ID."
+        )
+        print()
+        return
+
+    goal = complete_goal(
+        int(goal_id_input)
+    )
+
+    if goal is None:
+        print("Goal not found.")
+    else:
+        print(
+            f"Goal {goal['id']} marked complete."
+        )
+
+    print()
+
+
+def reactivate_saved_goal() -> None:
+    """Return a completed goal to active status."""
+
+    print()
+
+    goal_id_input = input(
+        "Goal ID: "
+    ).strip()
+
+    if not goal_id_input.isdigit():
+        print(
+            "Please enter a valid goal ID."
+        )
+        print()
+        return
+
+    goal = reactivate_goal(
+        int(goal_id_input)
+    )
+
+    if goal is None:
+        print("Goal not found.")
+    else:
+        print(
+            f"Goal {goal['id']} reactivated."
+        )
+
+    print()
+
+
+def run_goals_menu() -> None:
+    """Run the Goals & Commitments submenu."""
+
+    run_menu(
+        "Goals & Commitments",
+        [
+            (
+                "View All Goals",
+                view_goals,
+            ),
+            (
+                "View Active Goals",
+                view_active_goals,
+            ),
+            (
+                "Add Goal",
+                create_goal,
+            ),
+            (
+                "Mark Goal Complete",
+                mark_goal_complete,
+            ),
+            (
+                "Reactivate Goal",
+                reactivate_saved_goal,
+            ),
+        ],
+    )
 
 # ============================================================
 # Main menu
@@ -1651,6 +1818,10 @@ def main() -> None:
             (
                 "Settings",
                 run_settings_menu,
+            ),
+            (
+                "Goals & Commitments",
+                run_goals_menu,
             ),
         ],
         final_label="Exit",
