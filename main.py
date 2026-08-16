@@ -72,6 +72,13 @@ from app.goals import (
     load_goals,
     reactivate_goal,
 )
+from app.routines import (
+    add_routine,
+    format_routines,
+    get_active_routines,
+    load_routines,
+    set_routine_active,
+)
 
 # ============================================================
 # Menu framework
@@ -1758,6 +1765,162 @@ def run_goals_menu() -> None:
     )
 
 # ============================================================
+# Reminders & Recovery Routines
+# ============================================================
+
+def view_routines() -> None:
+    """Display all saved recovery routines."""
+
+    print()
+    print("Recovery Routines")
+    print("=" * 50)
+    print(
+        format_routines(
+            load_routines()
+        )
+    )
+    print()
+
+
+def view_active_routines() -> None:
+    """Display active recovery routines only."""
+
+    print()
+    print("Active Recovery Routines")
+    print("=" * 50)
+    print(
+        format_routines(
+            get_active_routines()
+        )
+    )
+    print()
+
+
+def create_routine() -> None:
+    """Create a new daily or weekly recovery routine."""
+
+    print()
+    print("Add Recovery Routine")
+    print("=" * 50)
+
+    text = input(
+        "Routine: "
+    ).strip()
+
+    area = input(
+        "Area "
+        "(connection, meetings, step_work, prayer, "
+        "journal, service, health, other): "
+    ).strip()
+
+    frequency = input(
+        "Frequency (daily/weekly): "
+    ).strip()
+
+    day_of_week = ""
+
+    if frequency.lower() == "weekly":
+        day_of_week = input(
+            "Day of week: "
+        ).strip()
+
+    try:
+        routine = add_routine(
+            text=text,
+            area=area,
+            frequency=frequency,
+            day_of_week=day_of_week,
+        )
+    except ValueError as error:
+        print(error)
+        print()
+        return
+
+    print()
+    print(
+        f"Routine {routine['id']} saved."
+    )
+    print()
+
+
+def change_routine_status() -> None:
+    """Activate or deactivate a saved recovery routine."""
+
+    print()
+
+    routine_id_input = input(
+        "Routine ID: "
+    ).strip()
+
+    if not routine_id_input.isdigit():
+        print(
+            "Please enter a valid routine ID."
+        )
+        print()
+        return
+
+    active_input = input(
+        "Set active? (y/n): "
+    ).strip().lower()
+
+    if active_input not in {
+        "y",
+        "n",
+    }:
+        print(
+            "Please enter y or n."
+        )
+        print()
+        return
+
+    routine = set_routine_active(
+        routine_id=int(routine_id_input),
+        active=(active_input == "y"),
+    )
+
+    if routine is None:
+        print("Routine not found.")
+    else:
+        status = (
+            "active"
+            if routine["active"]
+            else "inactive"
+        )
+
+        print(
+            f"Routine {routine['id']} "
+            f"is now {status}."
+        )
+
+    print()
+
+
+def run_routines_menu() -> None:
+    """Run the Reminders & Routines submenu."""
+
+    run_menu(
+        "Reminders & Routines",
+        [
+            (
+                "View All Routines",
+                view_routines,
+            ),
+            (
+                "View Active Routines",
+                view_active_routines,
+            ),
+            (
+                "Add Routine",
+                create_routine,
+            ),
+            (
+                "Change Routine Status",
+                change_routine_status,
+            ),
+        ],
+    )
+
+# ============================================================
 # Main menu
 # ============================================================
 
@@ -1822,6 +1985,10 @@ def main() -> None:
             (
                 "Goals & Commitments",
                 run_goals_menu,
+            ),
+            (
+                "Reminders & Routines",
+                run_routines_menu,
             ),
         ],
         final_label="Exit",
