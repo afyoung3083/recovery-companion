@@ -62,7 +62,7 @@ from app.weekly_review import (
     load_weekly_review_history,
     save_weekly_review_snapshot,
 )
-
+from app.recovery_insights import build_recovery_insights
 
 # ============================================================
 # Menu framework
@@ -1486,6 +1486,14 @@ def view_dashboard() -> None:
     )
     print()
 
+def view_recovery_insights() -> None:
+    """Display the deterministic longitudinal Recovery Insights dashboard."""
+
+    print()
+    print(
+        build_recovery_insights()
+    )
+    print()
 
 def change_sobriety_date() -> None:
     """Validate and save the user's sobriety date."""
@@ -1569,6 +1577,10 @@ def main() -> None:
             (
                 "Dashboard",
                 view_dashboard,
+            ),
+            (
+                "Recovery Insights",
+                view_recovery_insights,
             ),
             (
                 "Daily Recovery",
