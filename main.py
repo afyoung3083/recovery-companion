@@ -79,6 +79,11 @@ from app.routines import (
     load_routines,
     set_routine_active,
 )
+from pathlib import Path
+from app.backup import (
+    create_backup,
+    restore_backup,
+)
 
 # ============================================================
 # Menu framework
@@ -1921,6 +1926,129 @@ def run_routines_menu() -> None:
     )
 
 # ============================================================
+# Backup & Restore
+# ============================================================
+
+def create_local_backup() -> None:
+    """Create a complete local Recovery Companion backup."""
+
+    print()
+    print("Create Backup")
+    print("=" * 50)
+
+    try:
+        backup_path = create_backup()
+    except Exception as error:
+        print(
+            f"Backup failed: {error}"
+        )
+        print()
+        return
+
+    print(
+        "Backup created successfully."
+    )
+
+    print(
+        f"File: {backup_path}"
+    )
+
+    print()
+
+
+def restore_local_backup() -> None:
+    """
+    Restore Recovery Companion data from a local backup file.
+
+    Restore requires explicit confirmation because existing local
+    data will be replaced by the backup contents.
+    """
+
+    print()
+    print("Restore Backup")
+    print("=" * 50)
+
+    backup_input = input(
+        "Backup file path: "
+    ).strip()
+
+    if not backup_input:
+        print(
+            "No backup file specified."
+        )
+        print()
+        return
+
+    backup_path = Path(
+        backup_input
+    )
+
+    if not backup_path.exists():
+        print(
+            "Backup file not found."
+        )
+        print()
+        return
+
+    print()
+    print(
+        "WARNING: Restoring will replace the current "
+        "local Recovery Companion data."
+    )
+
+    confirm = input(
+        "Continue with restore? (y/n): "
+    ).strip().lower()
+
+    if confirm != "y":
+        print(
+            "Restore cancelled."
+        )
+        print()
+        return
+
+    try:
+        restore_backup(
+            backup_path
+        )
+    except ValueError as error:
+        print(
+            f"Restore failed: {error}"
+        )
+        print()
+        return
+    except Exception as error:
+        print(
+            f"Restore failed: {error}"
+        )
+        print()
+        return
+
+    print()
+    print(
+        "Backup restored successfully."
+    )
+    print()
+
+
+def run_backup_menu() -> None:
+    """Run the Backup & Restore submenu."""
+
+    run_menu(
+        "Backup & Restore",
+        [
+            (
+                "Create Backup",
+                create_local_backup,
+            ),
+            (
+                "Restore Backup",
+                restore_local_backup,
+            ),
+        ],
+    )
+
+# ============================================================
 # Main menu
 # ============================================================
 
@@ -1981,6 +2109,10 @@ def main() -> None:
             (
                 "Settings",
                 run_settings_menu,
+            ),
+            (
+                "Backup & Restore",
+                run_backup_menu,
             ),
             (
                 "Goals & Commitments",
