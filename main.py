@@ -1,10 +1,16 @@
 from collections.abc import Callable
 from datetime import date
+from pathlib import Path
 
 # ============================================================
 # Application modules
 # ============================================================
 
+from app.backup import (
+    create_backup,
+    restore_backup,
+)
+from app.config import OPENAI_API_KEY
 from app.daily_checkin import (
     format_checkin,
     format_checkin_history,
@@ -20,6 +26,14 @@ from app.fellowship import (
     load_contacts,
     recommend_contacts,
     set_contact_active,
+)
+from app.goals import (
+    add_goal,
+    complete_goal,
+    format_goals,
+    get_active_goals,
+    load_goals,
+    reactivate_goal,
 )
 from app.journal import (
     add_entry,
@@ -39,14 +53,23 @@ from app.profile import set_sobriety_date
 from app.recovery_engine import (
     analyze_checkin_trends,
     analyze_journal_entry,
+    analyze_monthly_comparison,
     analyze_monthly_review,
+    analyze_recovery_insights,
     analyze_step_work,
     analyze_weekly_comparison,
     analyze_weekly_review,
     respond_to_user,
-    analyze_monthly_comparison,
-    analyze_recovery_insights,
 )
+from app.recovery_insights import build_recovery_insights
+from app.routines import (
+    add_routine,
+    format_routines,
+    get_active_routines,
+    load_routines,
+    set_routine_active,
+)
+from app.security import redact_sensitive_text
 from app.step_work import (
     add_assignment,
     add_step_note,
@@ -63,38 +86,44 @@ from app.weekly_review import (
     load_weekly_review_history,
     save_weekly_review_snapshot,
 )
-from app.recovery_insights import build_recovery_insights
-from app.goals import (
-    add_goal,
-    complete_goal,
-    format_goals,
-    get_active_goals,
-    load_goals,
-    reactivate_goal,
-)
-from app.routines import (
-    add_routine,
-    format_routines,
-    get_active_routines,
-    load_routines,
-    set_routine_active,
-)
-from pathlib import Path
-from app.backup import (
-    create_backup,
-    restore_backup,
-)
+
+
+# ============================================================
+# Shared CLI helpers
+# ============================================================
+
+def _print_safe_error(
+    prefix: str,
+    error: Exception,
+) -> None:
+    """
+    Print an unexpected error without exposing configured secrets.
+
+    Raw third-party exceptions can occasionally contain request or
+    authentication details. Sanitize them before displaying them in
+    the terminal.
+    """
+
+    safe_message = redact_sensitive_text(
+        str(error),
+        secrets=[OPENAI_API_KEY],
+    )
+
+    print(
+        f"{prefix}{safe_message}"
+    )
+
 
 # ============================================================
 # Menu framework
 # ============================================================
 
-# Every menu item is simply:
+# Every menu item is:
 #
 #     ("Label shown to user", function_to_run)
 #
-# This means new features can usually be added to a menu with one
-# line instead of manually renumbering a large elif chain.
+# Adding a feature normally requires only adding one tuple to the
+# appropriate menu rather than manually renumbering an elif chain.
 MenuAction = Callable[[], None]
 MenuItem = tuple[str, MenuAction]
 
@@ -110,10 +139,8 @@ def run_menu(
 
     The final numbered choice automatically returns to the caller.
 
-    For submenus this means "Back".
-
-    The main menu also uses this behavior, but its final choice is
-    labeled "Exit". Returning from the main menu causes main() to end.
+    Submenus therefore use "Back". The main menu uses "Exit";
+    returning from it allows main() to finish.
     """
 
     while True:
@@ -125,10 +152,15 @@ def run_menu(
             items,
             start=1,
         ):
-            print(f"{index}. {label}")
+            print(
+                f"{index}. {label}"
+            )
 
         final_choice = len(items) + 1
-        print(f"{final_choice}. {final_label}")
+
+        print(
+            f"{final_choice}. {final_label}"
+        )
         print()
 
         choice = input(
@@ -152,8 +184,6 @@ def run_menu(
             )
             continue
 
-        # Convert the user's 1-based menu choice to the list's
-        # 0-based index and execute the associated function.
         _, action = items[
             choice_number - 1
         ]
@@ -173,7 +203,9 @@ def run_chat() -> None:
     print()
     print("Recovery Companion Chat")
     print("=" * 50)
-    print("Type 'back' to return to the main menu.")
+    print(
+        "Type 'back' to return to the main menu."
+    )
     print()
 
     while True:
@@ -186,7 +218,9 @@ def run_chat() -> None:
             return
 
         if not user_message:
-            print("Please enter a message.")
+            print(
+                "Please enter a message."
+            )
             continue
 
         conversation.append(
@@ -200,13 +234,19 @@ def run_chat() -> None:
             response = respond_to_user(
                 conversation
             )
+
         except Exception as error:
             print()
-            print(f"Error: {error}")
+
+            _print_safe_error(
+                "Error: ",
+                error,
+            )
+
             print()
 
-            # Remove the unsent user turn so the conversation
-            # remains internally consistent.
+            # Remove the unsent turn so the local conversation
+            # remains consistent with what the AI actually saw.
             conversation.pop()
             continue
 
@@ -218,7 +258,9 @@ def run_chat() -> None:
         )
 
         print()
-        print("Recovery Companion:")
+        print(
+            "Recovery Companion:"
+        )
         print(response)
         print()
 
@@ -233,7 +275,9 @@ def write_journal_entry() -> None:
     print()
     print("New Journal Entry")
     print("=" * 50)
-    print("Enter your journal entry on one line.")
+    print(
+        "Enter your journal entry on one line."
+    )
     print()
 
     text = input(
@@ -241,7 +285,9 @@ def write_journal_entry() -> None:
     ).strip()
 
     if not text:
-        print("Journal entry was not saved.")
+        print(
+            "Journal entry was not saved."
+        )
         print()
         return
 
@@ -275,11 +321,13 @@ def view_journal() -> None:
     print()
     print("Journal Entries")
     print("=" * 50)
+
     print(
         format_entries(
             load_entries()
         )
     )
+
     print()
 
 
@@ -295,7 +343,9 @@ def search_journal() -> None:
     ).strip()
 
     if not query:
-        print("No search term entered.")
+        print(
+            "No search term entered."
+        )
         print()
         return
 
@@ -323,7 +373,9 @@ def filter_journal_by_tag() -> None:
     ).strip()
 
     if not tag:
-        print("No tag entered.")
+        print(
+            "No tag entered."
+        )
         print()
         return
 
@@ -349,7 +401,9 @@ def analyze_journal() -> None:
     entries = load_entries()
 
     if not entries:
-        print("No journal entries available.")
+        print(
+            "No journal entries available."
+        )
         print()
         return
 
@@ -383,7 +437,9 @@ def analyze_journal() -> None:
     )
 
     if selected_entry is None:
-        print("Journal entry not found.")
+        print(
+            "Journal entry not found."
+        )
         print()
         return
 
@@ -397,7 +453,9 @@ def analyze_journal() -> None:
     ).strip().lower()
 
     if confirm != "y":
-        print("Analysis cancelled.")
+        print(
+            "Analysis cancelled."
+        )
         print()
         return
 
@@ -458,11 +516,13 @@ def view_step_work() -> None:
     print()
     print("Step Work")
     print("=" * 50)
+
     print(
         format_step_work(
             load_step_work()
         )
     )
+
     print()
 
 
@@ -490,6 +550,7 @@ def change_current_step() -> None:
         set_current_step(
             step_number
         )
+
     except ValueError as error:
         print(error)
         print()
@@ -549,7 +610,10 @@ def mark_step_assignment_complete() -> None:
     )
 
     if assignment is None:
-        print("Assignment not found.")
+        print(
+            "Assignment not found."
+        )
+
     else:
         print(
             f"Assignment {assignment['id']} "
@@ -569,7 +633,9 @@ def create_step_note() -> None:
     ).strip()
 
     if not text:
-        print("Note was not saved.")
+        print(
+            "Note was not saved."
+        )
         print()
         return
 
@@ -612,7 +678,9 @@ def analyze_current_step_work() -> None:
     ).strip().lower()
 
     if confirm != "y":
-        print("Analysis cancelled.")
+        print(
+            "Analysis cancelled."
+        )
         print()
         return
 
@@ -674,11 +742,13 @@ def view_fellowship_contacts() -> None:
     print()
     print("Fellowship Contacts")
     print("=" * 50)
+
     print(
         format_contacts(
             load_contacts()
         )
     )
+
     print()
 
 
@@ -694,7 +764,9 @@ def create_fellowship_contact() -> None:
     ).strip()
 
     if not handle:
-        print("Contact was not saved.")
+        print(
+            "Contact was not saved."
+        )
         print()
         return
 
@@ -775,7 +847,9 @@ def change_fellowship_contact_status() -> None:
     )
 
     if contact is None:
-        print("Contact not found.")
+        print(
+            "Contact not found."
+        )
 
     else:
         status = (
@@ -829,7 +903,7 @@ def who_should_i_call() -> None:
             "contact_method"
         ):
             print(
-                f"   Contact: "
+                "   Contact: "
                 f"{contact['contact_method']}"
             )
 
@@ -837,7 +911,7 @@ def who_should_i_call() -> None:
             "notes"
         ):
             print(
-                f"   Notes: "
+                "   Notes: "
                 f"{contact['notes']}"
             )
 
@@ -935,11 +1009,13 @@ def run_daily_checkin() -> None:
         "Daily check-in saved."
     )
     print()
+
     print(
         format_checkin(
             checkin
         )
     )
+
     print()
 
 
@@ -1374,6 +1450,7 @@ def compare_monthly_reviews() -> None:
 
     print()
 
+
 def analyze_saved_monthly_comparison() -> None:
     """Explicitly send the latest saved monthly comparison to the AI."""
 
@@ -1410,7 +1487,9 @@ def analyze_saved_monthly_comparison() -> None:
     ).strip().lower()
 
     if confirm != "y":
-        print("Analysis cancelled.")
+        print(
+            "Analysis cancelled."
+        )
         print()
         return
 
@@ -1427,6 +1506,7 @@ def analyze_saved_monthly_comparison() -> None:
 
     print()
 
+
 # ============================================================
 # Reviews & Trends
 # ============================================================
@@ -1435,8 +1515,8 @@ def run_reviews_menu() -> None:
     """
     Run weekly and monthly recovery-review tools.
 
-    All longitudinal review features live here so the main menu
-    remains small even as new review capabilities are added.
+    Longitudinal review features live here so the main menu can
+    remain compact as additional review capabilities are added.
     """
 
     run_menu(
@@ -1507,14 +1587,16 @@ def view_dashboard() -> None:
     )
     print()
 
+
 def view_recovery_insights() -> None:
-    """Display the deterministic longitudinal Recovery Insights dashboard."""
+    """Display the deterministic Recovery Insights dashboard."""
 
     print()
     print(
         build_recovery_insights()
     )
     print()
+
 
 def analyze_recovery_insights_dashboard() -> None:
     """Explicitly send the Recovery Insights summary to the AI."""
@@ -1525,7 +1607,9 @@ def analyze_recovery_insights_dashboard() -> None:
 
     insights_text = build_recovery_insights()
 
-    print(insights_text)
+    print(
+        insights_text
+    )
     print()
 
     print(
@@ -1538,12 +1622,16 @@ def analyze_recovery_insights_dashboard() -> None:
     ).strip().lower()
 
     if confirm != "y":
-        print("Analysis cancelled.")
+        print(
+            "Analysis cancelled."
+        )
         print()
         return
 
     print()
-    print("Recovery Companion Insights Analysis:")
+    print(
+        "Recovery Companion Insights Analysis:"
+    )
 
     print(
         analyze_recovery_insights(
@@ -1552,6 +1640,7 @@ def analyze_recovery_insights_dashboard() -> None:
     )
 
     print()
+
 
 def change_sobriety_date() -> None:
     """Validate and save the user's sobriety date."""
@@ -1609,6 +1698,7 @@ def run_settings_menu() -> None:
         ],
     )
 
+
 # ============================================================
 # Goals & Commitments
 # ============================================================
@@ -1619,11 +1709,13 @@ def view_goals() -> None:
     print()
     print("Recovery Goals")
     print("=" * 50)
+
     print(
         format_goals(
             load_goals()
         )
     )
+
     print()
 
 
@@ -1633,11 +1725,13 @@ def view_active_goals() -> None:
     print()
     print("Active Recovery Goals")
     print("=" * 50)
+
     print(
         format_goals(
             get_active_goals()
         )
     )
+
     print()
 
 
@@ -1668,6 +1762,7 @@ def create_goal() -> None:
             area=area,
             target_date=target_date,
         )
+
     except ValueError as error:
         print(error)
         print()
@@ -1701,7 +1796,10 @@ def mark_goal_complete() -> None:
     )
 
     if goal is None:
-        print("Goal not found.")
+        print(
+            "Goal not found."
+        )
+
     else:
         print(
             f"Goal {goal['id']} marked complete."
@@ -1731,7 +1829,10 @@ def reactivate_saved_goal() -> None:
     )
 
     if goal is None:
-        print("Goal not found.")
+        print(
+            "Goal not found."
+        )
+
     else:
         print(
             f"Goal {goal['id']} reactivated."
@@ -1769,6 +1870,7 @@ def run_goals_menu() -> None:
         ],
     )
 
+
 # ============================================================
 # Reminders & Recovery Routines
 # ============================================================
@@ -1779,11 +1881,13 @@ def view_routines() -> None:
     print()
     print("Recovery Routines")
     print("=" * 50)
+
     print(
         format_routines(
             load_routines()
         )
     )
+
     print()
 
 
@@ -1793,11 +1897,13 @@ def view_active_routines() -> None:
     print()
     print("Active Recovery Routines")
     print("=" * 50)
+
     print(
         format_routines(
             get_active_routines()
         )
     )
+
     print()
 
 
@@ -1836,6 +1942,7 @@ def create_routine() -> None:
             frequency=frequency,
             day_of_week=day_of_week,
         )
+
     except ValueError as error:
         print(error)
         print()
@@ -1879,12 +1986,19 @@ def change_routine_status() -> None:
         return
 
     routine = set_routine_active(
-        routine_id=int(routine_id_input),
-        active=(active_input == "y"),
+        routine_id=int(
+            routine_id_input
+        ),
+        active=(
+            active_input == "y"
+        ),
     )
 
     if routine is None:
-        print("Routine not found.")
+        print(
+            "Routine not found."
+        )
+
     else:
         status = (
             "active"
@@ -1925,6 +2039,7 @@ def run_routines_menu() -> None:
         ],
     )
 
+
 # ============================================================
 # Backup & Restore
 # ============================================================
@@ -1938,9 +2053,11 @@ def create_local_backup() -> None:
 
     try:
         backup_path = create_backup()
+
     except Exception as error:
-        print(
-            f"Backup failed: {error}"
+        _print_safe_error(
+            "Backup failed: ",
+            error,
         )
         print()
         return
@@ -1958,10 +2075,10 @@ def create_local_backup() -> None:
 
 def restore_local_backup() -> None:
     """
-    Restore Recovery Companion data from a local backup file.
+    Restore Recovery Companion data from a local backup.
 
-    Restore requires explicit confirmation because existing local
-    data will be replaced by the backup contents.
+    Restore requires explicit confirmation because current local
+    recovery data will be replaced by the validated backup contents.
     """
 
     print()
@@ -2011,15 +2128,20 @@ def restore_local_backup() -> None:
         restore_backup(
             backup_path
         )
+
+    # These validation messages are controlled by our application
+    # and therefore do not need third-party exception redaction.
     except ValueError as error:
         print(
             f"Restore failed: {error}"
         )
         print()
         return
+
     except Exception as error:
-        print(
-            f"Restore failed: {error}"
+        _print_safe_error(
+            "Restore failed: ",
+            error,
         )
         print()
         return
@@ -2048,6 +2170,7 @@ def run_backup_menu() -> None:
         ],
     )
 
+
 # ============================================================
 # Main menu
 # ============================================================
@@ -2056,7 +2179,7 @@ def main() -> None:
     """
     Start Recovery Companion.
 
-    The main menu intentionally stays small. Detailed features live
+    The main menu intentionally stays compact. Detailed features live
     inside domain-specific submenus.
     """
 

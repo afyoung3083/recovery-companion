@@ -3,15 +3,11 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-
-PROJECT_ROOT = Path(__file__).resolve().parent.parent
-DATA_DIR = PROJECT_ROOT / "data"
-JOURNAL_FILE = DATA_DIR / "journal_entries.json"
-
-
-def ensure_data_directory() -> None:
-    DATA_DIR.mkdir(parents=True, exist_ok=True)
-
+# journal.py
+from app.paths import (
+    JOURNAL_FILE,
+    ensure_data_directory,
+)
 
 def load_entries() -> list[dict[str, Any]]:
     ensure_data_directory()

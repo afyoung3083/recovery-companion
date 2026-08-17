@@ -2,10 +2,11 @@ import json
 from pathlib import Path
 from typing import Any
 
-
-PROJECT_ROOT = Path(__file__).resolve().parent.parent
-DATA_DIR = PROJECT_ROOT / "data"
-FELLOWSHIP_FILE = DATA_DIR / "fellowship_contacts.json"
+# fellowship.py
+from app.paths import (
+    FELLOWSHIP_FILE,
+    ensure_data_directory,
+)
 
 
 VALID_CONTACT_TYPES = {
@@ -18,10 +19,6 @@ VALID_CONTACT_TYPES = {
     "family",
     "other",
 }
-
-
-def ensure_data_directory() -> None:
-    DATA_DIR.mkdir(parents=True, exist_ok=True)
 
 
 def load_contacts() -> list[dict[str, Any]]:

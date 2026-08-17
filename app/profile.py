@@ -2,14 +2,11 @@ import json
 from pathlib import Path
 from typing import Any
 
-
-PROJECT_ROOT = Path(__file__).resolve().parent.parent
-DATA_DIR = PROJECT_ROOT / "data"
-PROFILE_FILE = DATA_DIR / "profile.json"
-
-
-def ensure_data_directory() -> None:
-    DATA_DIR.mkdir(parents=True, exist_ok=True)
+# profile.py
+from app.paths import (
+    PROFILE_FILE,
+    ensure_data_directory,
+)
 
 
 def default_profile() -> dict[str, Any]:

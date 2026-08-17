@@ -2,6 +2,7 @@ from datetime import date, timedelta
 from typing import Any
 import json
 from pathlib import Path
+from app.paths import WEEKLY_REVIEW_HISTORY_FILE
 
 from app.daily_checkin import CHECKIN_FIELDS, load_checkins
 from app.journal import load_entries

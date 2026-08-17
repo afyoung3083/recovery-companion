@@ -1,14 +1,12 @@
 import json
 from datetime import date
-from pathlib import Path
 from typing import Any
+from app.paths import GOALS_FILE
 
 
 # ============================================================
-# Configuration
+# Goal configuration
 # ============================================================
-
-GOALS_FILE = Path("data/goals.json")
 
 VALID_AREAS = {
     "connection",
@@ -20,7 +18,6 @@ VALID_AREAS = {
     "health",
     "other",
 }
-
 
 # ============================================================
 # Persistence
