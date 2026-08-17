@@ -3,14 +3,11 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-
-PROJECT_ROOT = Path(__file__).resolve().parent.parent
-DATA_DIR = PROJECT_ROOT / "data"
-STEP_WORK_FILE = DATA_DIR / "step_work.json"
-
-
-def ensure_data_directory() -> None:
-    DATA_DIR.mkdir(parents=True, exist_ok=True)
+# step_work.py
+from app.paths import (
+    STEP_WORK_FILE,
+    ensure_data_directory,
+)
 
 
 def default_step_work() -> dict[str, Any]:

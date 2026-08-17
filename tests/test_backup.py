@@ -228,3 +228,28 @@ def test_restore_backup_writes_validated_data(
     assert monthly_file.exists()
     assert goals_file.exists()
     assert routines_file.exists()
+
+def test_validate_backup_payload_rejects_tampered_hashed_backup():
+    payload = sample_payload()
+
+    # Add a valid integrity hash.
+    from app.backup import _calculate_payload_hash
+
+    payload["metadata"]["sha256"] = (
+        _calculate_payload_hash(payload)
+    )
+
+    # Simulate backup tampering after the hash was created.
+    payload["profile"]["sobriety_date"] = "2099-01-01"
+
+    try:
+        validate_backup_payload(payload)
+    except ValueError as error:
+        assert (
+            str(error)
+            == "Backup integrity check failed."
+        )
+    else:
+        raise AssertionError(
+            "Expected ValueError for tampered backup."
+        )

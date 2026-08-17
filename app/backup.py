@@ -18,13 +18,14 @@ from app.weekly_review import (
     WEEKLY_REVIEW_HISTORY_FILE,
     load_weekly_review_history,
 )
+import hashlib
 
 
 # ============================================================
 # Configuration
 # ============================================================
 
-BACKUP_DIRECTORY = Path("backups")
+from app.paths import BACKUP_DIR
 
 BACKUP_FORMAT_VERSION = 1
 
@@ -34,14 +35,9 @@ BACKUP_FORMAT_VERSION = 1
 # ============================================================
 
 def build_backup_payload() -> dict[str, Any]:
-    """
-    Collect all locally stored Recovery Companion data.
+    """Collect all local Recovery Companion data into one backup."""
 
-    The payload includes a small metadata section so future versions
-    can validate and migrate backup files safely.
-    """
-
-    return {
+    payload = {
         "metadata": {
             "backup_format_version": BACKUP_FORMAT_VERSION,
             "created_at": datetime.now().isoformat(
@@ -59,6 +55,11 @@ def build_backup_payload() -> dict[str, Any]:
         "routines": load_routines(),
     }
 
+    payload["metadata"]["sha256"] = (
+        _calculate_payload_hash(payload)
+    )
+
+    return payload
 
 def create_backup() -> Path:
     """
@@ -67,7 +68,7 @@ def create_backup() -> Path:
     Returns the path of the newly created backup file.
     """
 
-    BACKUP_DIRECTORY.mkdir(
+    BACKUP_DIR.mkdir(
         parents=True,
         exist_ok=True,
     )
@@ -76,7 +77,7 @@ def create_backup() -> Path:
         "%Y%m%d-%H%M%S"
     )
 
-    backup_path = BACKUP_DIRECTORY / (
+    backup_path = BACKUP_DIR / (
         f"recovery-companion-backup-{timestamp}.json"
     )
 
@@ -94,6 +95,41 @@ def create_backup() -> Path:
 
     return backup_path
 
+def _calculate_payload_hash(
+    payload: dict[str, Any],
+) -> str:
+    """
+    Calculate a stable SHA-256 hash of backup data.
+
+    The integrity field itself is excluded from the hash.
+    """
+
+    payload_for_hash = dict(payload)
+
+    metadata = dict(
+        payload_for_hash.get(
+            "metadata",
+            {},
+        )
+    )
+
+    metadata.pop(
+        "sha256",
+        None,
+    )
+
+    payload_for_hash["metadata"] = metadata
+
+    canonical_json = json.dumps(
+        payload_for_hash,
+        sort_keys=True,
+        separators=(",", ":"),
+        ensure_ascii=False,
+    )
+
+    return hashlib.sha256(
+        canonical_json.encode("utf-8")
+    ).hexdigest()
 
 # ============================================================
 # Backup loading and validation
@@ -138,10 +174,10 @@ def validate_backup_payload(
     payload: dict[str, Any],
 ) -> None:
     """
-    Validate the structure of a Recovery Companion backup.
+    Validate the structure and integrity of a Recovery Companion backup.
 
-    Validation happens before any restore operation so malformed
-    backups cannot partially overwrite local data.
+    Validation occurs before restore so an invalid or corrupted backup
+    cannot partially overwrite local data.
     """
 
     required_sections = {
@@ -226,6 +262,24 @@ def validate_backup_payload(
         raise ValueError(
             "Backup Step Work section is invalid."
         )
+
+    # --------------------------------------------------------
+    # Integrity validation
+    # --------------------------------------------------------
+
+    stored_hash = metadata.get(
+        "sha256"
+    )
+
+    if stored_hash:
+        calculated_hash = _calculate_payload_hash(
+            payload
+        )
+
+        if stored_hash != calculated_hash:
+            raise ValueError(
+                "Backup integrity check failed."
+            )
 
 # ============================================================
 # Backup restore

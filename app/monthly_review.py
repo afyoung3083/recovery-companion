@@ -2,6 +2,7 @@ import json
 from datetime import date
 from pathlib import Path
 from typing import Any
+from app.paths import MONTHLY_REVIEW_HISTORY_FILE
 
 from app.daily_checkin import CHECKIN_FIELDS
 from app.weekly_review import load_weekly_review_history

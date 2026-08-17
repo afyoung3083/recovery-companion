@@ -1,13 +1,16 @@
 import json
 from datetime import date
-from pathlib import Path
 from typing import Any
 
+from app.paths import (
+    CHECKIN_FILE,
+    ensure_data_directory,
+)
 
-PROJECT_ROOT = Path(__file__).resolve().parent.parent
-DATA_DIR = PROJECT_ROOT / "data"
-CHECKIN_FILE = DATA_DIR / "daily_checkins.json"
 
+# ============================================================
+# Check-in configuration
+# ============================================================
 
 CHECKIN_FIELDS = [
     "prayer_meditation",
@@ -19,24 +22,36 @@ CHECKIN_FIELDS = [
 ]
 
 
-def ensure_data_directory() -> None:
-    DATA_DIR.mkdir(parents=True, exist_ok=True)
-
+# ============================================================
+# Persistence
+# ============================================================
 
 def load_checkins() -> list[dict[str, Any]]:
+    """Load all saved Daily Recovery Check-Ins."""
+
     ensure_data_directory()
 
     if not CHECKIN_FILE.exists():
         return []
 
-    with CHECKIN_FILE.open("r", encoding="utf-8") as file:
+    with CHECKIN_FILE.open(
+        "r",
+        encoding="utf-8",
+    ) as file:
         return json.load(file)
 
 
-def save_checkins(checkins: list[dict[str, Any]]) -> None:
+def save_checkins(
+    checkins: list[dict[str, Any]],
+) -> None:
+    """Persist the complete Daily Check-In history."""
+
     ensure_data_directory()
 
-    with CHECKIN_FILE.open("w", encoding="utf-8") as file:
+    with CHECKIN_FILE.open(
+        "w",
+        encoding="utf-8",
+    ) as file:
         json.dump(
             checkins,
             file,
@@ -45,9 +60,15 @@ def save_checkins(checkins: list[dict[str, Any]]) -> None:
         )
 
 
+# ============================================================
+# Check-in queries and updates
+# ============================================================
+
 def get_checkin_for_date(
     checkin_date: str,
 ) -> dict[str, Any] | None:
+    """Return the saved check-in for a specific ISO date."""
+
     for checkin in load_checkins():
         if checkin.get("date") == checkin_date:
             return checkin
@@ -60,7 +81,18 @@ def save_daily_checkin(
     note: str = "",
     checkin_date: str | None = None,
 ) -> dict[str, Any]:
-    target_date = checkin_date or date.today().isoformat()
+    """
+    Create or update one Daily Recovery Check-In.
+
+    If a check-in already exists for the target date, it is updated
+    rather than duplicated.
+    """
+
+    target_date = (
+        checkin_date
+        or date.today().isoformat()
+    )
+
     checkins = load_checkins()
 
     existing = next(
@@ -76,19 +108,103 @@ def save_daily_checkin(
         existing = {
             "date": target_date,
         }
-        checkins.append(existing)
+
+        checkins.append(
+            existing
+        )
 
     for field in CHECKIN_FIELDS:
-        existing[field] = bool(values.get(field, False))
+        existing[field] = bool(
+            values.get(
+                field,
+                False,
+            )
+        )
 
     existing["note"] = note.strip()
 
-    save_checkins(checkins)
+    save_checkins(
+        checkins
+    )
 
     return existing
 
 
-def format_checkin(checkin: dict[str, Any] | None) -> str:
+def get_recent_checkins(
+    limit: int = 7,
+) -> list[dict[str, Any]]:
+    """Return the most recent saved check-ins."""
+
+    checkins = load_checkins()
+
+    sorted_checkins = sorted(
+        checkins,
+        key=lambda checkin: checkin.get(
+            "date",
+            "",
+        ),
+        reverse=True,
+    )
+
+    return sorted_checkins[:limit]
+
+
+# ============================================================
+# Deterministic check-in analysis
+# ============================================================
+
+def count_completed_actions(
+    checkin: dict[str, Any],
+) -> int:
+    """Count completed recovery actions in one check-in."""
+
+    return sum(
+        1
+        for field in CHECKIN_FIELDS
+        if checkin.get(
+            field,
+            False,
+        )
+    )
+
+
+def summarize_checkin_trends(
+    checkins: list[dict[str, Any]],
+) -> dict[str, Any]:
+    """
+    Summarize recovery-action completion across recent check-ins.
+
+    This is descriptive only; counts are not treated as recovery scores.
+    """
+
+    totals = {
+        field: 0
+        for field in CHECKIN_FIELDS
+    }
+
+    for checkin in checkins:
+        for field in CHECKIN_FIELDS:
+            if checkin.get(
+                field,
+                False,
+            ):
+                totals[field] += 1
+
+    return {
+        "days": len(checkins),
+        "totals": totals,
+    }
+
+
+# ============================================================
+# CLI formatting
+# ============================================================
+
+def format_checkin(
+    checkin: dict[str, Any] | None,
+) -> str:
+    """Format one Daily Recovery Check-In for display."""
+
     if checkin is None:
         return "No check-in saved for today."
 
@@ -107,7 +223,15 @@ def format_checkin(checkin: dict[str, Any] | None) -> str:
     ]
 
     for field in CHECKIN_FIELDS:
-        mark = "✓" if checkin.get(field, False) else " "
+        mark = (
+            "✓"
+            if checkin.get(
+                field,
+                False,
+            )
+            else " "
+        )
+
         lines.append(
             f"[{mark}] {labels[field]}"
         )
@@ -117,82 +241,58 @@ def format_checkin(checkin: dict[str, Any] | None) -> str:
         f"Note: {checkin.get('note') or 'none'}"
     )
 
-    return "\n".join(lines)
-
-def get_recent_checkins(
-    limit: int = 7,
-) -> list[dict[str, Any]]:
-    checkins = load_checkins()
-
-    sorted_checkins = sorted(
-        checkins,
-        key=lambda checkin: checkin.get("date", ""),
-        reverse=True,
+    return "\n".join(
+        lines
     )
 
-    return sorted_checkins[:limit]
-
-
-def count_completed_actions(
-    checkin: dict[str, Any],
-) -> int:
-    return sum(
-        1
-        for field in CHECKIN_FIELDS
-        if checkin.get(field, False)
-    )
-
-
-def summarize_checkin_trends(
-    checkins: list[dict[str, Any]],
-) -> dict[str, Any]:
-    totals = {
-        field: 0
-        for field in CHECKIN_FIELDS
-    }
-
-    for checkin in checkins:
-        for field in CHECKIN_FIELDS:
-            if checkin.get(field, False):
-                totals[field] += 1
-
-    return {
-        "days": len(checkins),
-        "totals": totals,
-    }
 
 def format_checkin_history(
     checkins: list[dict[str, Any]],
 ) -> str:
+    """Format recent Daily Check-In history."""
+
     if not checkins:
         return "No check-in history yet."
 
     lines: list[str] = []
 
     for checkin in checkins:
-        completed = count_completed_actions(checkin)
+        completed = count_completed_actions(
+            checkin
+        )
 
         lines.append(
             f"{checkin.get('date', 'unknown')}: "
             f"{completed}/{len(CHECKIN_FIELDS)} completed"
         )
 
-        note = checkin.get("note", "").strip()
+        note = checkin.get(
+            "note",
+            "",
+        ).strip()
 
         if note:
             lines.append(
                 f"  Note: {note}"
             )
 
-    return "\n".join(lines)
+    return "\n".join(
+        lines
+    )
+
 
 def format_checkin_trends(
     checkins: list[dict[str, Any]],
 ) -> str:
+    """Format deterministic trends across recent check-ins."""
+
     if not checkins:
         return "No check-in trends yet."
 
-    summary = summarize_checkin_trends(checkins)
+    summary = summarize_checkin_trends(
+        checkins
+    )
+
     days = summary["days"]
     totals = summary["totals"]
 
@@ -212,7 +312,10 @@ def format_checkin_trends(
 
     for field in CHECKIN_FIELDS:
         lines.append(
-            f"{labels[field]}: {totals[field]}/{days}"
+            f"{labels[field]}: "
+            f"{totals[field]}/{days}"
         )
 
-    return "\n".join(lines)
+    return "\n".join(
+        lines
+    )
