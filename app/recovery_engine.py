@@ -490,6 +490,13 @@ Next-right actions
 
 Requirements:
 
+- Keep observation and interpretation strictly separate.
+- In "Observed strengths", state only facts explicitly present in the supplied
+  Recovery Insights summary. Do not explain what those facts indicate, reflect,
+  demonstrate, suggest, or mean.
+- Put all interpretation exclusively in "Possible patterns to explore".
+- Phrase interpretations tentatively using language such as "may", "might",
+  "could", or "possibly".
 - Clearly distinguish observed data from interpretation.
 - Treat counts, completion totals, and history as descriptive information,
   not recovery scores.
