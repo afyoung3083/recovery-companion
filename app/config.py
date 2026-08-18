@@ -23,6 +23,9 @@ PROMPT_FILE = (
 # Environment
 # ============================================================
 
+# Local development may use a project-root .env file.
+# In CI, production, or containers, values may instead come
+# directly from environment variables.
 load_dotenv(ENV_FILE)
 
 
@@ -37,12 +40,6 @@ OPENAI_API_KEY = os.getenv(
 
 MODEL_NAME = "gpt-5"
 
-if not OPENAI_API_KEY:
-    raise RuntimeError(
-        "OPENAI_API_KEY was not found. "
-        "Check the .env file in the project root."
-    )
-
 
 # ============================================================
 # Recovery Companion API authentication
@@ -52,9 +49,3 @@ RECOVERY_API_TOKEN = os.getenv(
     "RECOVERY_API_TOKEN",
     "",
 ).strip()
-
-if not RECOVERY_API_TOKEN:
-    raise RuntimeError(
-        "RECOVERY_API_TOKEN was not found. "
-        "Check the .env file in the project root."
-    )

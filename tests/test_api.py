@@ -1,24 +1,47 @@
 from unittest.mock import patch
 
+import pytest
 from fastapi.testclient import TestClient
 
+import app.auth as auth_module
 from app.api import app
-from app.config import RECOVERY_API_TOKEN
 from app.version import __version__
 
+
+TEST_API_TOKEN = "recovery-companion-test-token"
 
 client = TestClient(app)
 
 
 # ============================================================
-# Test helpers
+# Test configuration
 # ============================================================
 
+@pytest.fixture(autouse=True)
+def configure_test_api_token(
+    monkeypatch,
+):
+    """
+    Give every API test a deterministic test-only API token.
+
+    Tests must not depend on the developer's .env file or real
+    credentials, which also keeps them portable to GitHub Actions.
+    """
+
+    monkeypatch.setattr(
+        auth_module,
+        "RECOVERY_API_TOKEN",
+        TEST_API_TOKEN,
+    )
+
+
 def auth_headers() -> dict[str, str]:
-    """Return valid authorization headers for protected API tests."""
+    """Return valid test authorization headers."""
 
     return {
-        "Authorization": f"Bearer {RECOVERY_API_TOKEN}",
+        "Authorization": (
+            f"Bearer {TEST_API_TOKEN}"
+        ),
     }
 
 
@@ -190,7 +213,7 @@ def test_protected_endpoint_rejects_wrong_token():
 def test_goals_endpoint_with_auth(
     mock_get_active_goals,
 ):
-    """A valid token should authorize access to goals."""
+    """A valid test token should authorize access to goals."""
 
     mock_get_active_goals.return_value = [
         {
@@ -216,7 +239,7 @@ def test_goals_endpoint_with_auth(
 def test_routines_endpoint_with_auth(
     mock_get_active_routines,
 ):
-    """A valid token should authorize access to routines."""
+    """A valid test token should authorize access to routines."""
 
     mock_get_active_routines.return_value = [
         {
@@ -237,10 +260,19 @@ def test_routines_endpoint_with_auth(
     assert response.status_code == 200
     assert response.json()["count"] == 1
 
-@patch("app.api.build_sync_payload")
+
+# ============================================================
+# Synchronization endpoint
+# ============================================================
+
+@patch(
+    "app.api.build_sync_payload"
+)
 def test_sync_endpoint_with_auth(
     mock_build_sync_payload,
 ):
+    """Authenticated requests should receive synchronization data."""
+
     mock_build_sync_payload.return_value = {
         "sync_schema_version": 1,
         "data": {
@@ -254,10 +286,17 @@ def test_sync_endpoint_with_auth(
     )
 
     assert response.status_code == 200
-    assert response.json()["sync_schema_version"] == 1
+    assert (
+        response.json()["sync_schema_version"]
+        == 1
+    )
 
 
 def test_sync_endpoint_requires_token():
-    response = client.get("/sync")
+    """The synchronization endpoint must require authentication."""
+
+    response = client.get(
+        "/sync"
+    )
 
     assert response.status_code == 401
