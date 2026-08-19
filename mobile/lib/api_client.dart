@@ -14,18 +14,31 @@ class ApiClient {
   final http.Client _httpClient;
 
   Future<Map<String, dynamic>> getHealth() async {
-    final response = await _httpClient.get(
-      Uri.parse('$baseUrl/health'),
+    return _getJson(
+      '/health',
+      authenticated: false,
     );
+  }
 
-    if (response.statusCode != 200) {
-      throw ApiException(
-        'Health request failed.',
-        statusCode: response.statusCode,
-      );
-    }
+  Future<Map<String, dynamic>> getRecoveryInsights() async {
+    return _getJson(
+      '/recovery-insights',
+      authenticated: true,
+    );
+  }
 
-    return _decodeJsonObject(response.body);
+  Future<Map<String, dynamic>> getGoals() async {
+    return _getJson(
+      '/goals',
+      authenticated: true,
+    );
+  }
+
+  Future<Map<String, dynamic>> getRoutines() async {
+    return _getJson(
+      '/routines',
+      authenticated: true,
+    );
   }
 
   Map<String, String> get authenticatedHeaders {
@@ -38,7 +51,32 @@ class ApiClient {
     };
   }
 
-  Map<String, dynamic> _decodeJsonObject(String body) {
+  Future<Map<String, dynamic>> _getJson(
+    String path, {
+    required bool authenticated,
+  }) async {
+    final response = await _httpClient.get(
+      Uri.parse('$baseUrl$path'),
+      headers: authenticated
+          ? authenticatedHeaders
+          : const {},
+    );
+
+    if (response.statusCode != 200) {
+      throw ApiException(
+        'API request failed.',
+        statusCode: response.statusCode,
+      );
+    }
+
+    return _decodeJsonObject(
+      response.body,
+    );
+  }
+
+  Map<String, dynamic> _decodeJsonObject(
+    String body,
+  ) {
     final decoded = jsonDecode(body);
 
     if (decoded is! Map<String, dynamic>) {
