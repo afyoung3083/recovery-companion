@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
-import 'insights_screen.dart';
+
 import 'api_client.dart';
+import 'daily_checkin_screen.dart';
 import 'goals_screen.dart';
+import 'insights_screen.dart';
+import 'journal_screen.dart';
 import 'mobile_config.dart';
 import 'routines_screen.dart';
-import 'journal_screen.dart';
+import 'step_work_screen.dart';
 
 void main() {
   runApp(const RecoveryCompanionApp());
@@ -105,7 +108,7 @@ class _HomeShellState extends State<HomeShell> {
         );
 
       case 4:
-        return JournalScreen(
+        return MoreScreen(
           apiClient: _apiClient,
         );
 
@@ -146,6 +149,7 @@ class _HomeShellState extends State<HomeShell> {
     );
   }
 }
+
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({
@@ -285,6 +289,154 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 }
+
+
+class MoreScreen extends StatelessWidget {
+  const MoreScreen({
+    required this.apiClient,
+    super.key,
+  });
+
+  final ApiClient apiClient;
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        Text(
+          'More',
+          style: Theme.of(context)
+              .textTheme
+              .headlineMedium,
+        ),
+        const SizedBox(height: 8),
+        const Text(
+          'Additional recovery tools',
+        ),
+        const SizedBox(height: 20),
+
+        _MoreMenuTile(
+          icon: Icons.check_circle_outline,
+          title: 'Daily Recovery',
+          subtitle: 'Complete today\'s recovery check-in.',
+          onTap: () {
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) => _ToolScreen(
+                  title: 'Daily Recovery',
+                  child: DailyCheckInScreen(
+                    apiClient: apiClient,
+                  ),
+                ),
+              ),
+            );
+          },
+        ),
+
+        _MoreMenuTile(
+          icon: Icons.menu_book_outlined,
+          title: 'Journal',
+          subtitle: 'Write, review, and search journal entries.',
+          onTap: () {
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) => _ToolScreen(
+                  title: 'Journal',
+                  child: JournalScreen(
+                    apiClient: apiClient,
+                  ),
+                ),
+              ),
+            );
+          },
+        ),
+
+        _MoreMenuTile(
+          icon: Icons.format_list_numbered,
+          title: 'Step Work',
+          subtitle: 'Review your current Step and assignments.',
+          onTap: () {
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) => _ToolScreen(
+                  title: 'Step Work',
+                  child: StepWorkScreen(
+                    apiClient: apiClient,
+                  ),
+                ),
+              ),
+            );
+          },
+        ),
+      ],
+    );
+  }
+}
+
+
+class _MoreMenuTile extends StatelessWidget {
+  const _MoreMenuTile({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      margin: const EdgeInsets.only(
+        bottom: 12,
+      ),
+      child: ListTile(
+        leading: Icon(
+          icon,
+          size: 32,
+        ),
+        title: Text(
+          title,
+        ),
+        subtitle: Text(
+          subtitle,
+        ),
+        trailing: const Icon(
+          Icons.chevron_right,
+        ),
+        onTap: onTap,
+      ),
+    );
+  }
+}
+
+
+class _ToolScreen extends StatelessWidget {
+  const _ToolScreen({
+    required this.title,
+    required this.child,
+  });
+
+  final String title;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(
+          title,
+        ),
+      ),
+      body: child,
+    );
+  }
+}
+
 
 class _Destination {
   const _Destination({

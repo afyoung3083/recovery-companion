@@ -489,3 +489,115 @@ def test_create_journal_entry_requires_token():
     )
 
     assert response.status_code == 401
+
+@patch("app.api.load_step_work")
+def test_step_work_endpoint_with_auth(
+    mock_load_step_work,
+):
+    mock_load_step_work.return_value = {
+        "current_step": 4,
+        "assignments": [
+            {
+                "id": 1,
+                "step": 4,
+                "text": "Write resentment inventory.",
+                "completed": False,
+            }
+        ],
+        "notes": [],
+    }
+
+    response = client.get(
+        "/step-work",
+        headers=auth_headers(),
+    )
+
+    assert response.status_code == 200
+    assert response.json()["step_work"]["current_step"] == 4
+
+
+@patch("app.api.set_current_step")
+def test_update_current_step_with_auth(
+    mock_set_current_step,
+):
+    mock_set_current_step.return_value = {
+        "current_step": 5,
+        "assignments": [],
+        "notes": [],
+    }
+
+    response = client.put(
+        "/step-work/current-step",
+        headers=auth_headers(),
+        json={
+            "step_number": 5,
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.json()["step_work"]["current_step"] == 5
+
+
+@patch("app.api.add_assignment")
+def test_create_step_assignment_with_auth(
+    mock_add_assignment,
+):
+    mock_add_assignment.return_value = {
+        "id": 2,
+        "step": 4,
+        "text": "Call sponsor.",
+        "completed": False,
+    }
+
+    response = client.post(
+        "/step-work/assignments",
+        headers=auth_headers(),
+        json={
+            "text": "Call sponsor.",
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.json()["assignment"]["id"] == 2
+
+
+@patch("app.api.complete_assignment")
+def test_complete_step_assignment_with_auth(
+    mock_complete_assignment,
+):
+    mock_complete_assignment.return_value = {
+        "id": 2,
+        "step": 4,
+        "text": "Call sponsor.",
+        "completed": True,
+    }
+
+    response = client.put(
+        "/step-work/assignments/2/complete",
+        headers=auth_headers(),
+    )
+
+    assert response.status_code == 200
+    assert response.json()["assignment"]["completed"] is True
+
+
+@patch("app.api.complete_assignment")
+def test_complete_step_assignment_returns_404_when_missing(
+    mock_complete_assignment,
+):
+    mock_complete_assignment.return_value = None
+
+    response = client.put(
+        "/step-work/assignments/999/complete",
+        headers=auth_headers(),
+    )
+
+    assert response.status_code == 404
+
+
+def test_step_work_endpoint_requires_token():
+    response = client.get(
+        "/step-work"
+    )
+
+    assert response.status_code == 401
