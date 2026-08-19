@@ -41,6 +41,51 @@ class ApiClient {
     );
   }
 
+  Future<Map<String, dynamic>> getTodayCheckin() async {
+    return _getJson(
+      '/daily-checkin/today',
+      authenticated: true,
+    );
+  }
+
+  Future<Map<String, dynamic>> saveTodayCheckin({
+    required bool prayerMeditation,
+    required bool recoveryContact,
+    required bool meeting,
+    required bool stepWork,
+    required bool journal,
+    required bool service,
+    required String note,
+  }) async {
+    final response = await _httpClient.put(
+      Uri.parse('$baseUrl/daily-checkin/today'),
+      headers: {
+        ...authenticatedHeaders,
+        'Content-Type': 'application/json',
+      },
+      body: jsonEncode({
+        'prayer_meditation': prayerMeditation,
+        'recovery_contact': recoveryContact,
+        'meeting': meeting,
+        'step_work': stepWork,
+        'journal': journal,
+        'service': service,
+        'note': note,
+      }),
+    );
+
+    if (response.statusCode != 200) {
+      throw ApiException(
+        'API request failed.',
+        statusCode: response.statusCode,
+      );
+    }
+
+    return _decodeJsonObject(
+      response.body,
+    );
+  }
+
   Map<String, String> get authenticatedHeaders {
     if (apiToken.isEmpty) {
       return const {};

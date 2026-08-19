@@ -4,6 +4,7 @@ import 'api_client.dart';
 import 'goals_screen.dart';
 import 'mobile_config.dart';
 import 'routines_screen.dart';
+import 'daily_checkin_screen.dart';
 
 void main() {
   runApp(const RecoveryCompanionApp());
@@ -104,8 +105,8 @@ class _HomeShellState extends State<HomeShell> {
         );
 
       case 4:
-        return const _ScreenPlaceholder(
-          title: 'More',
+        return DailyCheckInScreen(
+          apiClient: _apiClient,
         );
 
       default:
@@ -281,43 +282,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ),
         );
       },
-    );
-  }
-}
-
-class _ScreenPlaceholder extends StatelessWidget {
-  const _ScreenPlaceholder({
-    required this.title,
-  });
-
-  final String title;
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              title,
-              style: Theme.of(context)
-                  .textTheme
-                  .headlineMedium,
-            ),
-            const SizedBox(
-              height: 12,
-            ),
-            Text(
-              'Sprint 33 mobile recovery data',
-              style: Theme.of(context)
-                  .textTheme
-                  .bodyLarge,
-            ),
-          ],
-        ),
-      ),
     );
   }
 }

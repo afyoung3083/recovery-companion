@@ -7,7 +7,12 @@ from app.version import __version__
 from app.goals import get_active_goals
 from app.routines import get_active_routines
 from app.sync import build_sync_payload
-
+from app.daily_checkin import (
+    get_checkin_for_date,
+    save_daily_checkin,
+)
+from datetime import date
+from pydantic import BaseModel
 
 # ============================================================
 # FastAPI application
@@ -103,3 +108,60 @@ def sync_data() -> dict[str, object]:
     """
 
     return build_sync_payload()
+
+class DailyCheckInRequest(BaseModel):
+    prayer_meditation: bool = False
+    recovery_contact: bool = False
+    meeting: bool = False
+    step_work: bool = False
+    journal: bool = False
+    service: bool = False
+    note: str = ""
+
+@app.get(
+    "/daily-checkin/today",
+    dependencies=[
+        Depends(require_api_token)
+    ],
+)
+def get_today_checkin() -> dict[str, object]:
+    """Return today's Daily Recovery Check-In."""
+
+    today = date.today().isoformat()
+
+    checkin = get_checkin_for_date(
+        today
+    )
+
+    return {
+        "date": today,
+        "checkin": checkin,
+    }
+
+
+@app.put(
+    "/daily-checkin/today",
+    dependencies=[
+        Depends(require_api_token)
+    ],
+)
+def update_today_checkin(
+    request: DailyCheckInRequest,
+) -> dict[str, object]:
+    """Create or update today's Daily Recovery Check-In."""
+
+    checkin = save_daily_checkin(
+        values={
+            "prayer_meditation": request.prayer_meditation,
+            "recovery_contact": request.recovery_contact,
+            "meeting": request.meeting,
+            "step_work": request.step_work,
+            "journal": request.journal,
+            "service": request.service,
+        },
+        note=request.note,
+    )
+
+    return {
+        "checkin": checkin,
+    }
