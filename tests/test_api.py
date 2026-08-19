@@ -300,3 +300,81 @@ def test_sync_endpoint_requires_token():
     )
 
     assert response.status_code == 401
+
+@patch("app.api.get_checkin_for_date")
+def test_today_checkin_endpoint_with_auth(
+    mock_get_checkin_for_date,
+):
+    mock_get_checkin_for_date.return_value = {
+        "date": "2026-08-19",
+        "prayer_meditation": True,
+        "recovery_contact": False,
+        "meeting": True,
+        "step_work": False,
+        "journal": True,
+        "service": False,
+        "note": "Test note",
+    }
+
+    response = client.get(
+        "/daily-checkin/today",
+        headers=auth_headers(),
+    )
+
+    assert response.status_code == 200
+    assert response.json()["checkin"]["meeting"] is True
+
+
+@patch("app.api.save_daily_checkin")
+def test_update_today_checkin_with_auth(
+    mock_save_daily_checkin,
+):
+    mock_save_daily_checkin.return_value = {
+        "date": "2026-08-19",
+        "prayer_meditation": True,
+        "recovery_contact": True,
+        "meeting": False,
+        "step_work": True,
+        "journal": True,
+        "service": False,
+        "note": "Stayed connected.",
+    }
+
+    response = client.put(
+        "/daily-checkin/today",
+        headers=auth_headers(),
+        json={
+            "prayer_meditation": True,
+            "recovery_contact": True,
+            "meeting": False,
+            "step_work": True,
+            "journal": True,
+            "service": False,
+            "note": "Stayed connected.",
+        },
+    )
+
+    assert response.status_code == 200
+
+    result = response.json()["checkin"]
+
+    assert result["recovery_contact"] is True
+    assert result["step_work"] is True
+    assert result["note"] == "Stayed connected."
+
+
+def test_today_checkin_endpoint_requires_token():
+    response = client.get(
+        "/daily-checkin/today"
+    )
+
+    assert response.status_code == 401
+
+
+def test_update_today_checkin_requires_token():
+    response = client.put(
+        "/daily-checkin/today",
+        json={},
+    )
+
+    assert response.status_code == 401
