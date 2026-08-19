@@ -48,6 +48,54 @@ class ApiClient {
     );
   }
 
+  Future<Map<String, dynamic>> getJournalEntries() async {
+    return _getJson(
+      '/journal',
+      authenticated: true,
+    );
+  }
+
+  Future<Map<String, dynamic>> searchJournal(
+    String query,
+  ) async {
+    final encodedQuery = Uri.encodeQueryComponent(
+      query,
+    );
+
+    return _getJson(
+      '/journal/search?q=$encodedQuery',
+      authenticated: true,
+    );
+  }
+
+  Future<Map<String, dynamic>> createJournalEntry({
+    required String text,
+    required List<String> tags,
+  }) async {
+    final response = await _httpClient.post(
+      Uri.parse('$baseUrl/journal'),
+      headers: {
+        ...authenticatedHeaders,
+        'Content-Type': 'application/json',
+      },
+      body: jsonEncode({
+        'text': text,
+        'tags': tags,
+      }),
+    );
+
+    if (response.statusCode != 200) {
+      throw ApiException(
+        'API request failed.',
+        statusCode: response.statusCode,
+      );
+    }
+
+    return _decodeJsonObject(
+      response.body,
+    );
+  }
+
   Future<Map<String, dynamic>> saveTodayCheckin({
     required bool prayerMeditation,
     required bool recoveryContact,

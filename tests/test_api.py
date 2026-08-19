@@ -378,3 +378,114 @@ def test_update_today_checkin_requires_token():
     )
 
     assert response.status_code == 401
+
+@patch("app.api.load_entries")
+def test_journal_endpoint_with_auth(
+    mock_load_entries,
+):
+    mock_load_entries.return_value = [
+        {
+            "id": 1,
+            "date": "2026-08-19",
+            "text": "Stayed connected today.",
+            "tags": ["connection"],
+        }
+    ]
+
+    response = client.get(
+        "/journal",
+        headers=auth_headers(),
+    )
+
+    assert response.status_code == 200
+
+    result = response.json()
+
+    assert result["count"] == 1
+    assert result["entries"][0]["id"] == 1
+
+
+@patch("app.api.add_entry")
+def test_create_journal_entry_with_auth(
+    mock_add_entry,
+):
+    mock_add_entry.return_value = {
+        "id": 2,
+        "date": "2026-08-19",
+        "text": "Called my sponsor.",
+        "tags": ["connection", "sponsor"],
+    }
+
+    response = client.post(
+        "/journal",
+        headers=auth_headers(),
+        json={
+            "text": "Called my sponsor.",
+            "tags": [
+                "connection",
+                "sponsor",
+            ],
+        },
+    )
+
+    assert response.status_code == 200
+
+    result = response.json()["entry"]
+
+    assert result["id"] == 2
+    assert result["text"] == "Called my sponsor."
+
+
+@patch("app.api.search_entries")
+@patch("app.api.load_entries")
+def test_search_journal_entries_with_auth(
+    mock_load_entries,
+    mock_search_entries,
+):
+    mock_load_entries.return_value = [
+        {
+            "id": 1,
+            "text": "Meeting with sponsor.",
+            "tags": ["sponsor"],
+        }
+    ]
+
+    mock_search_entries.return_value = [
+        {
+            "id": 1,
+            "text": "Meeting with sponsor.",
+            "tags": ["sponsor"],
+        }
+    ]
+
+    response = client.get(
+        "/journal/search?q=sponsor",
+        headers=auth_headers(),
+    )
+
+    assert response.status_code == 200
+
+    result = response.json()
+
+    assert result["count"] == 1
+    assert result["entries"][0]["text"] == "Meeting with sponsor."
+
+
+def test_journal_endpoint_requires_token():
+    response = client.get(
+        "/journal"
+    )
+
+    assert response.status_code == 401
+
+
+def test_create_journal_entry_requires_token():
+    response = client.post(
+        "/journal",
+        json={
+            "text": "Test",
+            "tags": [],
+        },
+    )
+
+    assert response.status_code == 401

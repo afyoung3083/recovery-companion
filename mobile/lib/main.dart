@@ -4,7 +4,7 @@ import 'api_client.dart';
 import 'goals_screen.dart';
 import 'mobile_config.dart';
 import 'routines_screen.dart';
-import 'daily_checkin_screen.dart';
+import 'journal_screen.dart';
 
 void main() {
   runApp(const RecoveryCompanionApp());
@@ -105,7 +105,7 @@ class _HomeShellState extends State<HomeShell> {
         );
 
       case 4:
-        return DailyCheckInScreen(
+        return JournalScreen(
           apiClient: _apiClient,
         );
 

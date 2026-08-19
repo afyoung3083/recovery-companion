@@ -13,6 +13,11 @@ from app.daily_checkin import (
 )
 from datetime import date
 from pydantic import BaseModel
+from app.journal import (
+    add_entry,
+    load_entries,
+    search_entries,
+)
 
 # ============================================================
 # FastAPI application
@@ -118,6 +123,10 @@ class DailyCheckInRequest(BaseModel):
     service: bool = False
     note: str = ""
 
+class JournalEntryRequest(BaseModel):
+    text: str
+    tags: list[str] = []
+
 @app.get(
     "/daily-checkin/today",
     dependencies=[
@@ -164,4 +173,65 @@ def update_today_checkin(
 
     return {
         "checkin": checkin,
+    }
+
+@app.get(
+    "/journal",
+    dependencies=[
+        Depends(require_api_token)
+    ],
+)
+def get_journal_entries() -> dict[str, object]:
+    """Return all locally stored journal entries."""
+
+    entries = load_entries()
+
+    return {
+        "count": len(entries),
+        "entries": entries,
+    }
+
+
+@app.post(
+    "/journal",
+    dependencies=[
+        Depends(require_api_token)
+    ],
+)
+def create_journal_entry(
+    request: JournalEntryRequest,
+) -> dict[str, object]:
+    """Create a new local journal entry."""
+
+    entry = add_entry(
+        text=request.text,
+        tags=request.tags,
+    )
+
+    return {
+        "entry": entry,
+    }
+
+
+@app.get(
+    "/journal/search",
+    dependencies=[
+        Depends(require_api_token)
+    ],
+)
+def search_journal_entries(
+    q: str,
+) -> dict[str, object]:
+    """Search journal entries by text or tag."""
+
+    entries = load_entries()
+
+    matches = search_entries(
+        entries=entries,
+        query=q,
+    )
+
+    return {
+        "count": len(matches),
+        "entries": matches,
     }
