@@ -1,9 +1,13 @@
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI
+
+from app.auth import require_api_token
 
 from app.recovery_insights import build_recovery_insights
 from app.version import __version__
 from app.goals import get_active_goals
 from app.routines import get_active_routines
+from app.sync import build_sync_payload
+
 
 # ============================================================
 # FastAPI application
@@ -33,20 +37,30 @@ def health() -> dict[str, str]:
 # Recovery data
 # ============================================================
 
-@app.get("/recovery-insights")
+@app.get(
+    "/recovery-insights",
+    dependencies=[
+        Depends(require_api_token)
+    ],
+)
 def recovery_insights() -> dict[str, str]:
     """
     Return the current deterministic Recovery Insights summary.
 
-    This exposes existing application logic without adding AI
-    interpretation or changing local persistence behavior.
+    Authentication is required because this endpoint exposes
+    personal recovery data.
     """
 
     return {
         "recovery_insights": build_recovery_insights(),
     }
 
-@app.get("/goals")
+@app.get(
+    "/goals",
+    dependencies=[
+        Depends(require_api_token)
+    ],
+)
 def active_goals() -> dict[str, object]:
     """Return active recovery goals."""
 
@@ -58,7 +72,12 @@ def active_goals() -> dict[str, object]:
     }
 
 
-@app.get("/routines")
+@app.get(
+    "/routines",
+    dependencies=[
+        Depends(require_api_token)
+    ],
+)
 def active_routines() -> dict[str, object]:
     """Return active recovery routines."""
 
@@ -68,3 +87,19 @@ def active_routines() -> dict[str, object]:
         "count": len(routines),
         "routines": routines,
     }
+
+@app.get(
+    "/sync",
+    dependencies=[
+        Depends(require_api_token)
+    ],
+)
+def sync_data() -> dict[str, object]:
+    """
+    Return the local Recovery Companion state for synchronization.
+
+    Sprint 31 exposes the synchronization contract but does not
+    transmit data to or store data in an external cloud service.
+    """
+
+    return build_sync_payload()
