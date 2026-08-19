@@ -1,13 +1,18 @@
 import 'package:flutter/material.dart';
-
+import 'insights_screen.dart';
 import 'api_client.dart';
+import 'goals_screen.dart';
+import 'mobile_config.dart';
+import 'routines_screen.dart';
 
 void main() {
   runApp(const RecoveryCompanionApp());
 }
 
 class RecoveryCompanionApp extends StatelessWidget {
-  const RecoveryCompanionApp({super.key});
+  const RecoveryCompanionApp({
+    super.key,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -24,7 +29,9 @@ class RecoveryCompanionApp extends StatelessWidget {
 }
 
 class HomeShell extends StatefulWidget {
-  const HomeShell({super.key});
+  const HomeShell({
+    super.key,
+  });
 
   @override
   State<HomeShell> createState() => _HomeShellState();
@@ -32,6 +39,8 @@ class HomeShell extends StatefulWidget {
 
 class _HomeShellState extends State<HomeShell> {
   int _selectedIndex = 0;
+
+  late final ApiClient _apiClient;
 
   static const List<_Destination> _destinations = [
     _Destination(
@@ -57,18 +66,64 @@ class _HomeShellState extends State<HomeShell> {
   ];
 
   @override
-  Widget build(BuildContext context) {
-    final destination = _destinations[_selectedIndex];
+  void initState() {
+    super.initState();
 
+    _apiClient = ApiClient(
+      baseUrl: MobileConfig.apiBaseUrl,
+      apiToken: MobileConfig.apiToken,
+    );
+  }
+
+  @override
+  void dispose() {
+    _apiClient.close();
+    super.dispose();
+  }
+
+  Widget _buildSelectedScreen() {
+    switch (_selectedIndex) {
+      case 0:
+        return DashboardScreen(
+          apiClient: _apiClient,
+        );
+
+      case 1:
+        return InsightsScreen(
+          apiClient: _apiClient,
+        );
+
+      case 2:
+        return GoalsScreen(
+          apiClient: _apiClient,
+        );
+
+      case 3:
+        return RoutinesScreen(
+          apiClient: _apiClient,
+        );
+
+      case 4:
+        return const _ScreenPlaceholder(
+          title: 'More',
+        );
+
+      default:
+        return DashboardScreen(
+          apiClient: _apiClient,
+        );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Recovery Companion'),
+        title: const Text(
+          'Recovery Companion',
+        ),
       ),
-      body: _selectedIndex == 0
-          ? const DashboardScreen()
-          : _ScreenPlaceholder(
-              title: destination.label,
-            ),
+      body: _buildSelectedScreen(),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _selectedIndex,
         onDestinationSelected: (index) {
@@ -79,7 +134,9 @@ class _HomeShellState extends State<HomeShell> {
         destinations: _destinations
             .map(
               (destination) => NavigationDestination(
-                icon: Icon(destination.icon),
+                icon: Icon(
+                  destination.icon,
+                ),
                 label: destination.label,
               ),
             )
@@ -90,36 +147,32 @@ class _HomeShellState extends State<HomeShell> {
 }
 
 class DashboardScreen extends StatefulWidget {
-  const DashboardScreen({super.key});
+  const DashboardScreen({
+    required this.apiClient,
+    super.key,
+  });
+
+  final ApiClient apiClient;
 
   @override
-  State<DashboardScreen> createState() => _DashboardScreenState();
+  State<DashboardScreen> createState() {
+    return _DashboardScreenState();
+  }
 }
 
 class _DashboardScreenState extends State<DashboardScreen> {
-  late final ApiClient _apiClient;
   late Future<Map<String, dynamic>> _healthFuture;
 
   @override
   void initState() {
     super.initState();
 
-    _apiClient = ApiClient(
-      baseUrl: 'http://10.0.2.2:8000',
-    );
-
-    _healthFuture = _apiClient.getHealth();
-  }
-
-  @override
-  void dispose() {
-    _apiClient.close();
-    super.dispose();
+    _healthFuture = widget.apiClient.getHealth();
   }
 
   void _refreshHealth() {
     setState(() {
-      _healthFuture = _apiClient.getHealth();
+      _healthFuture = widget.apiClient.getHealth();
     });
   }
 
@@ -128,7 +181,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return FutureBuilder<Map<String, dynamic>>(
       future: _healthFuture,
       builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
+        if (
+            snapshot.connectionState ==
+            ConnectionState.waiting
+        ) {
           return const Center(
             child: CircularProgressIndicator(),
           );
@@ -145,19 +201,27 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     Icons.cloud_off_outlined,
                     size: 48,
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(
+                    height: 16,
+                  ),
                   const Text(
                     'Backend unavailable',
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(
+                    height: 8,
+                  ),
                   Text(
                     snapshot.error.toString(),
                     textAlign: TextAlign.center,
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(
+                    height: 16,
+                  ),
                   FilledButton(
                     onPressed: _refreshHealth,
-                    child: const Text('Retry'),
+                    child: const Text(
+                      'Retry',
+                    ),
                   ),
                 ],
               ),
@@ -165,7 +229,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
           );
         }
 
-        final health = snapshot.data ?? const {};
+        final health = (
+          snapshot.data ??
+          const <String, dynamic>{}
+        );
 
         return Center(
           child: Padding(
@@ -177,23 +244,37 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   Icons.favorite_outline,
                   size: 56,
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(
+                  height: 16,
+                ),
                 Text(
                   'Dashboard',
-                  style: Theme.of(context).textTheme.headlineMedium,
+                  style: Theme.of(context)
+                      .textTheme
+                      .headlineMedium,
                 ),
-                const SizedBox(height: 24),
+                const SizedBox(
+                  height: 24,
+                ),
                 Text(
-                  'Backend status: ${health['status'] ?? 'unknown'}',
+                  'Backend status: '
+                  '${health['status'] ?? 'unknown'}',
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(
+                  height: 8,
+                ),
                 Text(
-                  'Backend version: ${health['version'] ?? 'unknown'}',
+                  'Backend version: '
+                  '${health['version'] ?? 'unknown'}',
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(
+                  height: 20,
+                ),
                 OutlinedButton(
                   onPressed: _refreshHealth,
-                  child: const Text('Refresh'),
+                  child: const Text(
+                    'Refresh',
+                  ),
                 ),
               ],
             ),
@@ -221,12 +302,18 @@ class _ScreenPlaceholder extends StatelessWidget {
           children: [
             Text(
               title,
-              style: Theme.of(context).textTheme.headlineMedium,
+              style: Theme.of(context)
+                  .textTheme
+                  .headlineMedium,
             ),
-            const SizedBox(height: 12),
+            const SizedBox(
+              height: 12,
+            ),
             Text(
-              'Sprint 32 mobile foundation',
-              style: Theme.of(context).textTheme.bodyLarge,
+              'Sprint 33 mobile recovery data',
+              style: Theme.of(context)
+                  .textTheme
+                  .bodyLarge,
             ),
           ],
         ),
