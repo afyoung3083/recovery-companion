@@ -24,6 +24,12 @@ from app.step_work import (
 )
 from app.sync import build_sync_payload
 from app.version import __version__
+from app.fellowship import (
+    add_contact,
+    load_contacts,
+    recommend_contacts,
+    set_contact_active,
+)
 
 
 # ============================================================
@@ -37,7 +43,7 @@ app = FastAPI(
 
 
 # ============================================================
-# Request models
+# Pydantic Request models
 # ============================================================
 
 class DailyCheckInRequest(BaseModel):
@@ -62,6 +68,15 @@ class StepNumberRequest(BaseModel):
 class StepAssignmentRequest(BaseModel):
     text: str
 
+class FellowshipContactRequest(BaseModel):
+    handle: str
+    contact_type: str
+    contact_method: str = ""
+    notes: str = ""
+
+
+class FellowshipContactActiveRequest(BaseModel):
+    active: bool
 
 # ============================================================
 # Health and metadata
@@ -363,4 +378,95 @@ def mark_step_assignment_complete(
 
     return {
         "assignment": assignment,
+    }
+
+@app.get(
+    "/fellowship",
+    dependencies=[
+        Depends(require_api_token)
+    ],
+)
+def get_fellowship_contacts() -> dict[str, object]:
+    """Return all fellowship contacts."""
+
+    contacts = load_contacts()
+
+    return {
+        "count": len(contacts),
+        "contacts": contacts,
+    }
+
+
+@app.post(
+    "/fellowship",
+    dependencies=[
+        Depends(require_api_token)
+    ],
+)
+def create_fellowship_contact(
+    request: FellowshipContactRequest,
+) -> dict[str, object]:
+    """Create a fellowship contact."""
+
+    contact = add_contact(
+        handle=request.handle,
+        contact_type=request.contact_type,
+        contact_method=request.contact_method,
+        notes=request.notes,
+    )
+
+    return {
+        "contact": contact,
+    }
+
+
+@app.put(
+    "/fellowship/{contact_id}/active",
+    dependencies=[
+        Depends(require_api_token)
+    ],
+)
+def update_fellowship_contact_active(
+    contact_id: int,
+    request: FellowshipContactActiveRequest,
+) -> dict[str, object]:
+    """Activate or deactivate a fellowship contact."""
+
+    contact = set_contact_active(
+        contact_id=contact_id,
+        active=request.active,
+    )
+
+    if contact is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Fellowship contact not found.",
+        )
+
+    return {
+        "contact": contact,
+    }
+
+
+@app.get(
+    "/fellowship/recommended",
+    dependencies=[
+        Depends(require_api_token)
+    ],
+)
+def get_recommended_fellowship_contacts(
+    limit: int = 3,
+) -> dict[str, object]:
+    """Return prioritized active fellowship contacts."""
+
+    contacts = load_contacts()
+
+    recommended = recommend_contacts(
+        contacts=contacts,
+        limit=limit,
+    )
+
+    return {
+        "count": len(recommended),
+        "contacts": recommended,
     }

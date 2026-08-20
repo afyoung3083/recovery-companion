@@ -210,6 +210,75 @@ class ApiClient {
   }
 
   // ============================================================
+  // Fellowship
+  // ============================================================
+
+  Future<Map<String, dynamic>> getFellowshipContacts() async {
+    return _getJson(
+      '/fellowship',
+      authenticated: true,
+    );
+  }
+
+  Future<Map<String, dynamic>> getRecommendedFellowshipContacts({
+    int limit = 3,
+  }) async {
+    return _getJson(
+      '/fellowship/recommended?limit=$limit',
+      authenticated: true,
+    );
+  }
+
+  Future<Map<String, dynamic>> createFellowshipContact({
+    required String handle,
+    required String contactType,
+    String contactMethod = '',
+    String notes = '',
+  }) async {
+    final response = await _httpClient.post(
+      Uri.parse(
+        '$baseUrl/fellowship',
+      ),
+      headers: {
+        ...authenticatedHeaders,
+        'Content-Type': 'application/json',
+      },
+      body: jsonEncode({
+        'handle': handle,
+        'contact_type': contactType,
+        'contact_method': contactMethod,
+        'notes': notes,
+      }),
+    );
+
+    return _handleJsonResponse(
+      response,
+    );
+  }
+
+  Future<Map<String, dynamic>> setFellowshipContactActive({
+    required int contactId,
+    required bool active,
+  }) async {
+    final response = await _httpClient.put(
+      Uri.parse(
+        '$baseUrl/fellowship/$contactId/active',
+      ),
+      headers: {
+        ...authenticatedHeaders,
+        'Content-Type': 'application/json',
+      },
+      body: jsonEncode({
+        'active': active,
+      }),
+    );
+
+    return _handleJsonResponse(
+      response,
+    );
+  }
+
+  // ============================================================
   // Authentication
   // ============================================================
 

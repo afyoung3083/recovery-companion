@@ -601,3 +601,131 @@ def test_step_work_endpoint_requires_token():
     )
 
     assert response.status_code == 401
+
+@patch("app.api.load_contacts")
+def test_fellowship_endpoint_with_auth(
+    mock_load_contacts,
+):
+    mock_load_contacts.return_value = [
+        {
+            "id": 1,
+            "handle": "Mike",
+            "contact_type": "sponsor",
+            "contact_method": "555-0100",
+            "notes": "",
+            "active": True,
+        }
+    ]
+
+    response = client.get(
+        "/fellowship",
+        headers=auth_headers(),
+    )
+
+    assert response.status_code == 200
+    assert response.json()["count"] == 1
+    assert response.json()["contacts"][0]["handle"] == "Mike"
+
+
+@patch("app.api.add_contact")
+def test_create_fellowship_contact_with_auth(
+    mock_add_contact,
+):
+    mock_add_contact.return_value = {
+        "id": 2,
+        "handle": "John",
+        "contact_type": "fellowship",
+        "contact_method": "555-0200",
+        "notes": "Thursday meeting",
+        "active": True,
+    }
+
+    response = client.post(
+        "/fellowship",
+        headers=auth_headers(),
+        json={
+            "handle": "John",
+            "contact_type": "fellowship",
+            "contact_method": "555-0200",
+            "notes": "Thursday meeting",
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.json()["contact"]["id"] == 2
+
+
+@patch("app.api.set_contact_active")
+def test_update_fellowship_contact_active_with_auth(
+    mock_set_contact_active,
+):
+    mock_set_contact_active.return_value = {
+        "id": 2,
+        "handle": "John",
+        "contact_type": "fellowship",
+        "active": False,
+    }
+
+    response = client.put(
+        "/fellowship/2/active",
+        headers=auth_headers(),
+        json={
+            "active": False,
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.json()["contact"]["active"] is False
+
+
+@patch("app.api.set_contact_active")
+def test_update_fellowship_contact_returns_404_when_missing(
+    mock_set_contact_active,
+):
+    mock_set_contact_active.return_value = None
+
+    response = client.put(
+        "/fellowship/999/active",
+        headers=auth_headers(),
+        json={
+            "active": False,
+        },
+    )
+
+    assert response.status_code == 404
+
+
+@patch("app.api.recommend_contacts")
+@patch("app.api.load_contacts")
+def test_recommended_fellowship_contacts_with_auth(
+    mock_load_contacts,
+    mock_recommend_contacts,
+):
+    contacts = [
+        {
+            "id": 1,
+            "handle": "Mike",
+            "contact_type": "sponsor",
+            "active": True,
+        }
+    ]
+
+    mock_load_contacts.return_value = contacts
+    mock_recommend_contacts.return_value = contacts
+
+    response = client.get(
+        "/fellowship/recommended?limit=3",
+        headers=auth_headers(),
+    )
+
+    assert response.status_code == 200
+    assert response.json()["count"] == 1
+    assert response.json()["contacts"][0]["handle"] == "Mike"
+
+
+def test_fellowship_endpoint_requires_token():
+    response = client.get(
+        "/fellowship"
+    )
+
+    assert response.status_code == 401
