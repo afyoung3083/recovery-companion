@@ -8,6 +8,7 @@ import 'journal_screen.dart';
 import 'mobile_config.dart';
 import 'routines_screen.dart';
 import 'step_work_screen.dart';
+import 'fellowship_screen.dart';
 
 void main() {
   runApp(const RecoveryCompanionApp());
@@ -344,6 +345,24 @@ class MoreScreen extends StatelessWidget {
                 builder: (_) => _ToolScreen(
                   title: 'Journal',
                   child: JournalScreen(
+                    apiClient: apiClient,
+                  ),
+                ),
+              ),
+            );
+          },
+        ),
+
+        _MoreMenuTile(
+          icon: Icons.groups_outlined,
+          title: 'Fellowship',
+          subtitle: 'Manage recovery contacts and recommendations.',
+          onTap: () {
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) => _ToolScreen(
+                  title: 'Fellowship',
+                  child: FellowshipScreen(
                     apiClient: apiClient,
                   ),
                 ),
