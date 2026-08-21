@@ -8,14 +8,23 @@ from app.daily_checkin import (
     get_checkin_for_date,
     save_daily_checkin,
 )
-from app.goals import get_active_goals
+from app.goals import (
+    add_goal,
+    complete_goal,
+    get_active_goals,
+    reactivate_goal,
+)
 from app.journal import (
     add_entry,
     load_entries,
     search_entries,
 )
 from app.recovery_insights import build_recovery_insights
-from app.routines import get_active_routines
+from app.routines import (
+    add_routine,
+    get_active_routines,
+    set_routine_active,
+)
 from app.step_work import (
     add_assignment,
     complete_assignment,
@@ -30,7 +39,6 @@ from app.fellowship import (
     recommend_contacts,
     set_contact_active,
 )
-
 
 # ============================================================
 # FastAPI application
@@ -76,6 +84,22 @@ class FellowshipContactRequest(BaseModel):
 
 
 class FellowshipContactActiveRequest(BaseModel):
+    active: bool
+
+class GoalRequest(BaseModel):
+    text: str
+    area: str
+    target_date: str = ""
+
+
+class RoutineRequest(BaseModel):
+    text: str
+    area: str
+    frequency: str
+    day_of_week: str = ""
+
+
+class ActiveStateRequest(BaseModel):
     active: bool
 
 # ============================================================
@@ -136,6 +160,86 @@ def active_goals() -> dict[str, object]:
     }
 
 
+@app.post(
+    "/goals",
+    dependencies=[
+        Depends(require_api_token)
+    ],
+)
+def create_goal(
+    request: GoalRequest,
+) -> dict[str, object]:
+    """Create a new recovery goal."""
+
+    try:
+        goal = add_goal(
+            text=request.text,
+            area=request.area,
+            target_date=request.target_date,
+        )
+    except ValueError as error:
+        raise HTTPException(
+            status_code=400,
+            detail=str(error),
+        ) from error
+
+    return {
+        "goal": goal,
+    }
+
+
+@app.put(
+    "/goals/{goal_id}/complete",
+    dependencies=[
+        Depends(require_api_token)
+    ],
+)
+def mark_goal_complete(
+    goal_id: int,
+) -> dict[str, object]:
+    """Mark a recovery goal complete."""
+
+    goal = complete_goal(
+        goal_id
+    )
+
+    if goal is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Recovery goal not found.",
+        )
+
+    return {
+        "goal": goal,
+    }
+
+
+@app.put(
+    "/goals/{goal_id}/reactivate",
+    dependencies=[
+        Depends(require_api_token)
+    ],
+)
+def reactivate_recovery_goal(
+    goal_id: int,
+) -> dict[str, object]:
+    """Reactivate a completed recovery goal."""
+
+    goal = reactivate_goal(
+        goal_id
+    )
+
+    if goal is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Recovery goal not found.",
+        )
+
+    return {
+        "goal": goal,
+    }
+
+
 # ============================================================
 # Routines
 # ============================================================
@@ -156,7 +260,61 @@ def active_routines() -> dict[str, object]:
         "routines": routines,
     }
 
+@app.post(
+    "/routines",
+    dependencies=[
+        Depends(require_api_token)
+    ],
+)
+def create_routine(
+    request: RoutineRequest,
+) -> dict[str, object]:
+    """Create a new recovery routine."""
 
+    try:
+        routine = add_routine(
+            text=request.text,
+            area=request.area,
+            frequency=request.frequency,
+            day_of_week=request.day_of_week,
+        )
+    except ValueError as error:
+        raise HTTPException(
+            status_code=400,
+            detail=str(error),
+        ) from error
+
+    return {
+        "routine": routine,
+    }
+
+
+@app.put(
+    "/routines/{routine_id}/active",
+    dependencies=[
+        Depends(require_api_token)
+    ],
+)
+def update_routine_active(
+    routine_id: int,
+    request: ActiveStateRequest,
+) -> dict[str, object]:
+    """Activate or deactivate a recovery routine."""
+
+    routine = set_routine_active(
+        routine_id=routine_id,
+        active=request.active,
+    )
+
+    if routine is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Recovery routine not found.",
+        )
+
+    return {
+        "routine": routine,
+    }
 # ============================================================
 # Synchronization
 # ============================================================

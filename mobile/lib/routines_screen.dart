@@ -15,7 +15,37 @@ class RoutinesScreen extends StatefulWidget {
 }
 
 class _RoutinesScreenState extends State<RoutinesScreen> {
+  static const List<String> _areas = [
+    'connection',
+    'step_work',
+    'meetings',
+    'prayer',
+    'journal',
+    'service',
+    'health',
+    'other',
+  ];
+
+  static const List<String> _days = [
+    'monday',
+    'tuesday',
+    'wednesday',
+    'thursday',
+    'friday',
+    'saturday',
+    'sunday',
+  ];
+
   late Future<Map<String, dynamic>> _routinesFuture;
+
+  final TextEditingController _textController =
+      TextEditingController();
+
+  String _area = 'other';
+  String _frequency = 'daily';
+  String _dayOfWeek = 'monday';
+  bool _saving = false;
+  String? _actionError;
 
   @override
   void initState() {
@@ -23,168 +53,454 @@ class _RoutinesScreenState extends State<RoutinesScreen> {
     _routinesFuture = widget.apiClient.getRoutines();
   }
 
+  @override
+  void dispose() {
+    _textController.dispose();
+    super.dispose();
+  }
+
   void _refresh() {
     setState(() {
       _routinesFuture = widget.apiClient.getRoutines();
+      _actionError = null;
     });
+  }
+
+  Future<void> _refreshAsync() async {
+    final future = widget.apiClient.getRoutines();
+
+    setState(() {
+      _routinesFuture = future;
+      _actionError = null;
+    });
+
+    await future;
+  }
+
+  Future<void> _createRoutine() async {
+    final text = _textController.text.trim();
+
+    if (text.isEmpty) {
+      setState(() {
+        _actionError = 'Routine text is required.';
+      });
+      return;
+    }
+
+    setState(() {
+      _saving = true;
+      _actionError = null;
+    });
+
+    try {
+      await widget.apiClient.createRoutine(
+        text: text,
+        area: _area,
+        frequency: _frequency,
+        dayOfWeek: _frequency == 'weekly'
+            ? _dayOfWeek
+            : '',
+      );
+
+      if (!mounted) {
+        return;
+      }
+
+      _textController.clear();
+
+      setState(() {
+        _area = 'other';
+        _frequency = 'daily';
+        _dayOfWeek = 'monday';
+      });
+
+      await _refreshAsync();
+
+      if (!mounted) {
+        return;
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Routine added.'),
+        ),
+      );
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _actionError = error.toString();
+      });
+    } finally {
+      if (mounted) {
+        setState(() {
+          _saving = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _setActive({
+    required int routineId,
+    required bool active,
+  }) async {
+    setState(() {
+      _saving = true;
+      _actionError = null;
+    });
+
+    try {
+      await widget.apiClient.setRoutineActive(
+        routineId: routineId,
+        active: active,
+      );
+
+      if (!mounted) {
+        return;
+      }
+
+      await _refreshAsync();
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _actionError = error.toString();
+      });
+    } finally {
+      if (mounted) {
+        setState(() {
+          _saving = false;
+        });
+      }
+    }
+  }
+
+  List<Map<String, dynamic>> _routinesFrom(
+    Map<String, dynamic>? data,
+  ) {
+    final rawRoutines = data?['routines'];
+
+    if (rawRoutines is! List) {
+      return [];
+    }
+
+    return rawRoutines
+        .whereType<Map<String, dynamic>>()
+        .toList();
   }
 
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder<Map<String, dynamic>>(
-      future: _routinesFuture,
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(
-            child: CircularProgressIndicator(),
-          );
-        }
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        Text(
+          'Routines',
+          style: Theme.of(context).textTheme.headlineMedium,
+        ),
+        const SizedBox(height: 8),
+        const Text(
+          'Build repeatable practices that support recovery.',
+        ),
+        const SizedBox(height: 24),
 
-        if (snapshot.hasError) {
-          return _ErrorView(
-            message: snapshot.error.toString(),
-            onRetry: _refresh,
-          );
-        }
+        Text(
+          'Add Routine',
+          style: Theme.of(context).textTheme.titleLarge,
+        ),
+        const SizedBox(height: 12),
 
-        final data = snapshot.data ?? const {};
-        final rawRoutines = data['routines'];
+        TextField(
+          controller: _textController,
+          decoration: const InputDecoration(
+            labelText: 'Routine',
+            hintText: 'What practice do you want to repeat?',
+            border: OutlineInputBorder(),
+          ),
+        ),
+        const SizedBox(height: 12),
 
-        final routines = rawRoutines is List
-            ? rawRoutines
-                .whereType<Map<String, dynamic>>()
-                .toList()
-            : <Map<String, dynamic>>[];
+        DropdownButtonFormField<String>(
+          initialValue: _area,
+          decoration: const InputDecoration(
+            labelText: 'Recovery area',
+            border: OutlineInputBorder(),
+          ),
+          items: _areas
+              .map(
+                (area) => DropdownMenuItem(
+                  value: area,
+                  child: Text(
+                    _displayArea(area),
+                  ),
+                ),
+              )
+              .toList(),
+          onChanged: _saving
+              ? null
+              : (value) {
+                  if (value != null) {
+                    setState(() {
+                      _area = value;
+                    });
+                  }
+                },
+        ),
+        const SizedBox(height: 12),
 
-        if (routines.isEmpty) {
-          return _EmptyRoutinesView(
-            onRefresh: _refresh,
-          );
-        }
+        DropdownButtonFormField<String>(
+          initialValue: _frequency,
+          decoration: const InputDecoration(
+            labelText: 'Frequency',
+            border: OutlineInputBorder(),
+          ),
+          items: const [
+            DropdownMenuItem(
+              value: 'daily',
+              child: Text('Daily'),
+            ),
+            DropdownMenuItem(
+              value: 'weekly',
+              child: Text('Weekly'),
+            ),
+          ],
+          onChanged: _saving
+              ? null
+              : (value) {
+                  if (value != null) {
+                    setState(() {
+                      _frequency = value;
+                    });
+                  }
+                },
+        ),
 
-        return RefreshIndicator(
-          onRefresh: () async {
-            final future = widget.apiClient.getRoutines();
+        if (_frequency == 'weekly') ...[
+          const SizedBox(height: 12),
+          DropdownButtonFormField<String>(
+            initialValue: _dayOfWeek,
+            decoration: const InputDecoration(
+              labelText: 'Day of week',
+              border: OutlineInputBorder(),
+            ),
+            items: _days
+                .map(
+                  (day) => DropdownMenuItem(
+                    value: day,
+                    child: Text(
+                      _capitalize(day),
+                    ),
+                  ),
+                )
+                .toList(),
+            onChanged: _saving
+                ? null
+                : (value) {
+                    if (value != null) {
+                      setState(() {
+                        _dayOfWeek = value;
+                      });
+                    }
+                  },
+          ),
+        ],
 
-            setState(() {
-              _routinesFuture = future;
-            });
+        const SizedBox(height: 12),
 
-            await future;
-          },
-          child: ListView.separated(
-            padding: const EdgeInsets.all(16),
-            itemCount: routines.length,
-            separatorBuilder: (_, _) {
-              return const SizedBox(height: 12);
-            },
-            itemBuilder: (context, index) {
-              final routine = routines[index];
+        FilledButton.icon(
+          onPressed: _saving ? null : _createRoutine,
+          icon: const Icon(
+            Icons.add,
+          ),
+          label: const Text(
+            'Add Routine',
+          ),
+        ),
 
-              final text = (
-                routine['text'] ??
-                routine['routine'] ??
-                'Recovery routine'
-              ).toString();
+        if (_actionError != null) ...[
+          const SizedBox(height: 12),
+          Text(
+            _actionError!,
+            style: TextStyle(
+              color: Theme.of(context).colorScheme.error,
+            ),
+          ),
+        ],
 
-              final area = (
-                routine['area'] ??
-                'other'
-              ).toString();
+        const SizedBox(height: 28),
 
-              final frequency = (
-                routine['frequency'] ??
-                ''
-              ).toString();
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                'Active Routines',
+                style: Theme.of(context).textTheme.titleLarge,
+              ),
+            ),
+            IconButton(
+              onPressed: _saving ? null : _refresh,
+              tooltip: 'Refresh',
+              icon: const Icon(
+                Icons.refresh,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
 
-              final dayOfWeek = (
-                routine['day_of_week'] ??
-                ''
-              ).toString();
-
-              final schedule = dayOfWeek.isNotEmpty
-                  ? '$frequency - $dayOfWeek'
-                  : frequency;
-
-              return Card(
+        FutureBuilder<Map<String, dynamic>>(
+          future: _routinesFuture,
+          builder: (context, snapshot) {
+            if (snapshot.connectionState ==
+                ConnectionState.waiting) {
+              return const Center(
                 child: Padding(
-                  padding: const EdgeInsets.all(16),
+                  padding: EdgeInsets.all(24),
+                  child: CircularProgressIndicator(),
+                ),
+              );
+            }
+
+            if (snapshot.hasError) {
+              return _ErrorCard(
+                message: snapshot.error.toString(),
+                onRetry: _refresh,
+              );
+            }
+
+            final routines = _routinesFrom(
+              snapshot.data,
+            );
+
+            if (routines.isEmpty) {
+              return const Card(
+                child: Padding(
+                  padding: EdgeInsets.all(20),
                   child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        text,
-                        style: Theme.of(context)
-                            .textTheme
-                            .titleMedium,
+                      Icon(
+                        Icons.repeat_outlined,
+                        size: 44,
                       ),
-                      const SizedBox(height: 10),
+                      SizedBox(height: 12),
                       Text(
-                        'Area: $area',
+                        'No active routines',
                       ),
-                      if (schedule.isNotEmpty) ...[
-                        const SizedBox(height: 4),
-                        Text(
-                          'Schedule: $schedule',
-                        ),
-                      ],
                     ],
                   ),
                 ),
               );
-            },
-          ),
-        );
-      },
+            }
+
+            return Column(
+              children: routines
+                  .map(
+                    (routine) => _buildRoutineCard(
+                      routine,
+                    ),
+                  )
+                  .toList(),
+            );
+          },
+        ),
+      ],
     );
   }
-}
 
-class _EmptyRoutinesView extends StatelessWidget {
-  const _EmptyRoutinesView({
-    required this.onRefresh,
-  });
+  Widget _buildRoutineCard(
+    Map<String, dynamic> routine,
+  ) {
+    final id = routine['id'] as int?;
 
-  final VoidCallback onRefresh;
+    final text = (
+      routine['text'] ??
+      routine['routine'] ??
+      'Recovery routine'
+    ).toString();
 
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
+    final area = (
+      routine['area'] ??
+      'other'
+    ).toString();
+
+    final frequency = (
+      routine['frequency'] ??
+      ''
+    ).toString();
+
+    final dayOfWeek = (
+      routine['day_of_week'] ??
+      ''
+    ).toString();
+
+    final schedule = dayOfWeek.isNotEmpty
+        ? '${_capitalize(frequency)} - '
+            '${_capitalize(dayOfWeek)}'
+        : _capitalize(frequency);
+
+    return Card(
+      child: ListTile(
+        leading: const Icon(
+          Icons.repeat,
+        ),
+        title: Text(
+          text,
+        ),
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Icon(
-              Icons.repeat_outlined,
-              size: 52,
-            ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 6),
             Text(
-              'No active routines',
-              style: Theme.of(context)
-                  .textTheme
-                  .titleLarge,
+              'Area: ${_displayArea(area)}',
             ),
-            const SizedBox(height: 8),
-            const Text(
-              'Active recovery routines will appear here.',
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 20),
-            OutlinedButton(
-              onPressed: onRefresh,
-              child: const Text('Refresh'),
-            ),
+            if (schedule.isNotEmpty)
+              Text(
+                'Schedule: $schedule',
+              ),
           ],
+        ),
+        trailing: Switch(
+          value: true,
+          onChanged: _saving || id == null
+              ? null
+              : (value) {
+                  _setActive(
+                    routineId: id,
+                    active: value,
+                  );
+                },
         ),
       ),
     );
   }
+
+  static String _displayArea(
+    String area,
+  ) {
+    if (area == 'step_work') {
+      return 'Step Work';
+    }
+
+    return _capitalize(area);
+  }
+
+  static String _capitalize(
+    String value,
+  ) {
+    if (value.isEmpty) {
+      return '';
+    }
+
+    return '${value[0].toUpperCase()}${value.substring(1)}';
+  }
 }
 
-class _ErrorView extends StatelessWidget {
-  const _ErrorView({
+class _ErrorCard extends StatelessWidget {
+  const _ErrorCard({
     required this.message,
     required this.onRetry,
   });
@@ -194,17 +510,16 @@ class _ErrorView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Center(
+    return Card(
       child: Padding(
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.all(20),
         child: Column(
-          mainAxisSize: MainAxisSize.min,
           children: [
             const Icon(
               Icons.cloud_off_outlined,
-              size: 48,
+              size: 40,
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 12),
             const Text(
               'Unable to load routines',
             ),
@@ -213,7 +528,7 @@ class _ErrorView extends StatelessWidget {
               message,
               textAlign: TextAlign.center,
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 12),
             FilledButton(
               onPressed: onRetry,
               child: const Text('Retry'),
