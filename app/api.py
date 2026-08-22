@@ -39,6 +39,12 @@ from app.fellowship import (
     recommend_contacts,
     set_contact_active,
 )
+from app.weekly_review import (
+    build_weekly_review,
+    compare_latest_weekly_reviews,
+    load_weekly_review_history,
+    save_weekly_review_snapshot,
+)
 
 # ============================================================
 # FastAPI application
@@ -627,4 +633,68 @@ def get_recommended_fellowship_contacts(
     return {
         "count": len(recommended),
         "contacts": recommended,
+    }
+
+@app.get(
+    "/weekly-review/current",
+    dependencies=[
+        Depends(require_api_token)
+    ],
+)
+def get_current_weekly_review() -> dict[str, str]:
+    """Return the current unsaved weekly recovery review."""
+
+    return {
+        "review": build_weekly_review(),
+    }
+
+
+@app.post(
+    "/weekly-review/snapshot",
+    dependencies=[
+        Depends(require_api_token)
+    ],
+)
+def create_weekly_review_snapshot() -> dict[str, object]:
+    """Save or replace the current weekly review snapshot."""
+
+    snapshot = save_weekly_review_snapshot()
+
+    return {
+        "snapshot": snapshot,
+    }
+
+
+@app.get(
+    "/weekly-review/history",
+    dependencies=[
+        Depends(require_api_token)
+    ],
+)
+def get_weekly_review_history() -> dict[str, object]:
+    """Return saved weekly review snapshots."""
+
+    history = load_weekly_review_history()
+
+    return {
+        "count": len(history),
+        "history": history,
+    }
+
+
+@app.get(
+    "/weekly-review/comparison",
+    dependencies=[
+        Depends(require_api_token)
+    ],
+)
+def get_weekly_review_comparison() -> dict[str, str]:
+    """Compare the two most recent saved weekly reviews."""
+
+    history = load_weekly_review_history()
+
+    return {
+        "comparison": compare_latest_weekly_reviews(
+            history
+        ),
     }

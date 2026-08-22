@@ -885,3 +885,124 @@ def test_update_routine_active_with_auth(
 
     assert response.status_code == 200
     assert response.json()["routine"]["active"] is False
+
+@patch("app.api.build_weekly_review")
+def test_current_weekly_review_with_auth(
+    mock_build_weekly_review,
+):
+    mock_build_weekly_review.return_value = (
+        "Weekly Recovery Review\n"
+        "Check-In Days: 5/7"
+    )
+
+    response = client.get(
+        "/weekly-review/current",
+        headers=auth_headers(),
+    )
+
+    assert response.status_code == 200
+    assert (
+        "Weekly Recovery Review"
+        in response.json()["review"]
+    )
+
+
+@patch("app.api.save_weekly_review_snapshot")
+def test_create_weekly_review_snapshot_with_auth(
+    mock_save_weekly_review_snapshot,
+):
+    mock_save_weekly_review_snapshot.return_value = {
+        "week_start": "2026-08-15",
+        "week_end": "2026-08-21",
+        "checkin_days": 5,
+        "action_totals": {},
+        "journal_entries": 2,
+        "review": "Weekly Recovery Review",
+    }
+
+    response = client.post(
+        "/weekly-review/snapshot",
+        headers=auth_headers(),
+    )
+
+    assert response.status_code == 200
+    assert (
+        response.json()["snapshot"]["week_end"]
+        == "2026-08-21"
+    )
+
+
+@patch("app.api.load_weekly_review_history")
+def test_weekly_review_history_with_auth(
+    mock_load_weekly_review_history,
+):
+    mock_load_weekly_review_history.return_value = [
+        {
+            "week_start": "2026-08-08",
+            "week_end": "2026-08-14",
+            "checkin_days": 4,
+        },
+        {
+            "week_start": "2026-08-15",
+            "week_end": "2026-08-21",
+            "checkin_days": 5,
+        },
+    ]
+
+    response = client.get(
+        "/weekly-review/history",
+        headers=auth_headers(),
+    )
+
+    assert response.status_code == 200
+    assert response.json()["count"] == 2
+
+
+@patch("app.api.compare_latest_weekly_reviews")
+@patch("app.api.load_weekly_review_history")
+def test_weekly_review_comparison_with_auth(
+    mock_load_weekly_review_history,
+    mock_compare_latest_weekly_reviews,
+):
+    history = [
+        {
+            "week_start": "2026-08-08",
+            "week_end": "2026-08-14",
+        },
+        {
+            "week_start": "2026-08-15",
+            "week_end": "2026-08-21",
+        },
+    ]
+
+    mock_load_weekly_review_history.return_value = history
+    mock_compare_latest_weekly_reviews.return_value = (
+        "Weekly Review Comparison"
+    )
+
+    response = client.get(
+        "/weekly-review/comparison",
+        headers=auth_headers(),
+    )
+
+    assert response.status_code == 200
+    assert (
+        response.json()["comparison"]
+        == "Weekly Review Comparison"
+    )
+
+
+def test_weekly_review_current_requires_token():
+    response = client.get(
+        "/weekly-review/current"
+    )
+
+    assert response.status_code == 401
+
+
+def test_weekly_review_snapshot_requires_token():
+    response = client.post(
+        "/weekly-review/snapshot"
+    )
+
+    assert response.status_code == 401
