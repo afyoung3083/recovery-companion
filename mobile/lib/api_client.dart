@@ -35,6 +35,10 @@ class ApiClient {
     );
   }
 
+  // ============================================================
+  // Goals
+  // ============================================================
+
   Future<Map<String, dynamic>> getGoals() async {
     return _getJson(
       '/goals',
@@ -42,10 +46,118 @@ class ApiClient {
     );
   }
 
+  Future<Map<String, dynamic>> createGoal({
+    required String text,
+    required String area,
+    String targetDate = '',
+  }) async {
+    final response = await _httpClient.post(
+      Uri.parse(
+        '$baseUrl/goals',
+      ),
+      headers: {
+        ...authenticatedHeaders,
+        'Content-Type': 'application/json',
+      },
+      body: jsonEncode({
+        'text': text,
+        'area': area,
+        'target_date': targetDate,
+      }),
+    );
+
+    return _handleJsonResponse(
+      response,
+    );
+  }
+
+  Future<Map<String, dynamic>> completeGoal(
+    int goalId,
+  ) async {
+    final response = await _httpClient.put(
+      Uri.parse(
+        '$baseUrl/goals/$goalId/complete',
+      ),
+      headers: authenticatedHeaders,
+    );
+
+    return _handleJsonResponse(
+      response,
+    );
+  }
+
+  Future<Map<String, dynamic>> reactivateGoal(
+    int goalId,
+  ) async {
+    final response = await _httpClient.put(
+      Uri.parse(
+        '$baseUrl/goals/$goalId/reactivate',
+      ),
+      headers: authenticatedHeaders,
+    );
+
+    return _handleJsonResponse(
+      response,
+    );
+  }
+
+  // ============================================================
+  // Routines
+  // ============================================================
+
   Future<Map<String, dynamic>> getRoutines() async {
     return _getJson(
       '/routines',
       authenticated: true,
+    );
+  }
+
+  Future<Map<String, dynamic>> createRoutine({
+    required String text,
+    required String area,
+    required String frequency,
+    String dayOfWeek = '',
+  }) async {
+    final response = await _httpClient.post(
+      Uri.parse(
+        '$baseUrl/routines',
+      ),
+      headers: {
+        ...authenticatedHeaders,
+        'Content-Type': 'application/json',
+      },
+      body: jsonEncode({
+        'text': text,
+        'area': area,
+        'frequency': frequency,
+        'day_of_week': dayOfWeek,
+      }),
+    );
+
+    return _handleJsonResponse(
+      response,
+    );
+  }
+
+  Future<Map<String, dynamic>> setRoutineActive({
+    required int routineId,
+    required bool active,
+  }) async {
+    final response = await _httpClient.put(
+      Uri.parse(
+        '$baseUrl/routines/$routineId/active',
+      ),
+      headers: {
+        ...authenticatedHeaders,
+        'Content-Type': 'application/json',
+      },
+      body: jsonEncode({
+        'active': active,
+      }),
+    );
+
+    return _handleJsonResponse(
+      response,
     );
   }
 

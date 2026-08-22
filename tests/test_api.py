@@ -729,3 +729,159 @@ def test_fellowship_endpoint_requires_token():
     )
 
     assert response.status_code == 401
+
+@patch("app.api.add_goal")
+def test_create_goal_with_auth(
+    mock_add_goal,
+):
+    mock_add_goal.return_value = {
+        "id": 2,
+        "text": "Attend three meetings this week.",
+        "area": "meetings",
+        "target_date": "2026-08-31",
+        "status": "active",
+    }
+
+    response = client.post(
+        "/goals",
+        headers=auth_headers(),
+        json={
+            "text": "Attend three meetings this week.",
+            "area": "meetings",
+            "target_date": "2026-08-31",
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.json()["goal"]["id"] == 2
+
+
+@patch("app.api.add_goal")
+def test_create_goal_returns_400_for_invalid_input(
+    mock_add_goal,
+):
+    mock_add_goal.side_effect = ValueError(
+        "Invalid recovery area."
+    )
+
+    response = client.post(
+        "/goals",
+        headers=auth_headers(),
+        json={
+            "text": "Test goal",
+            "area": "invalid",
+            "target_date": "",
+        },
+    )
+
+    assert response.status_code == 400
+
+
+@patch("app.api.complete_goal")
+def test_complete_goal_with_auth(
+    mock_complete_goal,
+):
+    mock_complete_goal.return_value = {
+        "id": 2,
+        "text": "Attend three meetings this week.",
+        "status": "completed",
+    }
+
+    response = client.put(
+        "/goals/2/complete",
+        headers=auth_headers(),
+    )
+
+    assert response.status_code == 200
+    assert response.json()["goal"]["status"] == "completed"
+
+
+@patch("app.api.reactivate_goal")
+def test_reactivate_goal_with_auth(
+    mock_reactivate_goal,
+):
+    mock_reactivate_goal.return_value = {
+        "id": 2,
+        "text": "Attend three meetings this week.",
+        "status": "active",
+    }
+
+    response = client.put(
+        "/goals/2/reactivate",
+        headers=auth_headers(),
+    )
+
+    assert response.status_code == 200
+    assert response.json()["goal"]["status"] == "active"
+
+
+@patch("app.api.add_routine")
+def test_create_routine_with_auth(
+    mock_add_routine,
+):
+    mock_add_routine.return_value = {
+        "id": 3,
+        "text": "Call sponsor every Friday.",
+        "area": "connection",
+        "frequency": "weekly",
+        "day_of_week": "friday",
+        "active": True,
+    }
+
+    response = client.post(
+        "/routines",
+        headers=auth_headers(),
+        json={
+            "text": "Call sponsor every Friday.",
+            "area": "connection",
+            "frequency": "weekly",
+            "day_of_week": "friday",
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.json()["routine"]["id"] == 3
+
+
+@patch("app.api.add_routine")
+def test_create_routine_returns_400_for_invalid_input(
+    mock_add_routine,
+):
+    mock_add_routine.side_effect = ValueError(
+        "Frequency must be daily or weekly."
+    )
+
+    response = client.post(
+        "/routines",
+        headers=auth_headers(),
+        json={
+            "text": "Test routine",
+            "area": "connection",
+            "frequency": "monthly",
+            "day_of_week": "",
+        },
+    )
+
+    assert response.status_code == 400
+
+
+@patch("app.api.set_routine_active")
+def test_update_routine_active_with_auth(
+    mock_set_routine_active,
+):
+    mock_set_routine_active.return_value = {
+        "id": 3,
+        "text": "Call sponsor every Friday.",
+        "active": False,
+    }
+
+    response = client.put(
+        "/routines/3/active",
+        headers=auth_headers(),
+        json={
+            "active": False,
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.json()["routine"]["active"] is False
