@@ -52,6 +52,7 @@ from app.monthly_review import (
     save_monthly_review_snapshot,
 )
 from app.recovery_engine import (
+    analyze_journal_entry,
     analyze_monthly_review,
     analyze_weekly_review,
     respond_to_user,
@@ -543,6 +544,70 @@ def create_journal_entry(
 
     return {
         "entry": entry,
+    }
+
+
+@app.post(
+    "/journal/{entry_id}/ai-reflection",
+    dependencies=[
+        Depends(require_api_token)
+    ],
+)
+def journal_ai_reflection(
+    entry_id: int,
+) -> dict[str, object]:
+    """
+    Analyze one explicitly selected journal entry.
+
+    Only the selected entry text is sent to the AI.
+    The analysis is not persisted automatically.
+    """
+
+    entries = load_entries()
+
+    selected_entry = next(
+        (
+            entry
+            for entry in entries
+            if entry.get("id") == entry_id
+        ),
+        None,
+    )
+
+    if selected_entry is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Journal entry not found.",
+        )
+
+    entry_text = str(
+        selected_entry.get(
+            "text",
+            "",
+        )
+    ).strip()
+
+    if not entry_text:
+        raise HTTPException(
+            status_code=400,
+            detail="Journal entry has no text to analyze.",
+        )
+
+    try:
+        reflection = analyze_journal_entry(
+            entry_text
+        )
+    except Exception as error:
+        raise HTTPException(
+            status_code=502,
+            detail=(
+                "Unable to generate journal reflection."
+            ),
+        ) from error
+
+    return {
+        "entry_id": entry_id,
+        "reflection": reflection,
     }
 
 
