@@ -35,6 +35,19 @@ class ApiClient {
     );
   }
 
+  Future<Map<String, dynamic>> getRecoveryInsightsAiReflection() async {
+    final response = await _httpClient.post(
+      Uri.parse(
+        '$baseUrl/recovery-insights/ai-reflection',
+      ),
+      headers: authenticatedHeaders,
+    );
+
+    return _handleJsonResponse(
+      response,
+    );
+  }
+
   // ============================================================
   // Chat
   // ============================================================
