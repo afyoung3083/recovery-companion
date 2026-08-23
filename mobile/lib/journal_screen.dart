@@ -27,6 +27,9 @@ class _JournalScreenState extends State<JournalScreen> {
       TextEditingController();
 
   bool _saving = false;
+  int? _analyzingEntryId;
+  int? _reflectionEntryId;
+  String? _reflection;
   String? _error;
 
   @override
@@ -125,6 +128,87 @@ class _JournalScreenState extends State<JournalScreen> {
     });
   }
 
+  Future<void> _analyzeEntry({
+    required int entryId,
+  }) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text(
+            'Analyze this journal entry?',
+          ),
+          content: const Text(
+            'Only this selected journal entry will be sent to the AI '
+            'for an optional recovery reflection. The reflection is '
+            'not saved automatically.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(dialogContext).pop(false);
+              },
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () {
+                Navigator.of(dialogContext).pop(true);
+              },
+              child: const Text('Analyze Entry'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirmed != true || !mounted) {
+      return;
+    }
+
+    setState(() {
+      _analyzingEntryId = entryId;
+      _reflectionEntryId = null;
+      _reflection = null;
+      _error = null;
+    });
+
+    try {
+      final response =
+          await widget.apiClient.analyzeJournalEntry(entryId);
+
+      if (!mounted) {
+        return;
+      }
+
+      final reflection = (
+        response['reflection'] ??
+        ''
+      ).toString().trim();
+
+      setState(() {
+        _reflectionEntryId = entryId;
+        _reflection = reflection.isEmpty
+            ? 'No AI reflection was returned.'
+            : reflection;
+      });
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _error =
+            'Unable to generate journal reflection. Please try again.';
+      });
+    } finally {
+      if (mounted) {
+        setState(() {
+          _analyzingEntryId = null;
+        });
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return ListView(
@@ -193,6 +277,13 @@ class _JournalScreenState extends State<JournalScreen> {
           style: Theme.of(context)
               .textTheme
               .titleLarge,
+        ),
+
+        const SizedBox(height: 8),
+
+        const Text(
+          'AI reflection is optional. Only an entry you explicitly '
+          'select for analysis is sent to the AI.',
         ),
 
         const SizedBox(height: 12),
@@ -340,6 +431,54 @@ class _JournalScreenState extends State<JournalScreen> {
                                   ),
                                 )
                                 .toList(),
+                          ),
+                        ],
+
+                        const SizedBox(height: 16),
+
+                        OutlinedButton.icon(
+                          key: ValueKey(
+                            'journal-ai-${
+                              entry['id']
+                            }',
+                          ),
+                          onPressed:
+                              _analyzingEntryId == null &&
+                                      entry['id'] is int
+                                  ? () {
+                                      _analyzeEntry(
+                                        entryId:
+                                            entry['id'] as int,
+                                      );
+                                    }
+                                  : null,
+                          icon: const Icon(
+                            Icons.auto_awesome_outlined,
+                          ),
+                          label: Text(
+                            _analyzingEntryId == entry['id']
+                                ? 'Generating Reflection...'
+                                : 'Analyze with AI',
+                          ),
+                        ),
+
+                        if (_reflectionEntryId == entry['id'] &&
+                            _reflection != null) ...[
+                          const SizedBox(height: 16),
+                          const Divider(),
+                          const SizedBox(height: 8),
+                          Text(
+                            'AI Reflection',
+                            style: Theme.of(context)
+                                .textTheme
+                                .titleMedium,
+                          ),
+                          const SizedBox(height: 8),
+                          SelectableText(
+                            _reflection!,
+                            key: const ValueKey(
+                              'journal-ai-reflection',
+                            ),
                           ),
                         ],
                       ],
