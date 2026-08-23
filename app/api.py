@@ -45,6 +45,12 @@ from app.weekly_review import (
     load_weekly_review_history,
     save_weekly_review_snapshot,
 )
+from app.monthly_review import (
+    build_monthly_review,
+    compare_latest_monthly_reviews,
+    load_monthly_review_history,
+    save_monthly_review_snapshot,
+)
 
 # ============================================================
 # FastAPI application
@@ -695,6 +701,76 @@ def get_weekly_review_comparison() -> dict[str, str]:
 
     return {
         "comparison": compare_latest_weekly_reviews(
+            history
+        ),
+    }
+
+@app.get(
+    "/monthly-review/current",
+    dependencies=[
+        Depends(require_api_token)
+    ],
+)
+def get_current_monthly_review() -> dict[str, str]:
+    """Return the current rolling four-week recovery review."""
+
+    return {
+        "review": build_monthly_review(),
+    }
+
+
+@app.post(
+    "/monthly-review/snapshot",
+    dependencies=[
+        Depends(require_api_token)
+    ],
+)
+def create_monthly_review_snapshot() -> dict[str, object]:
+    """Save or replace the current monthly review snapshot."""
+
+    try:
+        snapshot = save_monthly_review_snapshot()
+    except ValueError as error:
+        raise HTTPException(
+            status_code=400,
+            detail=str(error),
+        ) from error
+
+    return {
+        "snapshot": snapshot,
+    }
+
+
+@app.get(
+    "/monthly-review/history",
+    dependencies=[
+        Depends(require_api_token)
+    ],
+)
+def get_monthly_review_history() -> dict[str, object]:
+    """Return saved monthly review snapshots."""
+
+    history = load_monthly_review_history()
+
+    return {
+        "count": len(history),
+        "history": history,
+    }
+
+
+@app.get(
+    "/monthly-review/comparison",
+    dependencies=[
+        Depends(require_api_token)
+    ],
+)
+def get_monthly_review_comparison() -> dict[str, str]:
+    """Compare the two most recent saved monthly reviews."""
+
+    history = load_monthly_review_history()
+
+    return {
+        "comparison": compare_latest_monthly_reviews(
             history
         ),
     }

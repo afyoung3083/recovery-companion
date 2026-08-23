@@ -429,6 +429,44 @@ class ApiClient {
   }
 
   // ============================================================
+  // Monthly Review
+  // ============================================================
+
+  Future<Map<String, dynamic>> getCurrentMonthlyReview() async {
+    return _getJson(
+      '/monthly-review/current',
+      authenticated: true,
+    );
+  }
+
+  Future<Map<String, dynamic>> saveMonthlyReviewSnapshot() async {
+    final response = await _httpClient.post(
+      Uri.parse(
+        '$baseUrl/monthly-review/snapshot',
+      ),
+      headers: authenticatedHeaders,
+    );
+
+    return _handleJsonResponse(
+      response,
+    );
+  }
+
+  Future<Map<String, dynamic>> getMonthlyReviewHistory() async {
+    return _getJson(
+      '/monthly-review/history',
+      authenticated: true,
+    );
+  }
+
+  Future<Map<String, dynamic>> getMonthlyReviewComparison() async {
+    return _getJson(
+      '/monthly-review/comparison',
+      authenticated: true,
+    );
+  }
+
+  // ============================================================
   // Authentication
   // ============================================================
 

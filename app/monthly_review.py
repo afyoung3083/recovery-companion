@@ -454,9 +454,7 @@ def compare_latest_monthly_reviews(
         if difference > 0:
             change = f"+{difference}"
         else:
-            change = str(
-                difference
-            )
+            change = str(difference)
 
         lines.append(
             f"  {labels[field]}: "
