@@ -17,7 +17,12 @@ class DailyCheckInScreen extends StatefulWidget {
 class _DailyCheckInScreenState extends State<DailyCheckInScreen> {
   bool _loading = true;
   bool _saving = false;
+  bool _analyzing = false;
+
   String? _error;
+  String? _aiError;
+  String? _aiReflection;
+  int? _aiCheckinCount;
 
   bool _prayerMeditation = false;
   bool _recoveryContact = false;
@@ -116,6 +121,96 @@ class _DailyCheckInScreenState extends State<DailyCheckInScreen> {
     setState(() {
       _saving = false;
     });
+  }
+
+  Future<void> _analyzeRecentCheckins() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text(
+            'Analyze recent check-ins?',
+          ),
+          content: const Text(
+            'Recovery Companion will create a summary of your most '
+            'recent saved check-ins, up to seven, and send only that '
+            'summary to the AI for an optional recovery reflection. '
+            'The reflection is not saved automatically.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(dialogContext).pop(false);
+              },
+              child: const Text(
+                'Cancel',
+              ),
+            ),
+            FilledButton(
+              onPressed: () {
+                Navigator.of(dialogContext).pop(true);
+              },
+              child: const Text(
+                'Analyze Check-Ins',
+              ),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirmed != true || !mounted) {
+      return;
+    }
+
+    setState(() {
+      _analyzing = true;
+      _aiError = null;
+      _aiReflection = null;
+      _aiCheckinCount = null;
+    });
+
+    try {
+      final result =
+          await widget.apiClient.analyzeRecentCheckins();
+
+      if (!mounted) {
+        return;
+      }
+
+      final reflection = (
+        result['reflection'] ??
+        ''
+      ).toString().trim();
+
+      final checkinCount = result['checkin_count'];
+
+      setState(() {
+        _aiCheckinCount = checkinCount is int
+            ? checkinCount
+            : null;
+
+        _aiReflection = reflection.isEmpty
+            ? 'No AI reflection was returned.'
+            : reflection;
+      });
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _aiError =
+            'Unable to generate recent check-in reflection. '
+            'Please try again.';
+      });
+    } finally {
+      if (mounted) {
+        setState(() {
+          _analyzing = false;
+        });
+      }
+    }
   }
 
   @override
@@ -270,6 +365,106 @@ class _DailyCheckInScreenState extends State<DailyCheckInScreen> {
             'Reload Today',
           ),
         ),
+
+        const SizedBox(height: 28),
+        const Divider(),
+        const SizedBox(height: 20),
+
+        Text(
+          'Recent Check-In AI Reflection',
+          style: Theme.of(context)
+              .textTheme
+              .titleLarge,
+        ),
+
+        const SizedBox(height: 8),
+
+        const Text(
+          'AI reflection is optional. Only a summary of your most '
+          'recent saved check-ins, up to seven, is sent to the AI, '
+          'and only when you request it.',
+        ),
+
+        const SizedBox(height: 16),
+
+        OutlinedButton.icon(
+          key: const ValueKey(
+            'daily-checkin-ai',
+          ),
+          onPressed: _analyzing
+              ? null
+              : _analyzeRecentCheckins,
+          icon: _analyzing
+              ? const SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                  ),
+                )
+              : const Icon(
+                  Icons.auto_awesome_outlined,
+                ),
+          label: Text(
+            _analyzing
+                ? 'Generating Reflection...'
+                : 'Reflect on Recent Check-Ins',
+          ),
+        ),
+
+        if (_aiError != null) ...[
+          const SizedBox(height: 16),
+          Text(
+            _aiError!,
+            key: const ValueKey(
+              'daily-checkin-ai-error',
+            ),
+            style: TextStyle(
+              color: Theme.of(context)
+                  .colorScheme
+                  .error,
+            ),
+          ),
+        ],
+
+        if (_aiReflection != null) ...[
+          const SizedBox(height: 16),
+
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment:
+                    CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'AI Reflection',
+                    style: Theme.of(context)
+                        .textTheme
+                        .titleMedium,
+                  ),
+
+                  if (_aiCheckinCount != null) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      'Based on $_aiCheckinCount recent '
+                      'check-in${_aiCheckinCount == 1 ? '' : 's'}.',
+                    ),
+                  ],
+
+                  const SizedBox(height: 12),
+
+                  SelectableText(
+                    _aiReflection!,
+                    key: const ValueKey(
+                      'daily-checkin-ai-reflection',
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
       ],
     );
   }

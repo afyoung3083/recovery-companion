@@ -5,7 +5,10 @@ from pydantic import BaseModel
 
 from app.auth import require_api_token
 from app.daily_checkin import (
+    format_checkin_history,
+    format_checkin_trends,
     get_checkin_for_date,
+    get_recent_checkins,
     save_daily_checkin,
 )
 from app.goals import (
@@ -52,6 +55,7 @@ from app.monthly_review import (
     save_monthly_review_snapshot,
 )
 from app.recovery_engine import (
+    analyze_checkin_trends,
     analyze_journal_entry,
     analyze_monthly_review,
     analyze_weekly_review,
@@ -502,6 +506,64 @@ def update_today_checkin(
 
     return {
         "checkin": checkin,
+    }
+
+
+@app.post(
+    "/daily-checkin/ai-reflection",
+    dependencies=[
+        Depends(require_api_token)
+    ],
+)
+def daily_checkin_ai_reflection() -> dict[str, object]:
+    """
+    Analyze the seven most recent saved Daily Recovery Check-Ins.
+
+    The deterministic history and trend summary is constructed
+    locally. Only that summary is sent to the AI, and the
+    reflection is not persisted automatically.
+    """
+
+    checkins = get_recent_checkins(
+        limit=7
+    )
+
+    if not checkins:
+        raise HTTPException(
+            status_code=404,
+            detail=(
+                "No recent check-ins available to analyze."
+            ),
+        )
+
+    history_text = format_checkin_history(
+        checkins
+    )
+
+    trends_text = format_checkin_trends(
+        checkins
+    )
+
+    checkin_text = (
+        f"{history_text}\n\n"
+        f"{trends_text}"
+    )
+
+    try:
+        reflection = analyze_checkin_trends(
+            checkin_text
+        )
+    except Exception as error:
+        raise HTTPException(
+            status_code=502,
+            detail=(
+                "Unable to generate check-in reflection."
+            ),
+        ) from error
+
+    return {
+        "checkin_count": len(checkins),
+        "reflection": reflection,
     }
 
 
