@@ -277,6 +277,21 @@ class ApiClient {
     );
   }
 
+  Future<Map<String, dynamic>> analyzeJournalEntry(
+    int entryId,
+  ) async {
+    final response = await _httpClient.post(
+      Uri.parse(
+        '$baseUrl/journal/$entryId/ai-reflection',
+      ),
+      headers: authenticatedHeaders,
+    );
+
+    return _handleJsonResponse(
+      response,
+    );
+  }
+
   // ============================================================
   // Step Work
   // ============================================================
