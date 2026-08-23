@@ -18,21 +18,28 @@ void main() {
 }
 
 class RecoveryCompanionApp extends StatelessWidget {
-  const RecoveryCompanionApp({super.key});
+  const RecoveryCompanionApp({
+    super.key,
+  });
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Recovery Companion',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(useMaterial3: true, colorSchemeSeed: Colors.blue),
+      theme: ThemeData(
+        useMaterial3: true,
+        colorSchemeSeed: Colors.blue,
+      ),
       home: const HomeShell(),
     );
   }
 }
 
 class HomeShell extends StatefulWidget {
-  const HomeShell({super.key});
+  const HomeShell({
+    super.key,
+  });
 
   @override
   State<HomeShell> createState() => _HomeShellState();
@@ -44,11 +51,26 @@ class _HomeShellState extends State<HomeShell> {
   late final ApiClient _apiClient;
 
   static const List<_Destination> _destinations = [
-    _Destination(label: 'Dashboard', icon: Icons.dashboard_outlined),
-    _Destination(label: 'Insights', icon: Icons.insights_outlined),
-    _Destination(label: 'Goals', icon: Icons.flag_outlined),
-    _Destination(label: 'Routines', icon: Icons.repeat_outlined),
-    _Destination(label: 'More', icon: Icons.menu),
+    _Destination(
+      label: 'Dashboard',
+      icon: Icons.dashboard_outlined,
+    ),
+    _Destination(
+      label: 'Insights',
+      icon: Icons.insights_outlined,
+    ),
+    _Destination(
+      label: 'Goals',
+      icon: Icons.flag_outlined,
+    ),
+    _Destination(
+      label: 'Routines',
+      icon: Icons.repeat_outlined,
+    ),
+    _Destination(
+      label: 'More',
+      icon: Icons.menu,
+    ),
   ];
 
   @override
@@ -70,29 +92,45 @@ class _HomeShellState extends State<HomeShell> {
   Widget _buildSelectedScreen() {
     switch (_selectedIndex) {
       case 0:
-        return DashboardScreen(apiClient: _apiClient);
+        return DashboardScreen(
+          apiClient: _apiClient,
+        );
 
       case 1:
-        return InsightsScreen(apiClient: _apiClient);
+        return InsightsScreen(
+          apiClient: _apiClient,
+        );
 
       case 2:
-        return GoalsScreen(apiClient: _apiClient);
+        return GoalsScreen(
+          apiClient: _apiClient,
+        );
 
       case 3:
-        return RoutinesScreen(apiClient: _apiClient);
+        return RoutinesScreen(
+          apiClient: _apiClient,
+        );
 
       case 4:
-        return MoreScreen(apiClient: _apiClient);
+        return MoreScreen(
+          apiClient: _apiClient,
+        );
 
       default:
-        return DashboardScreen(apiClient: _apiClient);
+        return DashboardScreen(
+          apiClient: _apiClient,
+        );
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Recovery Companion')),
+      appBar: AppBar(
+        title: const Text(
+          'Recovery Companion',
+        ),
+      ),
       body: _buildSelectedScreen(),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _selectedIndex,
@@ -104,7 +142,9 @@ class _HomeShellState extends State<HomeShell> {
         destinations: _destinations
             .map(
               (destination) => NavigationDestination(
-                icon: Icon(destination.icon),
+                icon: Icon(
+                  destination.icon,
+                ),
                 label: destination.label,
               ),
             )
@@ -115,7 +155,10 @@ class _HomeShellState extends State<HomeShell> {
 }
 
 class DashboardScreen extends StatefulWidget {
-  const DashboardScreen({required this.apiClient, super.key});
+  const DashboardScreen({
+    required this.apiClient,
+    super.key,
+  });
 
   final ApiClient apiClient;
 
@@ -146,8 +189,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return FutureBuilder<Map<String, dynamic>>(
       future: _healthFuture,
       builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
+        if (snapshot.connectionState ==
+            ConnectionState.waiting) {
+          return const Center(
+            child: CircularProgressIndicator(),
+          );
         }
 
         if (snapshot.hasError) {
@@ -157,15 +203,31 @@ class _DashboardScreenState extends State<DashboardScreen> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(Icons.cloud_off_outlined, size: 48),
-                  const SizedBox(height: 16),
-                  const Text('Backend unavailable'),
-                  const SizedBox(height: 8),
-                  Text(snapshot.error.toString(), textAlign: TextAlign.center),
-                  const SizedBox(height: 16),
+                  const Icon(
+                    Icons.cloud_off_outlined,
+                    size: 48,
+                  ),
+                  const SizedBox(
+                    height: 16,
+                  ),
+                  const Text(
+                    'Backend unavailable',
+                  ),
+                  const SizedBox(
+                    height: 8,
+                  ),
+                  Text(
+                    snapshot.error.toString(),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(
+                    height: 16,
+                  ),
                   FilledButton(
                     onPressed: _refreshHealth,
-                    child: const Text('Retry'),
+                    child: const Text(
+                      'Retry',
+                    ),
                   ),
                 ],
               ),
@@ -173,7 +235,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
           );
         }
 
-        final health = (snapshot.data ?? const <String, dynamic>{});
+        final health = (
+          snapshot.data ??
+          const <String, dynamic>{}
+        );
 
         return Center(
           child: Padding(
@@ -181,26 +246,41 @@ class _DashboardScreenState extends State<DashboardScreen> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(Icons.favorite_outline, size: 56),
-                const SizedBox(height: 16),
+                const Icon(
+                  Icons.favorite_outline,
+                  size: 56,
+                ),
+                const SizedBox(
+                  height: 16,
+                ),
                 Text(
                   'Dashboard',
-                  style: Theme.of(context).textTheme.headlineMedium,
+                  style: Theme.of(context)
+                      .textTheme
+                      .headlineMedium,
                 ),
-                const SizedBox(height: 24),
+                const SizedBox(
+                  height: 24,
+                ),
                 Text(
                   'Backend status: '
                   '${health['status'] ?? 'unknown'}',
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(
+                  height: 8,
+                ),
                 Text(
                   'Backend version: '
                   '${health['version'] ?? 'unknown'}',
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(
+                  height: 20,
+                ),
                 OutlinedButton(
                   onPressed: _refreshHealth,
-                  child: const Text('Refresh'),
+                  child: const Text(
+                    'Refresh',
+                  ),
                 ),
               ],
             ),
@@ -212,7 +292,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
 }
 
 class MoreScreen extends StatelessWidget {
-  const MoreScreen({required this.apiClient, super.key});
+  const MoreScreen({
+    required this.apiClient,
+    super.key,
+  });
 
   final ApiClient apiClient;
 
@@ -221,9 +304,16 @@ class MoreScreen extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
-        Text('More', style: Theme.of(context).textTheme.headlineMedium),
+        Text(
+          'More',
+          style: Theme.of(context)
+              .textTheme
+              .headlineMedium,
+        ),
         const SizedBox(height: 8),
-        const Text('Additional recovery tools'),
+        const Text(
+          'Additional recovery tools',
+        ),
         const SizedBox(height: 20),
 
         _MoreMenuTile(
@@ -235,7 +325,9 @@ class MoreScreen extends StatelessWidget {
               MaterialPageRoute(
                 builder: (_) => _ToolScreen(
                   title: 'Chat',
-                  child: ChatScreen(apiClient: apiClient),
+                  child: ChatScreen(
+                    apiClient: apiClient,
+                  ),
                 ),
               ),
             );
@@ -251,7 +343,9 @@ class MoreScreen extends StatelessWidget {
               MaterialPageRoute(
                 builder: (_) => _ToolScreen(
                   title: 'Daily Recovery',
-                  child: DailyCheckInScreen(apiClient: apiClient),
+                  child: DailyCheckInScreen(
+                    apiClient: apiClient,
+                  ),
                 ),
               ),
             );
@@ -267,7 +361,9 @@ class MoreScreen extends StatelessWidget {
               MaterialPageRoute(
                 builder: (_) => _ToolScreen(
                   title: 'Journal',
-                  child: JournalScreen(apiClient: apiClient),
+                  child: JournalScreen(
+                    apiClient: apiClient,
+                  ),
                 ),
               ),
             );
@@ -283,7 +379,9 @@ class MoreScreen extends StatelessWidget {
               MaterialPageRoute(
                 builder: (_) => _ToolScreen(
                   title: 'Fellowship',
-                  child: FellowshipScreen(apiClient: apiClient),
+                  child: FellowshipScreen(
+                    apiClient: apiClient,
+                  ),
                 ),
               ),
             );
@@ -299,7 +397,9 @@ class MoreScreen extends StatelessWidget {
               MaterialPageRoute(
                 builder: (_) => _ToolScreen(
                   title: 'Step Work',
-                  child: StepWorkScreen(apiClient: apiClient),
+                  child: StepWorkScreen(
+                    apiClient: apiClient,
+                  ),
                 ),
               ),
             );
@@ -315,7 +415,9 @@ class MoreScreen extends StatelessWidget {
               MaterialPageRoute(
                 builder: (_) => _ToolScreen(
                   title: 'Weekly Review',
-                  child: WeeklyReviewScreen(apiClient: apiClient),
+                  child: WeeklyReviewScreen(
+                    apiClient: apiClient,
+                  ),
                 ),
               ),
             );
@@ -331,7 +433,9 @@ class MoreScreen extends StatelessWidget {
               MaterialPageRoute(
                 builder: (_) => _ToolScreen(
                   title: 'Monthly Review',
-                  child: MonthlyReviewScreen(apiClient: apiClient),
+                  child: MonthlyReviewScreen(
+                    apiClient: apiClient,
+                  ),
                 ),
               ),
             );
@@ -358,12 +462,23 @@ class _MoreMenuTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(
-      margin: const EdgeInsets.only(bottom: 12),
+      margin: const EdgeInsets.only(
+        bottom: 12,
+      ),
       child: ListTile(
-        leading: Icon(icon, size: 32),
-        title: Text(title),
-        subtitle: Text(subtitle),
-        trailing: const Icon(Icons.chevron_right),
+        leading: Icon(
+          icon,
+          size: 32,
+        ),
+        title: Text(
+          title,
+        ),
+        subtitle: Text(
+          subtitle,
+        ),
+        trailing: const Icon(
+          Icons.chevron_right,
+        ),
         onTap: onTap,
       ),
     );
@@ -371,7 +486,10 @@ class _MoreMenuTile extends StatelessWidget {
 }
 
 class _ToolScreen extends StatelessWidget {
-  const _ToolScreen({required this.title, required this.child});
+  const _ToolScreen({
+    required this.title,
+    required this.child,
+  });
 
   final String title;
   final Widget child;
@@ -379,14 +497,21 @@ class _ToolScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(title)),
+      appBar: AppBar(
+        title: Text(
+          title,
+        ),
+      ),
       body: child,
     );
   }
 }
 
 class _Destination {
-  const _Destination({required this.label, required this.icon});
+  const _Destination({
+    required this.label,
+    required this.icon,
+  });
 
   final String label;
   final IconData icon;
