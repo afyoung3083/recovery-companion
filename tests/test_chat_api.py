@@ -163,6 +163,32 @@ def test_chat_rejects_nonalternating_roles():
     assert response.status_code == 400
 
 
+def test_chat_requires_initial_user_message():
+    response = client.post(
+        "/chat",
+        headers=auth_headers(),
+        json={
+            "conversation": [
+                {
+                    "role": "assistant",
+                    "content": "How can I help?",
+                },
+                {
+                    "role": "user",
+                    "content": "I had a hard day.",
+                },
+            ],
+        },
+    )
+
+    assert response.status_code == 400
+    assert response.json() == {
+        "detail": (
+            "Conversation must begin with a user message."
+        ),
+    }
+
+
 def test_chat_requires_final_user_message():
     response = client.post(
         "/chat",
