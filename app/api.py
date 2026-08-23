@@ -51,6 +51,10 @@ from app.monthly_review import (
     load_monthly_review_history,
     save_monthly_review_snapshot,
 )
+from app.recovery_engine import (
+    analyze_monthly_review,
+    analyze_weekly_review,
+)
 
 # ============================================================
 # FastAPI application
@@ -773,4 +777,55 @@ def get_monthly_review_comparison() -> dict[str, str]:
         "comparison": compare_latest_monthly_reviews(
             history
         ),
+    }
+
+@app.post(
+    "/weekly-review/ai-reflection",
+    dependencies=[
+        Depends(require_api_token)
+    ],
+)
+def create_weekly_review_ai_reflection() -> dict[str, str]:
+    """
+    Generate an AI reflection for the current Weekly Recovery Review.
+
+    Calling this endpoint represents an explicit user request to share
+    the deterministic weekly summary with the AI analysis layer.
+    """
+
+    review = build_weekly_review()
+
+    reflection = analyze_weekly_review(
+        review
+    )
+
+    return {
+        "review": review,
+        "reflection": reflection,
+    }
+
+
+@app.post(
+    "/monthly-review/ai-reflection",
+    dependencies=[
+        Depends(require_api_token)
+    ],
+)
+def create_monthly_review_ai_reflection() -> dict[str, str]:
+    """
+    Generate an AI reflection for the current Monthly Recovery Review.
+
+    Calling this endpoint represents an explicit user request to share
+    the deterministic monthly summary with the AI analysis layer.
+    """
+
+    review = build_monthly_review()
+
+    reflection = analyze_monthly_review(
+        review
+    )
+
+    return {
+        "review": review,
+        "reflection": reflection,
     }

@@ -21,7 +21,9 @@ class _WeeklyReviewScreenState extends State<WeeklyReviewScreen> {
   late Future<Map<String, dynamic>> _comparisonFuture;
 
   bool _saving = false;
+  bool _reflecting = false;
   String? _error;
+  String? _reflection;
 
   @override
   void initState() {
@@ -32,10 +34,14 @@ class _WeeklyReviewScreenState extends State<WeeklyReviewScreen> {
   void _loadAll() {
     setState(() {
       _error = null;
+      _reflection = null;
+
       _currentFuture =
           widget.apiClient.getCurrentWeeklyReview();
+
       _historyFuture =
           widget.apiClient.getWeeklyReviewHistory();
+
       _comparisonFuture =
           widget.apiClient.getWeeklyReviewComparison();
     });
@@ -80,8 +86,52 @@ class _WeeklyReviewScreenState extends State<WeeklyReviewScreen> {
     }
   }
 
+  Future<void> _generateAiReflection() async {
+    setState(() {
+      _reflecting = true;
+      _error = null;
+      _reflection = null;
+    });
+
+    try {
+      final response =
+          await widget.apiClient.getWeeklyReviewAiReflection();
+
+      if (!mounted) {
+        return;
+      }
+
+      final reflection = (
+        response['reflection'] ??
+        ''
+      ).toString();
+
+      setState(() {
+        _reflection = reflection.isEmpty
+            ? 'No AI reflection was returned.'
+            : reflection;
+      });
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _error = error.toString();
+      });
+    } finally {
+      if (mounted) {
+        setState(() {
+          _reflecting = false;
+        });
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final busy = _saving || _reflecting;
+
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
@@ -98,7 +148,7 @@ class _WeeklyReviewScreenState extends State<WeeklyReviewScreen> {
         const SizedBox(height: 20),
 
         FilledButton.icon(
-          onPressed: _saving
+          onPressed: busy
               ? null
               : _saveSnapshot,
           icon: const Icon(
@@ -111,6 +161,29 @@ class _WeeklyReviewScreenState extends State<WeeklyReviewScreen> {
           ),
         ),
 
+        const SizedBox(height: 12),
+
+        OutlinedButton.icon(
+          onPressed: busy
+              ? null
+              : _generateAiReflection,
+          icon: const Icon(
+            Icons.auto_awesome_outlined,
+          ),
+          label: Text(
+            _reflecting
+                ? 'Generating Reflection...'
+                : 'Generate AI Reflection',
+          ),
+        ),
+
+        const SizedBox(height: 8),
+
+        const Text(
+          'AI Reflection is optional and only runs when you request it.',
+          textAlign: TextAlign.center,
+        ),
+
         if (_error != null) ...[
           const SizedBox(height: 12),
           Text(
@@ -119,6 +192,27 @@ class _WeeklyReviewScreenState extends State<WeeklyReviewScreen> {
               color: Theme.of(context)
                   .colorScheme
                   .error,
+            ),
+          ),
+        ],
+
+        if (_reflection != null) ...[
+          const SizedBox(height: 28),
+
+          Text(
+            'AI Reflection',
+            style: Theme.of(context)
+                .textTheme
+                .titleLarge,
+          ),
+          const SizedBox(height: 12),
+
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: SelectableText(
+                _reflection!,
+              ),
             ),
           ),
         ],
@@ -298,7 +392,7 @@ class _WeeklyReviewScreenState extends State<WeeklyReviewScreen> {
         const SizedBox(height: 20),
 
         OutlinedButton.icon(
-          onPressed: _saving
+          onPressed: busy
               ? null
               : _loadAll,
           icon: const Icon(

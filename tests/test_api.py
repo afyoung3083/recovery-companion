@@ -1143,3 +1143,88 @@ def test_monthly_review_snapshot_requires_token():
     )
 
     assert response.status_code == 401
+
+@patch("app.api.analyze_weekly_review")
+@patch("app.api.build_weekly_review")
+def test_weekly_review_ai_reflection_with_auth(
+    mock_build_weekly_review,
+    mock_analyze_weekly_review,
+):
+    mock_build_weekly_review.return_value = (
+        "Weekly Recovery Review"
+    )
+
+    mock_analyze_weekly_review.return_value = (
+        "Observed strengths\n"
+        "- Three check-in days were recorded.\n\n"
+        "Possible patterns to explore\n"
+        "- Connection may have been active this week.\n\n"
+        "Next-right actions\n"
+        "1. Call a trusted recovery person."
+    )
+
+    response = client.post(
+        "/weekly-review/ai-reflection",
+        headers=auth_headers(),
+    )
+
+    assert response.status_code == 200
+    assert (
+        response.json()["review"]
+        == "Weekly Recovery Review"
+    )
+    assert (
+        "Observed strengths"
+        in response.json()["reflection"]
+    )
+
+
+@patch("app.api.analyze_monthly_review")
+@patch("app.api.build_monthly_review")
+def test_monthly_review_ai_reflection_with_auth(
+    mock_build_monthly_review,
+    mock_analyze_monthly_review,
+):
+    mock_build_monthly_review.return_value = (
+        "Monthly Recovery Review"
+    )
+
+    mock_analyze_monthly_review.return_value = (
+        "Observed strengths\n"
+        "- Four weekly reviews were included.\n\n"
+        "Possible patterns to explore\n"
+        "- Recovery contact may have varied.\n\n"
+        "Next-right actions\n"
+        "1. Discuss the month with a trusted recovery person."
+    )
+
+    response = client.post(
+        "/monthly-review/ai-reflection",
+        headers=auth_headers(),
+    )
+
+    assert response.status_code == 200
+    assert (
+        response.json()["review"]
+        == "Monthly Recovery Review"
+    )
+    assert (
+        "Observed strengths"
+        in response.json()["reflection"]
+    )
+
+
+def test_weekly_review_ai_reflection_requires_token():
+    response = client.post(
+        "/weekly-review/ai-reflection"
+    )
+
+    assert response.status_code == 401
+
+
+def test_monthly_review_ai_reflection_requires_token():
+    response = client.post(
+        "/monthly-review/ai-reflection"
+    )
+
+    assert response.status_code == 401

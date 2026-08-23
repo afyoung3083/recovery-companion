@@ -428,6 +428,20 @@ class ApiClient {
     );
   }
 
+  Future<Map<String, dynamic>> getWeeklyReviewAiReflection() async {
+    final response = await _httpClient.post(
+      Uri.parse(
+        '$baseUrl/weekly-review/ai-reflection',
+      ),
+      headers: authenticatedHeaders,
+    );
+
+    return _handleJsonResponse(
+      response,
+    );
+  }  
+  
+
   // ============================================================
   // Monthly Review
   // ============================================================
@@ -465,6 +479,19 @@ class ApiClient {
       authenticated: true,
     );
   }
+
+  Future<Map<String, dynamic>> getMonthlyReviewAiReflection() async {
+    final response = await _httpClient.post(
+      Uri.parse(
+        '$baseUrl/monthly-review/ai-reflection',
+      ),
+      headers: authenticatedHeaders,
+    );
+
+    return _handleJsonResponse(
+      response,
+    );
+  }  
 
   // ============================================================
   // Authentication
