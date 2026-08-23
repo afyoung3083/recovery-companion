@@ -230,6 +230,19 @@ class ApiClient {
     );
   }
 
+  Future<Map<String, dynamic>> analyzeRecentCheckins() async {
+    final response = await _httpClient.post(
+      Uri.parse(
+        '$baseUrl/daily-checkin/ai-reflection',
+      ),
+      headers: authenticatedHeaders,
+    );
+
+    return _handleJsonResponse(
+      response,
+    );
+  }
+
   // ============================================================
   // Journal
   // ============================================================
