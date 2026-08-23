@@ -17,6 +17,10 @@ class InsightsScreen extends StatefulWidget {
 class _InsightsScreenState extends State<InsightsScreen> {
   late Future<Map<String, dynamic>> _insightsFuture;
 
+  bool _analyzing = false;
+  String? _aiError;
+  String? _aiReflection;
+
   @override
   void initState() {
     super.initState();
@@ -27,6 +31,91 @@ class _InsightsScreenState extends State<InsightsScreen> {
     setState(() {
       _insightsFuture = widget.apiClient.getRecoveryInsights();
     });
+  }
+
+  Future<void> _analyzeRecoveryInsights() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text(
+            'Analyze Recovery Insights?',
+          ),
+          content: const Text(
+            'Recovery Companion will build your current Recovery '
+            'Insights summary locally and send only that summary to '
+            'the AI for an optional reflection. The summary contains '
+            'dashboard counts and recovery status, not raw journal '
+            'entries or check-in notes. The AI reflection is not '
+            'saved automatically.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(dialogContext).pop(false);
+              },
+              child: const Text(
+                'Cancel',
+              ),
+            ),
+            FilledButton(
+              onPressed: () {
+                Navigator.of(dialogContext).pop(true);
+              },
+              child: const Text(
+                'Analyze Insights',
+              ),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirmed != true || !mounted) {
+      return;
+    }
+
+    setState(() {
+      _analyzing = true;
+      _aiError = null;
+      _aiReflection = null;
+    });
+
+    try {
+      final result =
+          await widget.apiClient.getRecoveryInsightsAiReflection();
+
+      if (!mounted) {
+        return;
+      }
+
+      final reflection = (
+        result['reflection'] ??
+        ''
+      ).toString().trim();
+
+      setState(() {
+        _aiReflection = reflection.isEmpty
+            ? 'No AI reflection was returned.'
+            : reflection;
+      });
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _aiError =
+            'Unable to generate Recovery Insights reflection. '
+            'Please try again.';
+      });
+    } finally {
+      if (mounted) {
+        setState(() {
+          _analyzing = false;
+        });
+      }
+    }
   }
 
   @override
@@ -99,10 +188,102 @@ class _InsightsScreenState extends State<InsightsScreen> {
               const SizedBox(height: 20),
               SelectableText(
                 insights,
+                key: const ValueKey(
+                  'recovery-insights-summary',
+                ),
                 style: Theme.of(context)
                     .textTheme
                     .bodyLarge,
               ),
+
+              const SizedBox(height: 28),
+              const Divider(),
+              const SizedBox(height: 20),
+
+              Text(
+                'AI Reflection',
+                style: Theme.of(context)
+                    .textTheme
+                    .titleLarge,
+              ),
+
+              const SizedBox(height: 8),
+
+              const Text(
+                'AI reflection is optional. Recovery Companion sends '
+                'only the locally built Recovery Insights summary '
+                'when you explicitly confirm.',
+              ),
+
+              const SizedBox(height: 16),
+
+              OutlinedButton.icon(
+                key: const ValueKey(
+                  'recovery-insights-ai',
+                ),
+                onPressed: _analyzing
+                    ? null
+                    : _analyzeRecoveryInsights,
+                icon: _analyzing
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                        ),
+                      )
+                    : const Icon(
+                        Icons.auto_awesome_outlined,
+                      ),
+                label: Text(
+                  _analyzing
+                      ? 'Generating Reflection...'
+                      : 'Reflect on Recovery Insights',
+                ),
+              ),
+
+              if (_aiError != null) ...[
+                const SizedBox(height: 16),
+                Text(
+                  _aiError!,
+                  key: const ValueKey(
+                    'recovery-insights-ai-error',
+                  ),
+                  style: TextStyle(
+                    color: Theme.of(context)
+                        .colorScheme
+                        .error,
+                  ),
+                ),
+              ],
+
+              if (_aiReflection != null) ...[
+                const SizedBox(height: 16),
+                Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment:
+                          CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Recovery Companion Reflection',
+                          style: Theme.of(context)
+                              .textTheme
+                              .titleMedium,
+                        ),
+                        const SizedBox(height: 12),
+                        SelectableText(
+                          _aiReflection!,
+                          key: const ValueKey(
+                            'recovery-insights-ai-reflection',
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
             ],
           ),
         );
