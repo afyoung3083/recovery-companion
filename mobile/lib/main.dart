@@ -10,6 +10,7 @@ import 'insights_screen.dart';
 import 'journal_screen.dart';
 import 'mobile_config.dart';
 import 'monthly_review_screen.dart';
+import 'profile_screen.dart';
 import 'routines_screen.dart';
 import 'step_work_screen.dart';
 import 'weekly_review_screen.dart';
@@ -179,6 +180,24 @@ class MoreScreen extends StatelessWidget {
           'Additional recovery tools',
         ),
         const SizedBox(height: 20),
+
+        _MoreMenuTile(
+          icon: Icons.person_outline,
+          title: 'Profile',
+          subtitle: 'View and update your sobriety date.',
+          onTap: () {
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) => _ToolScreen(
+                  title: 'Profile',
+                  child: ProfileScreen(
+                    apiClient: apiClient,
+                  ),
+                ),
+              ),
+            );
+          },
+        ),
 
         _MoreMenuTile(
           icon: Icons.chat_bubble_outline,
