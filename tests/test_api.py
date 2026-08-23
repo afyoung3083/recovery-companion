@@ -1006,3 +1006,140 @@ def test_weekly_review_snapshot_requires_token():
     )
 
     assert response.status_code == 401
+
+@patch("app.api.build_monthly_review")
+def test_current_monthly_review_with_auth(
+    mock_build_monthly_review,
+):
+    mock_build_monthly_review.return_value = (
+        "Monthly Recovery Review\n"
+        "Weekly Reviews Included: 4/4"
+    )
+
+    response = client.get(
+        "/monthly-review/current",
+        headers=auth_headers(),
+    )
+
+    assert response.status_code == 200
+    assert (
+        "Monthly Recovery Review"
+        in response.json()["review"]
+    )
+
+
+@patch("app.api.save_monthly_review_snapshot")
+def test_create_monthly_review_snapshot_with_auth(
+    mock_save_monthly_review_snapshot,
+):
+    mock_save_monthly_review_snapshot.return_value = {
+        "snapshot_date": "2026-08-23",
+        "period_start": "2026-07-27",
+        "period_end": "2026-08-23",
+        "weekly_reviews_included": 4,
+        "checkin_days": 20,
+        "journal_entries": 8,
+        "action_totals": {},
+        "review": "Monthly Recovery Review",
+    }
+
+    response = client.post(
+        "/monthly-review/snapshot",
+        headers=auth_headers(),
+    )
+
+    assert response.status_code == 200
+    assert (
+        response.json()["snapshot"]["snapshot_date"]
+        == "2026-08-23"
+    )
+
+
+@patch("app.api.save_monthly_review_snapshot")
+def test_create_monthly_review_snapshot_returns_400_without_weekly_history(
+    mock_save_monthly_review_snapshot,
+):
+    mock_save_monthly_review_snapshot.side_effect = ValueError(
+        "No saved weekly reviews are available for a monthly snapshot."
+    )
+
+    response = client.post(
+        "/monthly-review/snapshot",
+        headers=auth_headers(),
+    )
+
+    assert response.status_code == 400
+
+
+@patch("app.api.load_monthly_review_history")
+def test_monthly_review_history_with_auth(
+    mock_load_monthly_review_history,
+):
+    mock_load_monthly_review_history.return_value = [
+        {
+            "snapshot_date": "2026-07-23",
+            "period_start": "2026-06-26",
+            "period_end": "2026-07-23",
+        },
+        {
+            "snapshot_date": "2026-08-23",
+            "period_start": "2026-07-27",
+            "period_end": "2026-08-23",
+        },
+    ]
+
+    response = client.get(
+        "/monthly-review/history",
+        headers=auth_headers(),
+    )
+
+    assert response.status_code == 200
+    assert response.json()["count"] == 2
+
+
+@patch("app.api.compare_latest_monthly_reviews")
+@patch("app.api.load_monthly_review_history")
+def test_monthly_review_comparison_with_auth(
+    mock_load_monthly_review_history,
+    mock_compare_latest_monthly_reviews,
+):
+    history = [
+        {
+            "snapshot_date": "2026-07-23",
+        },
+        {
+            "snapshot_date": "2026-08-23",
+        },
+    ]
+
+    mock_load_monthly_review_history.return_value = history
+    mock_compare_latest_monthly_reviews.return_value = (
+        "Monthly Review Comparison"
+    )
+
+    response = client.get(
+        "/monthly-review/comparison",
+        headers=auth_headers(),
+    )
+
+    assert response.status_code == 200
+    assert (
+        response.json()["comparison"]
+        == "Monthly Review Comparison"
+    )
+
+
+def test_monthly_review_current_requires_token():
+    response = client.get(
+        "/monthly-review/current"
+    )
+
+    assert response.status_code == 401
+
+
+def test_monthly_review_snapshot_requires_token():
+    response = client.post(
+        "/monthly-review/snapshot"
+    )
+
+    assert response.status_code == 401

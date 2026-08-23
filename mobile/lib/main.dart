@@ -7,6 +7,7 @@ import 'goals_screen.dart';
 import 'insights_screen.dart';
 import 'journal_screen.dart';
 import 'mobile_config.dart';
+import 'monthly_review_screen.dart';
 import 'routines_screen.dart';
 import 'step_work_screen.dart';
 import 'weekly_review_screen.dart';
@@ -396,6 +397,24 @@ class MoreScreen extends StatelessWidget {
                 builder: (_) => _ToolScreen(
                   title: 'Weekly Review',
                   child: WeeklyReviewScreen(
+                    apiClient: apiClient,
+                  ),
+                ),
+              ),
+            );
+          },
+        ),
+
+        _MoreMenuTile(
+          icon: Icons.calendar_month_outlined,
+          title: 'Monthly Review',
+          subtitle: 'Review and save your rolling four-week recovery summary.',
+          onTap: () {
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) => _ToolScreen(
+                  title: 'Monthly Review',
+                  child: MonthlyReviewScreen(
                     apiClient: apiClient,
                   ),
                 ),
