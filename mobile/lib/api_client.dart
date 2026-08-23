@@ -391,6 +391,44 @@ class ApiClient {
   }
 
   // ============================================================
+  // Weekly Review
+  // ============================================================
+
+  Future<Map<String, dynamic>> getCurrentWeeklyReview() async {
+    return _getJson(
+      '/weekly-review/current',
+      authenticated: true,
+    );
+  }
+
+  Future<Map<String, dynamic>> saveWeeklyReviewSnapshot() async {
+    final response = await _httpClient.post(
+      Uri.parse(
+        '$baseUrl/weekly-review/snapshot',
+      ),
+      headers: authenticatedHeaders,
+    );
+
+    return _handleJsonResponse(
+      response,
+    );
+  }
+
+  Future<Map<String, dynamic>> getWeeklyReviewHistory() async {
+    return _getJson(
+      '/weekly-review/history',
+      authenticated: true,
+    );
+  }
+
+  Future<Map<String, dynamic>> getWeeklyReviewComparison() async {
+    return _getJson(
+      '/weekly-review/comparison',
+      authenticated: true,
+    );
+  }
+
+  // ============================================================
   // Authentication
   // ============================================================
 

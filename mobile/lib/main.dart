@@ -2,13 +2,14 @@ import 'package:flutter/material.dart';
 
 import 'api_client.dart';
 import 'daily_checkin_screen.dart';
+import 'fellowship_screen.dart';
 import 'goals_screen.dart';
 import 'insights_screen.dart';
 import 'journal_screen.dart';
 import 'mobile_config.dart';
 import 'routines_screen.dart';
 import 'step_work_screen.dart';
-import 'fellowship_screen.dart';
+import 'weekly_review_screen.dart';
 
 void main() {
   runApp(const RecoveryCompanionApp());
@@ -151,7 +152,6 @@ class _HomeShellState extends State<HomeShell> {
   }
 }
 
-
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({
     required this.apiClient,
@@ -187,10 +187,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return FutureBuilder<Map<String, dynamic>>(
       future: _healthFuture,
       builder: (context, snapshot) {
-        if (
-            snapshot.connectionState ==
-            ConnectionState.waiting
-        ) {
+        if (snapshot.connectionState ==
+            ConnectionState.waiting) {
           return const Center(
             child: CircularProgressIndicator(),
           );
@@ -291,7 +289,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 }
 
-
 class MoreScreen extends StatelessWidget {
   const MoreScreen({
     required this.apiClient,
@@ -388,11 +385,28 @@ class MoreScreen extends StatelessWidget {
             );
           },
         ),
+
+        _MoreMenuTile(
+          icon: Icons.calendar_view_week_outlined,
+          title: 'Weekly Review',
+          subtitle: 'Review and save your weekly recovery activity.',
+          onTap: () {
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) => _ToolScreen(
+                  title: 'Weekly Review',
+                  child: WeeklyReviewScreen(
+                    apiClient: apiClient,
+                  ),
+                ),
+              ),
+            );
+          },
+        ),
       ],
     );
   }
 }
-
 
 class _MoreMenuTile extends StatelessWidget {
   const _MoreMenuTile({
@@ -433,7 +447,6 @@ class _MoreMenuTile extends StatelessWidget {
   }
 }
 
-
 class _ToolScreen extends StatelessWidget {
   const _ToolScreen({
     required this.title,
@@ -455,7 +468,6 @@ class _ToolScreen extends StatelessWidget {
     );
   }
 }
-
 
 class _Destination {
   const _Destination({
