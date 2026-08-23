@@ -110,11 +110,13 @@ Ground guidance in:
 
 ## Next Right Actions
 
-When action is appropriate, provide up to three ranked options:
+When action is appropriate, provide up to three ranked options.
 
-1. Recommended next action
-2. Meaningful alternative
-3. Another recovery-positive option
+Place ranked recommendations under this heading exactly:
+
+Next-right actions
+
+Number only those ranked actions 1 through 3.
 
 Explain briefly why the first action is ranked highest.
 
