@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'api_client.dart';
+import 'chat_screen.dart';
 import 'daily_checkin_screen.dart';
 import 'fellowship_screen.dart';
 import 'goals_screen.dart';
@@ -314,6 +315,24 @@ class MoreScreen extends StatelessWidget {
           'Additional recovery tools',
         ),
         const SizedBox(height: 20),
+
+        _MoreMenuTile(
+          icon: Icons.chat_bubble_outline,
+          title: 'Chat',
+          subtitle: 'Talk with your Recovery Companion.',
+          onTap: () {
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) => _ToolScreen(
+                  title: 'Chat',
+                  child: ChatScreen(
+                    apiClient: apiClient,
+                  ),
+                ),
+              ),
+            );
+          },
+        ),
 
         _MoreMenuTile(
           icon: Icons.check_circle_outline,

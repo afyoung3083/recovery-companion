@@ -36,6 +36,31 @@ class ApiClient {
   }
 
   // ============================================================
+  // Chat
+  // ============================================================
+
+  Future<Map<String, dynamic>> sendChat({
+    required List<Map<String, String>> conversation,
+  }) async {
+    final response = await _httpClient.post(
+      Uri.parse(
+        '$baseUrl/chat',
+      ),
+      headers: {
+        ...authenticatedHeaders,
+        'Content-Type': 'application/json',
+      },
+      body: jsonEncode({
+        'conversation': conversation,
+      }),
+    );
+
+    return _handleJsonResponse(
+      response,
+    );
+  }
+
+  // ============================================================
   // Goals
   // ============================================================
 

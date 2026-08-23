@@ -54,6 +54,7 @@ from app.monthly_review import (
 from app.recovery_engine import (
     analyze_monthly_review,
     analyze_weekly_review,
+    respond_to_user,
 )
 
 # ============================================================
@@ -118,6 +119,16 @@ class RoutineRequest(BaseModel):
 class ActiveStateRequest(BaseModel):
     active: bool
 
+
+class ChatMessageRequest(BaseModel):
+    role: str
+    content: str
+
+
+class ChatRequest(BaseModel):
+    conversation: list[ChatMessageRequest]
+
+
 # ============================================================
 # Health and metadata
 # ============================================================
@@ -152,6 +163,94 @@ def recovery_insights() -> dict[str, str]:
 
     return {
         "recovery_insights": build_recovery_insights(),
+    }
+
+
+# ============================================================
+# Chat
+# ============================================================
+
+@app.post(
+    "/chat",
+    dependencies=[
+        Depends(require_api_token)
+    ],
+)
+def chat(
+    request: ChatRequest,
+) -> dict[str, str]:
+    """
+    Generate a Recovery Companion response for an ordered conversation.
+
+    Chat history is supplied explicitly by the client for each request.
+    The API does not persist conversation history.
+    """
+
+    if not request.conversation:
+        raise HTTPException(
+            status_code=400,
+            detail="Conversation must contain at least one message.",
+        )
+
+    conversation: list[dict[str, str]] = []
+    previous_role: str | None = None
+
+    for message in request.conversation:
+        role = message.role.strip().lower()
+
+        if role not in {"user", "assistant"}:
+            raise HTTPException(
+                status_code=400,
+                detail="Chat message role must be user or assistant.",
+            )
+
+        if not message.content.strip():
+            raise HTTPException(
+                status_code=400,
+                detail="Chat message content cannot be empty.",
+            )
+
+        if previous_role == role:
+            raise HTTPException(
+                status_code=400,
+                detail="Chat message roles must alternate.",
+            )
+
+        conversation.append(
+            {
+                "role": role,
+                "content": message.content,
+            }
+        )
+
+        previous_role = role
+
+    if conversation[0]["role"] != "user":
+        raise HTTPException(
+            status_code=400,
+            detail="Conversation must begin with a user message.",
+        )
+
+    if conversation[-1]["role"] != "user":
+        raise HTTPException(
+            status_code=400,
+            detail="Conversation must end with a user message.",
+        )
+
+    try:
+        response = respond_to_user(
+            conversation
+        )
+    except Exception as error:
+        raise HTTPException(
+            status_code=502,
+            detail=(
+                "Unable to generate a Recovery Companion response."
+            ),
+        ) from error
+
+    return {
+        "response": response,
     }
 
 
