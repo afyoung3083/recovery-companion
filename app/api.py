@@ -58,6 +58,7 @@ from app.recovery_engine import (
     analyze_checkin_trends,
     analyze_journal_entry,
     analyze_monthly_review,
+    analyze_recovery_insights,
     analyze_weekly_review,
     respond_to_user,
 )
@@ -168,6 +169,40 @@ def recovery_insights() -> dict[str, str]:
 
     return {
         "recovery_insights": build_recovery_insights(),
+    }
+
+
+@app.post(
+    "/recovery-insights/ai-reflection",
+    dependencies=[
+        Depends(require_api_token)
+    ],
+)
+def recovery_insights_ai_reflection() -> dict[str, str]:
+    """
+    Generate an optional AI reflection on Recovery Insights.
+
+    The deterministic Recovery Insights summary is built locally.
+    Only that summary is sent to the AI, and the reflection is not
+    persisted automatically.
+    """
+
+    insights_text = build_recovery_insights()
+
+    try:
+        reflection = analyze_recovery_insights(
+            insights_text
+        )
+    except Exception as error:
+        raise HTTPException(
+            status_code=502,
+            detail=(
+                "Unable to generate Recovery Insights reflection."
+            ),
+        ) from error
+
+    return {
+        "reflection": reflection,
     }
 
 
