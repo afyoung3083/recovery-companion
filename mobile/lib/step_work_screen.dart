@@ -280,7 +280,9 @@ class _StepWorkScreenState extends State<StepWorkScreen> {
                                 ?.copyWith(fontWeight: FontWeight.w700),
                           ),
                           const SizedBox(height: 4),
-                          Text('$openCount open ? $completedCount completed'),
+                          Text(
+                            '$openCount open \u2022 $completedCount completed',
+                          ),
                         ],
                       ),
                     ),
