@@ -69,16 +69,25 @@ def test_health_endpoint():
 # ============================================================
 
 @patch(
+    "app.api.get_recovery_insights_data"
+)
+@patch(
     "app.api.build_recovery_insights"
 )
 def test_recovery_insights_endpoint(
     mock_build_recovery_insights,
+    mock_get_recovery_insights_data,
 ):
     """Authenticated requests should receive Recovery Insights."""
 
     mock_build_recovery_insights.return_value = (
         "Recovery Insights Test"
     )
+
+    mock_get_recovery_insights_data.return_value = {
+        "current_step": 4,
+        "active_recovery_goals": 2,
+    }
 
     response = client.get(
         "/recovery-insights",
@@ -91,6 +100,10 @@ def test_recovery_insights_endpoint(
         "recovery_insights": (
             "Recovery Insights Test"
         ),
+        "recovery_insights_data": {
+            "current_step": 4,
+            "active_recovery_goals": 2,
+        },
     }
 
 

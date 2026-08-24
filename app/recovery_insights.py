@@ -40,6 +40,86 @@ def _latest_snapshot(
 # Recovery Insights dashboard
 # ============================================================
 
+
+def get_recovery_insights_data() -> dict[str, Any]:
+    """Return structured deterministic Recovery Insights data."""
+
+    profile = load_profile()
+    step_work = load_step_work()
+    active_goals = get_active_goals()
+
+    checkins = get_recent_checkins(
+        limit=7
+    )
+
+    weekly_history = (
+        load_weekly_review_history()
+    )
+
+    monthly_history = (
+        load_monthly_review_history()
+    )
+
+    latest_weekly = _latest_snapshot(
+        weekly_history,
+        "week_end",
+    )
+
+    latest_monthly = _latest_snapshot(
+        monthly_history,
+        "snapshot_date",
+    )
+
+    sobriety_date = profile.get(
+        "sobriety_date"
+    )
+
+    current_step = step_work.get(
+        "current_step",
+        1,
+    )
+
+    open_assignments = [
+        assignment
+        for assignment in step_work.get(
+            "assignments",
+            [],
+        )
+        if (
+            assignment.get("step")
+            == current_step
+            and not assignment.get(
+                "completed",
+                False,
+            )
+        )
+    ]
+
+    return {
+        "sobriety_date": sobriety_date,
+        "sobriety_days": calculate_sobriety_days(
+            sobriety_date
+        ),
+        "current_step": current_step,
+        "open_step_assignments": len(
+            open_assignments
+        ),
+        "active_recovery_goals": len(
+            active_goals
+        ),
+        "checkin_days_available": len(
+            checkins
+        ),
+        "checkin_window_days": 7,
+        "latest_weekly_snapshot": (
+            latest_weekly
+        ),
+        "latest_monthly_snapshot": (
+            latest_monthly
+        ),
+    }
+
+
 def build_recovery_insights() -> str:
     """
     Build a deterministic longitudinal Recovery Insights summary.

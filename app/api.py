@@ -27,7 +27,10 @@ from app.journal import (
     search_entries,
 )
 from app.profile import load_profile, set_sobriety_date
-from app.recovery_insights import build_recovery_insights
+from app.recovery_insights import (
+    build_recovery_insights,
+    get_recovery_insights_data,
+)
 from app.routines import (
     add_routine,
     get_active_routines,
@@ -239,9 +242,9 @@ def update_profile_sobriety_date(
         Depends(require_api_token)
     ],
 )
-def recovery_insights() -> dict[str, str]:
+def recovery_insights() -> dict[str, object]:
     """
-    Return the current deterministic Recovery Insights summary.
+    Return deterministic Recovery Insights text and structured data.
 
     Authentication is required because this endpoint exposes
     personal recovery data.
@@ -249,6 +252,7 @@ def recovery_insights() -> dict[str, str]:
 
     return {
         "recovery_insights": build_recovery_insights(),
+        "recovery_insights_data": get_recovery_insights_data(),
     }
 
 
