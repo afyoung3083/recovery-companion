@@ -7,6 +7,10 @@ import 'package:http/testing.dart';
 import 'package:mobile/api_client.dart';
 import 'package:mobile/app_theme.dart';
 import 'package:mobile/dashboard_screen.dart';
+import 'package:mobile/daily_checkin_screen.dart';
+import 'package:mobile/journal_screen.dart';
+import 'package:mobile/profile_screen.dart';
+import 'package:mobile/step_work_screen.dart';
 
 void main() {
   const baseUrl = 'http://example.test';
@@ -222,6 +226,65 @@ void main() {
     );
 
     expect(find.text('555-0100'), findsOneWidget);
+
+    apiClient.close();
+  });
+  testWidgets('Dashboard recovery cards open their destination screens', (
+    tester,
+  ) async {
+    final mockClient = MockClient((request) async {
+      if (request.url.path == '/dashboard') {
+        return http.Response(jsonEncode(dashboardResponse()), 200);
+      }
+
+      // Destination screens may load their own data.
+      // Empty authenticated responses are sufficient for
+      // this navigation-focused test.
+      return http.Response(jsonEncode({}), 200);
+    });
+
+    final apiClient = ApiClient(
+      baseUrl: baseUrl,
+      apiToken: token,
+      httpClient: mockClient,
+    );
+
+    await tester.pumpWidget(appFor(apiClient));
+
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('378 days'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(ProfileScreen), findsOneWidget);
+
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('4 of 6'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(DailyCheckInScreen), findsOneWidget);
+
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Step 8'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(StepWorkScreen), findsOneWidget);
+
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+
+    final journalCard = find.byKey(const ValueKey('dashboard-journal-card'));
+
+    await tester.scrollUntilVisible(journalCard, 250);
+
+    await tester.tap(journalCard);
+    await tester.pumpAndSettle();
+
+    expect(find.byType(JournalScreen), findsOneWidget);
 
     apiClient.close();
   });

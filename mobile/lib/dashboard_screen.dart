@@ -3,6 +3,10 @@ import 'package:flutter/material.dart';
 import 'api_client.dart';
 import 'app_components.dart';
 import 'contact_profile_screen.dart';
+import 'daily_checkin_screen.dart';
+import 'journal_screen.dart';
+import 'profile_screen.dart';
+import 'step_work_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({required this.apiClient, super.key});
@@ -77,6 +81,24 @@ class _DashboardScreenState extends State<DashboardScreen> {
       MaterialPageRoute(
         builder: (_) =>
             ContactProfileScreen(apiClient: widget.apiClient, contact: contact),
+      ),
+    );
+
+    if (mounted) {
+      _refresh();
+    }
+  }
+
+  Future<void> _openScreen({
+    required String title,
+    required Widget screen,
+  }) async {
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => Scaffold(
+          appBar: AppBar(title: Text(title)),
+          body: screen,
+        ),
       ),
     );
 
@@ -181,6 +203,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
               _SobrietyCard(
                 sobrietyDays: sobrietyDays,
                 sobrietyDate: sobrietyDate,
+                onTap: () {
+                  _openScreen(
+                    title: 'Profile',
+                    screen: ProfileScreen(apiClient: widget.apiClient),
+                  );
+                },
               ),
 
               const SizedBox(height: 16),
@@ -200,6 +228,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       detail: checkinSaved
                           ? 'recovery actions'
                           : 'Daily Recovery',
+                      onTap: () {
+                        _openScreen(
+                          title: 'Daily Recovery',
+                          screen: DailyCheckInScreen(
+                            apiClient: widget.apiClient,
+                          ),
+                        );
+                      },
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -213,6 +249,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           ? 'No open assignments'
                           : '${assignments.length} open '
                                 '${assignments.length == 1 ? 'assignment' : 'assignments'}',
+                      onTap: () {
+                        _openScreen(
+                          title: 'Step Work',
+                          screen: StepWorkScreen(apiClient: widget.apiClient),
+                        );
+                      },
                     ),
                   ),
                 ],
@@ -328,43 +370,53 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   icon: Icons.menu_book_outlined,
                 )
               else
-                AppSectionCard(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Icon(
-                            Icons.menu_book_outlined,
-                            color: Theme.of(context).colorScheme.primary,
-                          ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: Text(
-                              (latestJournal['created_at'] ?? '')
-                                  .toString()
-                                  .split('T')
-                                  .first,
-                              style: Theme.of(context).textTheme.labelLarge
-                                  ?.copyWith(
-                                    color: Theme.of(context)
-                                        .colorScheme
-                                        .onSurfaceVariant,
-                                  ),
+                InkWell(
+                  key: const ValueKey('dashboard-journal-card'),
+                  borderRadius: BorderRadius.circular(20),
+                  onTap: () {
+                    _openScreen(
+                      title: 'Journal',
+                      screen: JournalScreen(apiClient: widget.apiClient),
+                    );
+                  },
+                  child: AppSectionCard(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.menu_book_outlined,
+                              color: Theme.of(context).colorScheme.primary,
                             ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                      Text(
-                        (latestJournal['text'] ?? '').toString(),
-                        key: const ValueKey('dashboard-latest-journal'),
-                        maxLines: 5,
-                        overflow: TextOverflow.ellipsis,
-                        style: Theme.of(context).textTheme.bodyLarge
-                            ?.copyWith(height: 1.45),
-                      ),
-                    ],
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                (latestJournal['created_at'] ?? '')
+                                    .toString()
+                                    .split('T')
+                                    .first,
+                                style: Theme.of(context).textTheme.labelLarge
+                                    ?.copyWith(
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .onSurfaceVariant,
+                                    ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          (latestJournal['text'] ?? '').toString(),
+                          key: const ValueKey('dashboard-latest-journal'),
+                          maxLines: 5,
+                          overflow: TextOverflow.ellipsis,
+                          style: Theme.of(context).textTheme.bodyLarge
+                              ?.copyWith(height: 1.45),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
 
@@ -430,10 +482,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
 }
 
 class _SobrietyCard extends StatelessWidget {
-  const _SobrietyCard({required this.sobrietyDays, required this.sobrietyDate});
+  const _SobrietyCard({
+    required this.sobrietyDays,
+    required this.sobrietyDate,
+    required this.onTap,
+  });
 
   final dynamic sobrietyDays;
   final String sobrietyDate;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -441,60 +498,68 @@ class _SobrietyCard extends StatelessWidget {
 
     final hasDate = sobrietyDays != null;
 
-    return Container(
+    return InkWell(
       key: const ValueKey('dashboard-sobriety-card'),
-      padding: const EdgeInsets.all(22),
-      decoration: BoxDecoration(
-        color: scheme.primaryContainer,
-        borderRadius: BorderRadius.circular(24),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 58,
-            height: 58,
-            decoration: BoxDecoration(
-              color: scheme.surface.withValues(alpha: 0.72),
-              borderRadius: BorderRadius.circular(18),
+      borderRadius: BorderRadius.circular(24),
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(22),
+        decoration: BoxDecoration(
+          color: scheme.primaryContainer,
+          borderRadius: BorderRadius.circular(24),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 58,
+              height: 58,
+              decoration: BoxDecoration(
+                color: scheme.surface.withValues(alpha: 0.72),
+                borderRadius: BorderRadius.circular(18),
+              ),
+              child: Icon(
+                Icons.wb_sunny_outlined,
+                color: scheme.primary,
+                size: 30,
+              ),
             ),
-            child: Icon(
-              Icons.wb_sunny_outlined,
-              color: scheme.primary,
-              size: 30,
-            ),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Sobriety',
-                  style: Theme.of(context).textTheme.labelLarge
-                      ?.copyWith(color: scheme.onPrimaryContainer),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  hasDate ? '$sobrietyDays days' : 'Date not set',
-                  key: const ValueKey('dashboard-sobriety-days'),
-                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                    color: scheme.onPrimaryContainer,
-                    fontWeight: FontWeight.w700,
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Sobriety',
+                    style: Theme.of(context).textTheme.labelLarge
+                        ?.copyWith(color: scheme.onPrimaryContainer),
                   ),
-                ),
-                if (sobrietyDate.isNotEmpty) ...[
                   const SizedBox(height: 4),
                   Text(
-                    'Since $sobrietyDate',
-                    style: TextStyle(
-                      color: scheme.onPrimaryContainer.withValues(alpha: 0.78),
+                    hasDate ? '$sobrietyDays days' : 'Date not set',
+                    key: const ValueKey('dashboard-sobriety-days'),
+                    style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                      color: scheme.onPrimaryContainer,
+                      fontWeight: FontWeight.w700,
                     ),
                   ),
+                  if (sobrietyDate.isNotEmpty) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      'Since $sobrietyDate',
+                      style: TextStyle(
+                        color: scheme.onPrimaryContainer.withValues(
+                          alpha: 0.78,
+                        ),
+                      ),
+                    ),
+                  ],
                 ],
-              ],
+              ),
             ),
-          ),
-        ],
+            const SizedBox(width: 8),
+            Icon(Icons.chevron_right, color: scheme.onPrimaryContainer),
+          ],
+        ),
       ),
     );
   }
@@ -506,6 +571,7 @@ class _SummaryCard extends StatelessWidget {
     required this.label,
     required this.value,
     required this.detail,
+    required this.onTap,
     super.key,
   });
 
@@ -513,36 +579,47 @@ class _SummaryCard extends StatelessWidget {
   final String label;
   final String value;
   final String detail;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    return AppSectionCard(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(icon, color: Theme.of(context).colorScheme.primary),
-          const SizedBox(height: 14),
-          Text(
-            label,
-            style: Theme.of(context).textTheme.labelLarge?.copyWith(
-              color: Theme.of(context).colorScheme.onSurfaceVariant,
+    return InkWell(
+      borderRadius: BorderRadius.circular(20),
+      onTap: onTap,
+      child: AppSectionCard(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(icon, color: Theme.of(context).colorScheme.primary),
+                const Spacer(),
+                const Icon(Icons.chevron_right, size: 20),
+              ],
             ),
-          ),
-          const SizedBox(height: 3),
-          Text(
-            value,
-            style: Theme.of(context).textTheme.titleLarge
-                ?.copyWith(fontWeight: FontWeight.w700),
-          ),
-          const SizedBox(height: 3),
-          Text(
-            detail,
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            const SizedBox(height: 14),
+            Text(
+              label,
+              style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
             ),
-          ),
-        ],
+            const SizedBox(height: 3),
+            Text(
+              value,
+              style: Theme.of(context).textTheme.titleLarge
+                  ?.copyWith(fontWeight: FontWeight.w700),
+            ),
+            const SizedBox(height: 3),
+            Text(
+              detail,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
