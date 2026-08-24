@@ -28,6 +28,41 @@ class ApiClient {
   // Recovery data
   // ============================================================
 
+  Future<Map<String, dynamic>> getDashboard() async {
+    return _getJson(
+      '/dashboard',
+      authenticated: true,
+    );
+  }
+
+  Future<Map<String, dynamic>> getProfile() async {
+    return _getJson(
+      '/profile',
+      authenticated: true,
+    );
+  }
+
+  Future<Map<String, dynamic>> updateSobrietyDate(
+    String sobrietyDate,
+  ) async {
+    final response = await _httpClient.put(
+      Uri.parse(
+        '$baseUrl/profile/sobriety-date',
+      ),
+      headers: {
+        ...authenticatedHeaders,
+        'Content-Type': 'application/json',
+      },
+      body: jsonEncode({
+        'sobriety_date': sobrietyDate,
+      }),
+    );
+
+    return _handleJsonResponse(
+      response,
+    );
+  }
+
   Future<Map<String, dynamic>> getRecoveryInsights() async {
     return _getJson(
       '/recovery-insights',

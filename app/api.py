@@ -4,6 +4,7 @@ from fastapi import Depends, FastAPI, HTTPException
 from pydantic import BaseModel
 
 from app.auth import require_api_token
+from app.dashboard import build_dashboard
 from app.daily_checkin import (
     format_checkin_history,
     format_checkin_trends,
@@ -22,6 +23,7 @@ from app.journal import (
     load_entries,
     search_entries,
 )
+from app.profile import load_profile, set_sobriety_date
 from app.recovery_insights import build_recovery_insights
 from app.routines import (
     add_routine,
@@ -76,6 +78,10 @@ app = FastAPI(
 # ============================================================
 # Pydantic Request models
 # ============================================================
+
+class ProfileSobrietyDateRequest(BaseModel):
+    sobriety_date: str
+
 
 class DailyCheckInRequest(BaseModel):
     prayer_meditation: bool = False
@@ -146,6 +152,76 @@ def health() -> dict[str, str]:
     return {
         "status": "ok",
         "version": __version__,
+    }
+
+
+# ============================================================
+# Dashboard and Profile
+# ============================================================
+
+@app.get(
+    "/dashboard",
+    dependencies=[
+        Depends(require_api_token)
+    ],
+)
+def dashboard() -> dict[str, str]:
+    """Return the deterministic Daily Recovery Dashboard."""
+
+    return {
+        "dashboard": build_dashboard(),
+    }
+
+
+@app.get(
+    "/profile",
+    dependencies=[
+        Depends(require_api_token)
+    ],
+)
+def profile() -> dict[str, object]:
+    """Return the locally stored recovery profile."""
+
+    return {
+        "profile": load_profile(),
+    }
+
+
+@app.put(
+    "/profile/sobriety-date",
+    dependencies=[
+        Depends(require_api_token)
+    ],
+)
+def update_profile_sobriety_date(
+    request: ProfileSobrietyDateRequest,
+) -> dict[str, object]:
+    """Validate and update the profile sobriety date."""
+
+    sobriety_date = request.sobriety_date.strip()
+
+    try:
+        parsed_date = date.fromisoformat(
+            sobriety_date
+        )
+    except ValueError as error:
+        raise HTTPException(
+            status_code=400,
+            detail="Sobriety date must use YYYY-MM-DD format.",
+        ) from error
+
+    if parsed_date > date.today():
+        raise HTTPException(
+            status_code=400,
+            detail="Sobriety date cannot be in the future.",
+        )
+
+    updated_profile = set_sobriety_date(
+        sobriety_date
+    )
+
+    return {
+        "profile": updated_profile,
     }
 
 
