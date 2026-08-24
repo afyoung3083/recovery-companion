@@ -1,12 +1,10 @@
 import 'package:flutter/material.dart';
 
 import 'api_client.dart';
+import 'app_components.dart';
 
 class ProfileScreen extends StatefulWidget {
-  const ProfileScreen({
-    required this.apiClient,
-    super.key,
-  });
+  const ProfileScreen({required this.apiClient, super.key});
 
   final ApiClient apiClient;
 
@@ -35,15 +33,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
     });
   }
 
-  DateTime _initialDate(
-    String? sobrietyDate,
-  ) {
+  DateTime _initialDate(String? sobrietyDate) {
     final today = DateTime.now();
+
     final parsed = sobrietyDate == null
         ? null
-        : DateTime.tryParse(
-            sobrietyDate,
-          );
+        : DateTime.tryParse(sobrietyDate);
 
     if (parsed == null || parsed.isAfter(today)) {
       return today;
@@ -52,40 +47,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return parsed;
   }
 
-  String _formatDate(
-    DateTime date,
-  ) {
-    final year = date.year.toString().padLeft(
-      4,
-      '0',
-    );
-    final month = date.month.toString().padLeft(
-      2,
-      '0',
-    );
-    final day = date.day.toString().padLeft(
-      2,
-      '0',
-    );
+  String _formatDate(DateTime date) {
+    final year = date.year.toString().padLeft(4, '0');
+
+    final month = date.month.toString().padLeft(2, '0');
+
+    final day = date.day.toString().padLeft(2, '0');
 
     return '$year-$month-$day';
   }
 
-  Future<void> _chooseSobrietyDate(
-    String? currentDate,
-  ) async {
+  Future<void> _chooseSobrietyDate(String? currentDate) async {
     final today = DateTime.now();
 
     final selectedDate = await showDatePicker(
       context: context,
-      initialDate: _initialDate(
-        currentDate,
-      ),
-      firstDate: DateTime(
-        1900,
-        1,
-        1,
-      ),
+      initialDate: _initialDate(currentDate),
+      firstDate: DateTime(1900, 1, 1),
       lastDate: today,
     );
 
@@ -99,11 +77,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
     });
 
     try {
-      final result =
-          await widget.apiClient.updateSobrietyDate(
-        _formatDate(
-          selectedDate,
-        ),
+      final result = await widget.apiClient.updateSobrietyDate(
+        _formatDate(selectedDate),
       );
 
       if (!mounted) {
@@ -111,9 +86,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       }
 
       setState(() {
-        _profileFuture = Future.value(
-          result,
-        );
+        _profileFuture = Future.value(result);
       });
     } catch (_) {
       if (!mounted) {
@@ -121,8 +94,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       }
 
       setState(() {
-        _saveError =
-            'Unable to save sobriety date. Please try again.';
+        _saveError = 'Unable to save your sobriety date. Please try again.';
       });
     } finally {
       if (mounted) {
@@ -138,156 +110,183 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return FutureBuilder<Map<String, dynamic>>(
       future: _profileFuture,
       builder: (context, snapshot) {
-        if (snapshot.connectionState ==
-            ConnectionState.waiting) {
-          return const Center(
-            child: CircularProgressIndicator(),
-          );
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
         }
 
         if (snapshot.hasError) {
-          return Center(
-            child: Padding(
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(
-                    Icons.cloud_off_outlined,
-                    size: 48,
-                  ),
-                  const SizedBox(height: 16),
-                  const Text(
-                    'Unable to load Profile',
-                  ),
-                  const SizedBox(height: 16),
-                  FilledButton(
-                    key: const ValueKey(
-                      'profile-retry',
-                    ),
-                    onPressed: _refresh,
-                    child: const Text(
-                      'Retry',
-                    ),
-                  ),
-                ],
+          return ListView(
+            padding: const EdgeInsets.fromLTRB(20, 20, 20, 32),
+            children: [
+              const AppPageHeader(
+                title: 'Your Profile',
+                subtitle: 'Recovery information that helps personalize your experience.',
+                icon: Icons.person_outline,
               ),
-            ),
+              AppStatusMessage(
+                title: 'Unable to load profile',
+                message: 'Recovery Companion could not load your profile information.',
+                icon: Icons.cloud_off_outlined,
+                actionLabel: 'Retry',
+                onAction: _refresh,
+              ),
+            ],
           );
         }
 
         final data = snapshot.data ?? const {};
         final rawProfile = data['profile'];
 
-        final profile = rawProfile
-                is Map<String, dynamic>
+        final profile = rawProfile is Map<String, dynamic>
             ? rawProfile
             : const <String, dynamic>{};
 
-        final rawSobrietyDate =
-            profile['sobriety_date'];
+        final rawSobrietyDate = profile['sobriety_date'];
 
-        final sobrietyDate =
-            rawSobrietyDate?.toString();
+        final sobrietyDate = rawSobrietyDate?.toString();
 
-        final displayDate = (
-          sobrietyDate == null ||
-          sobrietyDate.isEmpty
-        )
-            ? 'Not set'
-            : sobrietyDate;
+        final hasSobrietyDate = sobrietyDate != null && sobrietyDate.isNotEmpty;
+
+        final displayDate = hasSobrietyDate ? sobrietyDate : 'Not set';
 
         return ListView(
-          padding: const EdgeInsets.all(20),
+          padding: const EdgeInsets.fromLTRB(20, 20, 20, 32),
           children: [
-            Text(
-              'Profile',
-              style: Theme.of(context)
-                  .textTheme
-                  .headlineMedium,
+            const AppPageHeader(
+              title: 'Your Profile',
+              subtitle: 'Recovery information that helps personalize your experience.',
+              icon: Icons.person_outline,
             ),
 
-            const SizedBox(height: 24),
+            const AppSectionTitle(
+              title: 'Recovery',
+              subtitle:
+                  'Your sobriety date is used throughout Recovery Companion.',
+            ),
 
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment:
-                      CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Sobriety Date',
-                      style: Theme.of(context)
-                          .textTheme
-                          .titleMedium,
-                    ),
-
-                    const SizedBox(height: 8),
-
-                    Text(
-                      displayDate,
-                      key: const ValueKey(
-                        'profile-sobriety-date',
+            Container(
+              key: const ValueKey('profile-sobriety-card'),
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.primaryContainer,
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        width: 46,
+                        height: 46,
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).colorScheme.surface,
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        child: Icon(
+                          Icons.wb_sunny_outlined,
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
                       ),
-                      style: Theme.of(context)
-                          .textTheme
-                          .bodyLarge,
-                    ),
-
-                    const SizedBox(height: 16),
-
-                    FilledButton.icon(
-                      key: const ValueKey(
-                        'profile-change-sobriety-date',
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Sobriety Date',
+                              style: Theme.of(context).textTheme.labelLarge
+                                  ?.copyWith(
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .onPrimaryContainer,
+                                  ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              displayDate,
+                              key: const ValueKey('profile-sobriety-date'),
+                              style: Theme.of(context).textTheme.headlineSmall
+                                  ?.copyWith(
+                                    fontWeight: FontWeight.w700,
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .onPrimaryContainer,
+                                  ),
+                            ),
+                          ],
+                        ),
                       ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 18),
+
+                  Text(
+                    hasSobrietyDate
+                        ? 'Recovery Companion uses this date to calculate sobriety time across your dashboard and recovery views.'
+                        : 'Set your sobriety date when you are ready. You can change it later.',
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: Theme.of(context).colorScheme.onPrimaryContainer,
+                    ),
+                  ),
+
+                  const SizedBox(height: 18),
+
+                  SizedBox(
+                    width: double.infinity,
+                    child: FilledButton.icon(
+                      key: const ValueKey('profile-change-sobriety-date'),
                       onPressed: _saving
                           ? null
                           : () {
-                              _chooseSobrietyDate(
-                                sobrietyDate,
-                              );
+                              _chooseSobrietyDate(sobrietyDate);
                             },
                       icon: _saving
                           ? const SizedBox(
                               width: 18,
                               height: 18,
-                              child:
-                                  CircularProgressIndicator(
-                                strokeWidth: 2,
-                              ),
+                              child: CircularProgressIndicator(strokeWidth: 2),
                             )
-                          : const Icon(
-                              Icons.calendar_today_outlined,
-                            ),
+                          : const Icon(Icons.calendar_today_outlined),
                       label: Text(
                         _saving
                             ? 'Saving...'
-                            : (
-                                sobrietyDate == null ||
-                                sobrietyDate.isEmpty
-                              )
-                                ? 'Set Sobriety Date'
-                                : 'Change Sobriety Date',
+                            : hasSobrietyDate
+                            ? 'Change Sobriety Date'
+                            : 'Set Sobriety Date',
                       ),
                     ),
+                  ),
+                ],
+              ),
+            ),
 
-                    if (_saveError != null) ...[
-                      const SizedBox(height: 16),
-                      Text(
-                        _saveError!,
-                        key: const ValueKey(
-                          'profile-save-error',
-                        ),
-                        style: TextStyle(
-                          color: Theme.of(context)
-                              .colorScheme
-                              .error,
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
+            if (_saveError != null) ...[
+              const SizedBox(height: 16),
+              AppStatusMessage(
+                title: 'Unable to save',
+                message: _saveError!,
+                icon: Icons.error_outline,
+              ),
+            ],
+
+            const SizedBox(height: 28),
+
+            const AppSectionTitle(title: 'About your profile'),
+
+            const AppSectionCard(
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(Icons.info_outline),
+                  SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      'Additional profile preferences will appear here as Recovery Companion adds personalization, privacy, appearance, and companion options.',
+                    ),
+                  ),
+                ],
               ),
             ),
           ],
