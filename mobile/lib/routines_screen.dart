@@ -1,12 +1,10 @@
 import 'package:flutter/material.dart';
 
 import 'api_client.dart';
+import 'app_components.dart';
 
 class RoutinesScreen extends StatefulWidget {
-  const RoutinesScreen({
-    required this.apiClient,
-    super.key,
-  });
+  const RoutinesScreen({required this.apiClient, super.key});
 
   final ApiClient apiClient;
 
@@ -38,8 +36,7 @@ class _RoutinesScreenState extends State<RoutinesScreen> {
 
   late Future<Map<String, dynamic>> _routinesFuture;
 
-  final TextEditingController _textController =
-      TextEditingController();
+  final TextEditingController _textController = TextEditingController();
 
   String _area = 'other';
   String _frequency = 'daily';
@@ -97,9 +94,7 @@ class _RoutinesScreenState extends State<RoutinesScreen> {
         text: text,
         area: _area,
         frequency: _frequency,
-        dayOfWeek: _frequency == 'weekly'
-            ? _dayOfWeek
-            : '',
+        dayOfWeek: _frequency == 'weekly' ? _dayOfWeek : '',
       );
 
       if (!mounted) {
@@ -120,18 +115,15 @@ class _RoutinesScreenState extends State<RoutinesScreen> {
         return;
       }
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Routine added.'),
-        ),
-      );
-    } catch (error) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('Routine added.')));
+    } catch (_) {
       if (!mounted) {
         return;
       }
 
       setState(() {
-        _actionError = error.toString();
+        _actionError = 'Unable to save this routine. Please try again.';
       });
     } finally {
       if (mounted) {
@@ -162,13 +154,13 @@ class _RoutinesScreenState extends State<RoutinesScreen> {
       }
 
       await _refreshAsync();
-    } catch (error) {
+    } catch (_) {
       if (!mounted) {
         return;
       }
 
       setState(() {
-        _actionError = error.toString();
+        _actionError = 'Unable to update this routine. Please try again.';
       });
     } finally {
       if (mounted) {
@@ -179,145 +171,117 @@ class _RoutinesScreenState extends State<RoutinesScreen> {
     }
   }
 
-  List<Map<String, dynamic>> _routinesFrom(
-    Map<String, dynamic>? data,
-  ) {
+  List<Map<String, dynamic>> _routinesFrom(Map<String, dynamic>? data) {
     final rawRoutines = data?['routines'];
 
     if (rawRoutines is! List) {
       return [];
     }
 
-    return rawRoutines
-        .whereType<Map<String, dynamic>>()
-        .toList();
+    return rawRoutines.whereType<Map<String, dynamic>>().toList();
   }
 
   @override
   Widget build(BuildContext context) {
     return ListView(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.fromLTRB(20, 20, 20, 32),
       children: [
-        Text(
-          'Routines',
-          style: Theme.of(context).textTheme.headlineMedium,
+        const AppPageHeader(
+          title: 'Routines',
+          subtitle: 'Build repeatable practices that support recovery one day at a time.',
+          icon: Icons.repeat_outlined,
         ),
-        const SizedBox(height: 8),
-        const Text(
-          'Build repeatable practices that support recovery.',
-        ),
-        const SizedBox(height: 24),
 
-        Text(
-          'Add Routine',
-          style: Theme.of(context).textTheme.titleLarge,
+        const AppSectionTitle(
+          title: 'Add a routine',
+          subtitle: 'Create a practice you want to return to consistently.',
         ),
-        const SizedBox(height: 12),
 
-        TextField(
-          controller: _textController,
-          decoration: const InputDecoration(
-            labelText: 'Routine',
-            hintText: 'What practice do you want to repeat?',
-            border: OutlineInputBorder(),
-          ),
-        ),
-        const SizedBox(height: 12),
-
-        DropdownButtonFormField<String>(
-          initialValue: _area,
-          decoration: const InputDecoration(
-            labelText: 'Recovery area',
-            border: OutlineInputBorder(),
-          ),
-          items: _areas
-              .map(
-                (area) => DropdownMenuItem(
-                  value: area,
-                  child: Text(
-                    _displayArea(area),
-                  ),
+        AppSectionCard(
+          key: const ValueKey('routines-add-card'),
+          child: Column(
+            children: [
+              TextField(
+                controller: _textController,
+                decoration: const InputDecoration(
+                  labelText: 'Routine',
+                  hintText: 'What practice do you want to repeat?',
                 ),
-              )
-              .toList(),
-          onChanged: _saving
-              ? null
-              : (value) {
-                  if (value != null) {
-                    setState(() {
-                      _area = value;
-                    });
-                  }
-                },
-        ),
-        const SizedBox(height: 12),
-
-        DropdownButtonFormField<String>(
-          initialValue: _frequency,
-          decoration: const InputDecoration(
-            labelText: 'Frequency',
-            border: OutlineInputBorder(),
-          ),
-          items: const [
-            DropdownMenuItem(
-              value: 'daily',
-              child: Text('Daily'),
-            ),
-            DropdownMenuItem(
-              value: 'weekly',
-              child: Text('Weekly'),
-            ),
-          ],
-          onChanged: _saving
-              ? null
-              : (value) {
-                  if (value != null) {
-                    setState(() {
-                      _frequency = value;
-                    });
-                  }
-                },
-        ),
-
-        if (_frequency == 'weekly') ...[
-          const SizedBox(height: 12),
-          DropdownButtonFormField<String>(
-            initialValue: _dayOfWeek,
-            decoration: const InputDecoration(
-              labelText: 'Day of week',
-              border: OutlineInputBorder(),
-            ),
-            items: _days
-                .map(
-                  (day) => DropdownMenuItem(
-                    value: day,
-                    child: Text(
-                      _capitalize(day),
-                    ),
-                  ),
-                )
-                .toList(),
-            onChanged: _saving
-                ? null
-                : (value) {
-                    if (value != null) {
-                      setState(() {
-                        _dayOfWeek = value;
-                      });
-                    }
-                  },
-          ),
-        ],
-
-        const SizedBox(height: 12),
-
-        FilledButton.icon(
-          onPressed: _saving ? null : _createRoutine,
-          icon: const Icon(
-            Icons.add,
-          ),
-          label: const Text(
-            'Add Routine',
+              ),
+              const SizedBox(height: 14),
+              DropdownButtonFormField<String>(
+                initialValue: _area,
+                decoration: const InputDecoration(labelText: 'Recovery area'),
+                items: _areas
+                    .map(
+                      (area) => DropdownMenuItem(
+                        value: area,
+                        child: Text(_displayArea(area)),
+                      ),
+                    )
+                    .toList(),
+                onChanged: _saving
+                    ? null
+                    : (value) {
+                        if (value != null) {
+                          setState(() {
+                            _area = value;
+                          });
+                        }
+                      },
+              ),
+              const SizedBox(height: 14),
+              DropdownButtonFormField<String>(
+                initialValue: _frequency,
+                decoration: const InputDecoration(labelText: 'Frequency'),
+                items: const [
+                  DropdownMenuItem(value: 'daily', child: Text('Daily')),
+                  DropdownMenuItem(value: 'weekly', child: Text('Weekly')),
+                ],
+                onChanged: _saving
+                    ? null
+                    : (value) {
+                        if (value != null) {
+                          setState(() {
+                            _frequency = value;
+                          });
+                        }
+                      },
+              ),
+              if (_frequency == 'weekly') ...[
+                const SizedBox(height: 14),
+                DropdownButtonFormField<String>(
+                  initialValue: _dayOfWeek,
+                  decoration: const InputDecoration(labelText: 'Day of week'),
+                  items: _days
+                      .map(
+                        (day) => DropdownMenuItem(
+                          value: day,
+                          child: Text(_capitalize(day)),
+                        ),
+                      )
+                      .toList(),
+                  onChanged: _saving
+                      ? null
+                      : (value) {
+                          if (value != null) {
+                            setState(() {
+                              _dayOfWeek = value;
+                            });
+                          }
+                        },
+                ),
+              ],
+              const SizedBox(height: 16),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton.icon(
+                  onPressed: _saving ? null : _createRoutine,
+                  icon: const Icon(Icons.add),
+                  label: Text(_saving ? 'Saving...' : 'Add Routine'),
+                ),
+              ),
+            ],
           ),
         ),
 
@@ -325,9 +289,8 @@ class _RoutinesScreenState extends State<RoutinesScreen> {
           const SizedBox(height: 12),
           Text(
             _actionError!,
-            style: TextStyle(
-              color: Theme.of(context).colorScheme.error,
-            ),
+            key: const ValueKey('routines-action-error'),
+            style: TextStyle(color: Theme.of(context).colorScheme.error),
           ),
         ],
 
@@ -335,28 +298,24 @@ class _RoutinesScreenState extends State<RoutinesScreen> {
 
         Row(
           children: [
-            Expanded(
-              child: Text(
-                'Active Routines',
-                style: Theme.of(context).textTheme.titleLarge,
+            const Expanded(
+              child: AppSectionTitle(
+                title: 'Active Routines',
+                subtitle: 'Practices you have chosen to keep in view.',
               ),
             ),
             IconButton(
               onPressed: _saving ? null : _refresh,
-              tooltip: 'Refresh',
-              icon: const Icon(
-                Icons.refresh,
-              ),
+              tooltip: 'Refresh routines',
+              icon: const Icon(Icons.refresh),
             ),
           ],
         ),
-        const SizedBox(height: 8),
 
         FutureBuilder<Map<String, dynamic>>(
           future: _routinesFuture,
           builder: (context, snapshot) {
-            if (snapshot.connectionState ==
-                ConnectionState.waiting) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
               return const Center(
                 child: Padding(
                   padding: EdgeInsets.all(24),
@@ -366,44 +325,38 @@ class _RoutinesScreenState extends State<RoutinesScreen> {
             }
 
             if (snapshot.hasError) {
-              return _ErrorCard(
-                message: snapshot.error.toString(),
-                onRetry: _refresh,
+              return AppStatusMessage(
+                title: 'Unable to load routines',
+                message:
+                    'Recovery Companion could not load your active routines.',
+                icon: Icons.cloud_off_outlined,
+                actionLabel: 'Retry',
+                onAction: _refresh,
               );
             }
 
-            final routines = _routinesFrom(
-              snapshot.data,
-            );
+            final routines = _routinesFrom(snapshot.data);
 
             if (routines.isEmpty) {
-              return const Card(
-                child: Padding(
-                  padding: EdgeInsets.all(20),
-                  child: Column(
-                    children: [
-                      Icon(
-                        Icons.repeat_outlined,
-                        size: 44,
-                      ),
-                      SizedBox(height: 12),
-                      Text(
-                        'No active routines',
-                      ),
-                    ],
-                  ),
-                ),
+              return const AppStatusMessage(
+                title: 'No active routines',
+                message: 'Add a repeatable practice when there is something you want to keep returning to.',
+                icon: Icons.repeat_outlined,
               );
             }
 
             return Column(
-              children: routines
-                  .map(
-                    (routine) => _buildRoutineCard(
-                      routine,
+              children: [
+                for (final routine in routines)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: _RoutineCard(
+                      routine: routine,
+                      saving: _saving,
+                      onSetActive: _setActive,
                     ),
-                  )
-                  .toList(),
+                  ),
+              ],
             );
           },
         ),
@@ -411,76 +364,7 @@ class _RoutinesScreenState extends State<RoutinesScreen> {
     );
   }
 
-  Widget _buildRoutineCard(
-    Map<String, dynamic> routine,
-  ) {
-    final id = routine['id'] as int?;
-
-    final text = (
-      routine['text'] ??
-      routine['routine'] ??
-      'Recovery routine'
-    ).toString();
-
-    final area = (
-      routine['area'] ??
-      'other'
-    ).toString();
-
-    final frequency = (
-      routine['frequency'] ??
-      ''
-    ).toString();
-
-    final dayOfWeek = (
-      routine['day_of_week'] ??
-      ''
-    ).toString();
-
-    final schedule = dayOfWeek.isNotEmpty
-        ? '${_capitalize(frequency)} - '
-            '${_capitalize(dayOfWeek)}'
-        : _capitalize(frequency);
-
-    return Card(
-      child: ListTile(
-        leading: const Icon(
-          Icons.repeat,
-        ),
-        title: Text(
-          text,
-        ),
-        subtitle: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SizedBox(height: 6),
-            Text(
-              'Area: ${_displayArea(area)}',
-            ),
-            if (schedule.isNotEmpty)
-              Text(
-                'Schedule: $schedule',
-              ),
-          ],
-        ),
-        trailing: Switch(
-          value: true,
-          onChanged: _saving || id == null
-              ? null
-              : (value) {
-                  _setActive(
-                    routineId: id,
-                    active: value,
-                  );
-                },
-        ),
-      ),
-    );
-  }
-
-  static String _displayArea(
-    String area,
-  ) {
+  static String _displayArea(String area) {
     if (area == 'step_work') {
       return 'Step Work';
     }
@@ -488,53 +372,97 @@ class _RoutinesScreenState extends State<RoutinesScreen> {
     return _capitalize(area);
   }
 
-  static String _capitalize(
-    String value,
-  ) {
+  static String _capitalize(String value) {
     if (value.isEmpty) {
       return '';
     }
 
-    return '${value[0].toUpperCase()}${value.substring(1)}';
+    return '${value[0].toUpperCase()}'
+        '${value.substring(1)}';
   }
 }
 
-class _ErrorCard extends StatelessWidget {
-  const _ErrorCard({
-    required this.message,
-    required this.onRetry,
+class _RoutineCard extends StatelessWidget {
+  const _RoutineCard({
+    required this.routine,
+    required this.saving,
+    required this.onSetActive,
   });
 
-  final String message;
-  final VoidCallback onRetry;
+  final Map<String, dynamic> routine;
+  final bool saving;
+  final Future<void> Function({required int routineId, required bool active})
+  onSetActive;
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          children: [
-            const Icon(
-              Icons.cloud_off_outlined,
-              size: 40,
+    final id = routine['id'] as int?;
+
+    final text = (routine['text'] ?? routine['routine'] ?? 'Recovery routine')
+        .toString();
+
+    final area = (routine['area'] ?? 'other').toString();
+
+    final frequency = (routine['frequency'] ?? '').toString();
+
+    final dayOfWeek = (routine['day_of_week'] ?? '').toString();
+
+    final schedule = dayOfWeek.isNotEmpty
+        ? '${_RoutinesScreenState._capitalize(frequency)} ? '
+              '${_RoutinesScreenState._capitalize(dayOfWeek)}'
+        : _RoutinesScreenState._capitalize(frequency);
+
+    return AppSectionCard(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.secondaryContainer,
+              borderRadius: BorderRadius.circular(13),
             ),
-            const SizedBox(height: 12),
-            const Text(
-              'Unable to load routines',
+            child: Icon(
+              Icons.repeat,
+              color: Theme.of(context).colorScheme.onSecondaryContainer,
             ),
-            const SizedBox(height: 8),
-            Text(
-              message,
-              textAlign: TextAlign.center,
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  text,
+                  style: Theme.of(context).textTheme.titleMedium
+                      ?.copyWith(fontWeight: FontWeight.w600),
+                ),
+                const SizedBox(height: 10),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    Chip(label: Text(_RoutinesScreenState._displayArea(area))),
+                    if (schedule.isNotEmpty)
+                      Chip(
+                        avatar: const Icon(Icons.schedule_outlined, size: 18),
+                        label: Text(schedule),
+                      ),
+                  ],
+                ),
+              ],
             ),
-            const SizedBox(height: 12),
-            FilledButton(
-              onPressed: onRetry,
-              child: const Text('Retry'),
-            ),
-          ],
-        ),
+          ),
+          Switch(
+            value: true,
+            onChanged: saving || id == null
+                ? null
+                : (value) {
+                    onSetActive(routineId: id, active: value);
+                  },
+          ),
+        ],
       ),
     );
   }

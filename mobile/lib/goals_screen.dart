@@ -1,12 +1,10 @@
 import 'package:flutter/material.dart';
 
 import 'api_client.dart';
+import 'app_components.dart';
 
 class GoalsScreen extends StatefulWidget {
-  const GoalsScreen({
-    required this.apiClient,
-    super.key,
-  });
+  const GoalsScreen({required this.apiClient, super.key});
 
   final ApiClient apiClient;
 
@@ -28,10 +26,8 @@ class _GoalsScreenState extends State<GoalsScreen> {
 
   late Future<Map<String, dynamic>> _goalsFuture;
 
-  final TextEditingController _textController =
-      TextEditingController();
-  final TextEditingController _targetDateController =
-      TextEditingController();
+  final TextEditingController _textController = TextEditingController();
+  final TextEditingController _targetDateController = TextEditingController();
 
   String _area = 'other';
   bool _saving = false;
@@ -107,18 +103,15 @@ class _GoalsScreenState extends State<GoalsScreen> {
         return;
       }
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Goal added.'),
-        ),
-      );
-    } catch (error) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('Goal added.')));
+    } catch (_) {
       if (!mounted) {
         return;
       }
 
       setState(() {
-        _actionError = error.toString();
+        _actionError = 'Unable to save this goal. Please try again.';
       });
     } finally {
       if (mounted) {
@@ -129,18 +122,14 @@ class _GoalsScreenState extends State<GoalsScreen> {
     }
   }
 
-  Future<void> _completeGoal(
-    int goalId,
-  ) async {
+  Future<void> _completeGoal(int goalId) async {
     setState(() {
       _saving = true;
       _actionError = null;
     });
 
     try {
-      await widget.apiClient.completeGoal(
-        goalId,
-      );
+      await widget.apiClient.completeGoal(goalId);
 
       if (!mounted) {
         return;
@@ -152,18 +141,15 @@ class _GoalsScreenState extends State<GoalsScreen> {
         return;
       }
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Goal completed.'),
-        ),
-      );
-    } catch (error) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('Goal completed.')));
+    } catch (_) {
       if (!mounted) {
         return;
       }
 
       setState(() {
-        _actionError = error.toString();
+        _actionError = 'Unable to complete this goal. Please try again.';
       });
     } finally {
       if (mounted) {
@@ -174,96 +160,84 @@ class _GoalsScreenState extends State<GoalsScreen> {
     }
   }
 
-  List<Map<String, dynamic>> _goalsFrom(
-    Map<String, dynamic>? data,
-  ) {
+  List<Map<String, dynamic>> _goalsFrom(Map<String, dynamic>? data) {
     final rawGoals = data?['goals'];
 
     if (rawGoals is! List) {
       return [];
     }
 
-    return rawGoals
-        .whereType<Map<String, dynamic>>()
-        .toList();
+    return rawGoals.whereType<Map<String, dynamic>>().toList();
   }
 
   @override
   Widget build(BuildContext context) {
     return ListView(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.fromLTRB(20, 20, 20, 32),
       children: [
-        Text(
-          'Goals',
-          style: Theme.of(context).textTheme.headlineMedium,
+        const AppPageHeader(
+          title: 'Goals',
+          subtitle: 'Choose concrete recovery actions without turning recovery into a score.',
+          icon: Icons.flag_outlined,
         ),
-        const SizedBox(height: 8),
-        const Text(
-          'Set concrete recovery goals and mark them complete.',
-        ),
-        const SizedBox(height: 24),
 
-        Text(
-          'Add Goal',
-          style: Theme.of(context).textTheme.titleLarge,
+        const AppSectionTitle(
+          title: 'Add a goal',
+          subtitle: 'Keep it specific, realistic, and useful to your recovery.',
         ),
-        const SizedBox(height: 12),
 
-        TextField(
-          controller: _textController,
-          decoration: const InputDecoration(
-            labelText: 'Goal',
-            hintText: 'What do you want to accomplish?',
-            border: OutlineInputBorder(),
-          ),
-        ),
-        const SizedBox(height: 12),
-
-        DropdownButtonFormField<String>(
-          initialValue: _area,
-          decoration: const InputDecoration(
-            labelText: 'Recovery area',
-            border: OutlineInputBorder(),
-          ),
-          items: _areas
-              .map(
-                (area) => DropdownMenuItem(
-                  value: area,
-                  child: Text(
-                    _displayArea(area),
-                  ),
+        AppSectionCard(
+          key: const ValueKey('goals-add-card'),
+          child: Column(
+            children: [
+              TextField(
+                controller: _textController,
+                decoration: const InputDecoration(
+                  labelText: 'Goal',
+                  hintText: 'What do you want to accomplish?',
                 ),
-              )
-              .toList(),
-          onChanged: _saving
-              ? null
-              : (value) {
-                  if (value != null) {
-                    setState(() {
-                      _area = value;
-                    });
-                  }
-                },
-        ),
-        const SizedBox(height: 12),
-
-        TextField(
-          controller: _targetDateController,
-          decoration: const InputDecoration(
-            labelText: 'Target date',
-            hintText: 'YYYY-MM-DD (optional)',
-            border: OutlineInputBorder(),
-          ),
-        ),
-        const SizedBox(height: 12),
-
-        FilledButton.icon(
-          onPressed: _saving ? null : _createGoal,
-          icon: const Icon(
-            Icons.add,
-          ),
-          label: const Text(
-            'Add Goal',
+              ),
+              const SizedBox(height: 14),
+              DropdownButtonFormField<String>(
+                initialValue: _area,
+                decoration: const InputDecoration(labelText: 'Recovery area'),
+                items: _areas
+                    .map(
+                      (area) => DropdownMenuItem(
+                        value: area,
+                        child: Text(_displayArea(area)),
+                      ),
+                    )
+                    .toList(),
+                onChanged: _saving
+                    ? null
+                    : (value) {
+                        if (value != null) {
+                          setState(() {
+                            _area = value;
+                          });
+                        }
+                      },
+              ),
+              const SizedBox(height: 14),
+              TextField(
+                controller: _targetDateController,
+                decoration: const InputDecoration(
+                  labelText: 'Target date',
+                  hintText: 'YYYY-MM-DD (optional)',
+                  prefixIcon: Icon(Icons.event_outlined),
+                ),
+              ),
+              const SizedBox(height: 16),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton.icon(
+                  onPressed: _saving ? null : _createGoal,
+                  icon: const Icon(Icons.add),
+                  label: Text(_saving ? 'Saving...' : 'Add Goal'),
+                ),
+              ),
+            ],
           ),
         ),
 
@@ -271,9 +245,8 @@ class _GoalsScreenState extends State<GoalsScreen> {
           const SizedBox(height: 12),
           Text(
             _actionError!,
-            style: TextStyle(
-              color: Theme.of(context).colorScheme.error,
-            ),
+            key: const ValueKey('goals-action-error'),
+            style: TextStyle(color: Theme.of(context).colorScheme.error),
           ),
         ],
 
@@ -281,28 +254,24 @@ class _GoalsScreenState extends State<GoalsScreen> {
 
         Row(
           children: [
-            Expanded(
-              child: Text(
-                'Active Goals',
-                style: Theme.of(context).textTheme.titleLarge,
+            const Expanded(
+              child: AppSectionTitle(
+                title: 'Active Goals',
+                subtitle: 'A few clear commitments can be enough.',
               ),
             ),
             IconButton(
               onPressed: _saving ? null : _refresh,
-              tooltip: 'Refresh',
-              icon: const Icon(
-                Icons.refresh,
-              ),
+              tooltip: 'Refresh goals',
+              icon: const Icon(Icons.refresh),
             ),
           ],
         ),
-        const SizedBox(height: 8),
 
         FutureBuilder<Map<String, dynamic>>(
           future: _goalsFuture,
           builder: (context, snapshot) {
-            if (snapshot.connectionState ==
-                ConnectionState.waiting) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
               return const Center(
                 child: Padding(
                   padding: EdgeInsets.all(24),
@@ -312,44 +281,38 @@ class _GoalsScreenState extends State<GoalsScreen> {
             }
 
             if (snapshot.hasError) {
-              return _ErrorCard(
-                message: snapshot.error.toString(),
-                onRetry: _refresh,
+              return AppStatusMessage(
+                title: 'Unable to load goals',
+                message:
+                    'Recovery Companion could not load your current goals.',
+                icon: Icons.cloud_off_outlined,
+                actionLabel: 'Retry',
+                onAction: _refresh,
               );
             }
 
-            final goals = _goalsFrom(
-              snapshot.data,
-            );
+            final goals = _goalsFrom(snapshot.data);
 
             if (goals.isEmpty) {
-              return const Card(
-                child: Padding(
-                  padding: EdgeInsets.all(20),
-                  child: Column(
-                    children: [
-                      Icon(
-                        Icons.flag_outlined,
-                        size: 44,
-                      ),
-                      SizedBox(height: 12),
-                      Text(
-                        'No active goals',
-                      ),
-                    ],
-                  ),
-                ),
+              return const AppStatusMessage(
+                title: 'No active goals',
+                message: 'Add a recovery goal when there is something specific you want to work toward.',
+                icon: Icons.flag_outlined,
               );
             }
 
             return Column(
-              children: goals
-                  .map(
-                    (goal) => _buildGoalCard(
-                      goal,
+              children: [
+                for (final goal in goals)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: _GoalCard(
+                      goal: goal,
+                      saving: _saving,
+                      onComplete: _completeGoal,
                     ),
-                  )
-                  .toList(),
+                  ),
+              ],
             );
           },
         ),
@@ -357,73 +320,7 @@ class _GoalsScreenState extends State<GoalsScreen> {
     );
   }
 
-  Widget _buildGoalCard(
-    Map<String, dynamic> goal,
-  ) {
-    final id = goal['id'] as int?;
-
-    final text = (
-      goal['text'] ??
-      goal['goal'] ??
-      'Recovery goal'
-    ).toString();
-
-    final area = (
-      goal['area'] ??
-      'other'
-    ).toString();
-
-    final targetDate = (
-      goal['target_date'] ??
-      ''
-    ).toString();
-
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              text,
-              style: Theme.of(context).textTheme.titleMedium,
-            ),
-            const SizedBox(height: 10),
-            Text(
-              'Area: ${_displayArea(area)}',
-            ),
-            if (targetDate.isNotEmpty) ...[
-              const SizedBox(height: 4),
-              Text(
-                'Target: $targetDate',
-              ),
-            ],
-            const SizedBox(height: 12),
-            Align(
-              alignment: Alignment.centerRight,
-              child: FilledButton.tonalIcon(
-                onPressed: _saving || id == null
-                    ? null
-                    : () {
-                        _completeGoal(id);
-                      },
-                icon: const Icon(
-                  Icons.check,
-                ),
-                label: const Text(
-                  'Complete',
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  static String _displayArea(
-    String area,
-  ) {
+  static String _displayArea(String area) {
     if (area == 'step_work') {
       return 'Step Work';
     }
@@ -432,46 +329,91 @@ class _GoalsScreenState extends State<GoalsScreen> {
       return 'Other';
     }
 
-    return '${area[0].toUpperCase()}${area.substring(1)}';
+    return '${area[0].toUpperCase()}'
+        '${area.substring(1)}';
   }
 }
 
-class _ErrorCard extends StatelessWidget {
-  const _ErrorCard({
-    required this.message,
-    required this.onRetry,
+class _GoalCard extends StatelessWidget {
+  const _GoalCard({
+    required this.goal,
+    required this.saving,
+    required this.onComplete,
   });
 
-  final String message;
-  final VoidCallback onRetry;
+  final Map<String, dynamic> goal;
+  final bool saving;
+  final Future<void> Function(int) onComplete;
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          children: [
-            const Icon(
-              Icons.cloud_off_outlined,
-              size: 40,
+    final id = goal['id'] as int?;
+
+    final text = (goal['text'] ?? goal['goal'] ?? 'Recovery goal').toString();
+
+    final area = (goal['area'] ?? 'other').toString();
+
+    final targetDate = (goal['target_date'] ?? '').toString();
+
+    return AppSectionCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.secondaryContainer,
+                  borderRadius: BorderRadius.circular(13),
+                ),
+                child: Icon(
+                  Icons.flag_outlined,
+                  color: Theme.of(context).colorScheme.onSecondaryContainer,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  text,
+                  style: Theme.of(context).textTheme.titleMedium
+                      ?.copyWith(fontWeight: FontWeight.w600),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              Chip(
+                avatar: const Icon(Icons.category_outlined, size: 18),
+                label: Text(_GoalsScreenState._displayArea(area)),
+              ),
+              if (targetDate.isNotEmpty)
+                Chip(
+                  avatar: const Icon(Icons.event_outlined, size: 18),
+                  label: Text(targetDate),
+                ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          Align(
+            alignment: Alignment.centerRight,
+            child: FilledButton.tonalIcon(
+              onPressed: saving || id == null
+                  ? null
+                  : () {
+                      onComplete(id);
+                    },
+              icon: const Icon(Icons.check),
+              label: const Text('Complete'),
             ),
-            const SizedBox(height: 12),
-            const Text(
-              'Unable to load goals',
-            ),
-            const SizedBox(height: 8),
-            Text(
-              message,
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 12),
-            FilledButton(
-              onPressed: onRetry,
-              child: const Text('Retry'),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
