@@ -49,6 +49,7 @@ from app.fellowship import (
     load_contacts,
     recommend_contacts,
     set_contact_active,
+    update_contact,
 )
 from app.weekly_review import (
     build_weekly_review,
@@ -933,6 +934,44 @@ def create_fellowship_contact(
         contact_method=request.contact_method,
         notes=request.notes,
     )
+
+    return {
+        "contact": contact,
+    }
+
+
+
+@app.put(
+    "/fellowship/{contact_id}",
+    dependencies=[
+        Depends(require_api_token)
+    ],
+)
+def update_fellowship_contact(
+    contact_id: int,
+    request: FellowshipContactRequest,
+) -> dict[str, object]:
+    """Update a fellowship contact."""
+
+    try:
+        contact = update_contact(
+            contact_id=contact_id,
+            handle=request.handle,
+            contact_type=request.contact_type,
+            contact_method=request.contact_method,
+            notes=request.notes,
+        )
+    except ValueError as error:
+        raise HTTPException(
+            status_code=400,
+            detail=str(error),
+        ) from error
+
+    if contact is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Fellowship contact not found.",
+        )
 
     return {
         "contact": contact,
