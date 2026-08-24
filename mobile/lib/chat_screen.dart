@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'api_client.dart';
+import 'app_components.dart';
 
 class ChatScreen extends StatefulWidget {
   const ChatScreen({required this.apiClient, super.key});
@@ -8,9 +9,7 @@ class ChatScreen extends StatefulWidget {
   final ApiClient apiClient;
 
   @override
-  State<ChatScreen> createState() {
-    return _ChatScreenState();
-  }
+  State<ChatScreen> createState() => _ChatScreenState();
 }
 
 class _ChatScreenState extends State<ChatScreen> {
@@ -70,7 +69,10 @@ class _ChatScreenState extends State<ChatScreen> {
       }
 
       setState(() {
-        _conversation.add({'role': 'assistant', 'content': assistantResponse});
+        _conversation.add({
+          'role': 'assistant',
+          'content': assistantResponse.trim(),
+        });
       });
 
       _scrollToBottom();
@@ -87,6 +89,7 @@ class _ChatScreenState extends State<ChatScreen> {
         }
 
         _messageController.text = message;
+
         _messageController.selection = TextSelection.collapsed(
           offset: message.length,
         );
@@ -118,151 +121,259 @@ class _ChatScreenState extends State<ChatScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-
     return SafeArea(
       child: Column(
+        key: const ValueKey('recovery-companion-chat'),
         children: [
-          if (_conversation.isEmpty)
-            Expanded(
-              child: Center(
-                child: Padding(
-                  padding: const EdgeInsets.all(32),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        Icons.chat_bubble_outline,
-                        size: 48,
-                        color: colorScheme.primary,
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        'Recovery Companion Chat',
-                        style: Theme.of(context).textTheme.titleLarge,
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: 12),
-                      const Text(
-                        'Share what is going on, ask a recovery '
-                        'question, or work through what feels '
-                        'important right now.',
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: 12),
-                      Text(
-                        'This conversation is session-only and '
-                        'is not saved as chat history.',
-                        style: Theme.of(context).textTheme.bodySmall,
-                        textAlign: TextAlign.center,
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            )
-          else
-            Expanded(
-              child: ListView.builder(
-                controller: _scrollController,
-                padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
-                itemCount: _conversation.length,
-                itemBuilder: (context, index) {
-                  final message = _conversation[index];
-
-                  final role = message['role'] ?? '';
-
-                  final content = message['content'] ?? '';
-
-                  final isUser = role == 'user';
-
-                  return Align(
-                    alignment: isUser
-                        ? Alignment.centerRight
-                        : Alignment.centerLeft,
-                    child: Container(
-                      key: ValueKey('chat-message-$role-$index'),
-                      constraints: const BoxConstraints(maxWidth: 520),
-                      margin: const EdgeInsets.only(bottom: 12),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 12,
-                      ),
-                      decoration: BoxDecoration(
-                        color: isUser
-                            ? colorScheme.primaryContainer
-                            : colorScheme.surfaceContainerHighest,
-                        borderRadius: BorderRadius.circular(18),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            isUser ? 'You' : 'Recovery Companion',
-                            style: Theme.of(context).textTheme.labelMedium,
-                          ),
-                          const SizedBox(height: 4),
-                          SelectableText(content),
-                        ],
-                      ),
-                    ),
-                  );
-                },
-              ),
+          const Padding(
+            padding: EdgeInsets.fromLTRB(20, 20, 20, 4),
+            child: AppPageHeader(
+              title: 'Recovery Companion',
+              subtitle: 'A place to reflect, get curious, and consider the next right thing.',
+              icon: Icons.forum_outlined,
             ),
+          ),
+
+          Expanded(
+            child: _conversation.isEmpty
+                ? _EmptyChatState()
+                : ListView.builder(
+                    key: const ValueKey('chat-conversation'),
+                    controller: _scrollController,
+                    padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+                    itemCount: _conversation.length,
+                    itemBuilder: (context, index) {
+                      final message = _conversation[index];
+
+                      final role = message['role'] ?? '';
+
+                      final content = message['content'] ?? '';
+
+                      return _ChatBubble(
+                        role: role,
+                        content: content,
+                        index: index,
+                      );
+                    },
+                  ),
+          ),
 
           if (_sending)
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 16),
-              child: LinearProgressIndicator(),
-            ),
+            const LinearProgressIndicator(key: ValueKey('chat-sending')),
 
           if (_errorMessage != null)
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-              child: Text(
-                _errorMessage!,
-                key: const ValueKey('chat-error'),
-                style: TextStyle(color: colorScheme.error),
-                textAlign: TextAlign.center,
+              padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
+              child: AppStatusMessage(
+                title: 'Message not sent',
+                message: _errorMessage!,
+                icon: Icons.error_outline,
               ),
             ),
 
-          Padding(
-            padding: const EdgeInsets.fromLTRB(12, 12, 12, 16),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Expanded(
-                  child: TextField(
-                    key: const ValueKey('chat-input'),
-                    controller: _messageController,
-                    enabled: !_sending,
-                    minLines: 1,
-                    maxLines: 5,
-                    textCapitalization: TextCapitalization.sentences,
-                    textInputAction: TextInputAction.newline,
-                    decoration: const InputDecoration(
-                      hintText: 'Message Recovery Companion',
-                      border: OutlineInputBorder(),
+          _ChatComposer(
+            controller: _messageController,
+            sending: _sending,
+            onSend: _sendMessage,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _EmptyChatState extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return ListView(
+      key: const ValueKey('chat-empty-state'),
+      padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+      children: [
+        AppSectionCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  CircleAvatar(
+                    backgroundColor: Theme.of(context)
+                        .colorScheme
+                        .primaryContainer,
+                    child: Icon(
+                      Icons.chat_bubble_outline,
+                      color: Theme.of(context).colorScheme.primary,
                     ),
                   ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      'What is going on right now?',
+                      style: Theme.of(context).textTheme.titleMedium
+                          ?.copyWith(fontWeight: FontWeight.w600),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                'Share what feels important, ask a recovery question, or talk through something you are trying to understand.',
+              ),
+            ],
+          ),
+        ),
+
+        const SizedBox(height: 16),
+
+        const AppSectionCard(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(Icons.lock_outline),
+              SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  'This conversation is session-only and is not saved as chat history.',
                 ),
-                const SizedBox(width: 8),
-                IconButton.filled(
-                  key: const ValueKey('chat-send'),
-                  onPressed: _sending ? null : _sendMessage,
-                  tooltip: 'Send message',
-                  icon: _sending
-                      ? const SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Icon(Icons.send),
+              ),
+            ],
+          ),
+        ),
+
+        const SizedBox(height: 16),
+
+        const AppSectionCard(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(Icons.people_outline),
+              SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  'Recovery Companion can support reflection, but it does not replace your sponsor, fellowship, therapist, clergy, or Higher Power.',
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _ChatBubble extends StatelessWidget {
+  const _ChatBubble({
+    required this.role,
+    required this.content,
+    required this.index,
+  });
+
+  final String role;
+  final String content;
+  final int index;
+
+  @override
+  Widget build(BuildContext context) {
+    final isUser = role == 'user';
+
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return Align(
+      alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
+      child: Container(
+        key: ValueKey('chat-message-$role-$index'),
+        constraints: const BoxConstraints(maxWidth: 520),
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
+        decoration: BoxDecoration(
+          color: isUser
+              ? colorScheme.primaryContainer
+              : colorScheme.surfaceContainerLow,
+          borderRadius: BorderRadius.circular(20),
+          border: isUser
+              ? null
+              : Border.all(color: colorScheme.outline.withValues(alpha: 0.28)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  isUser ? Icons.person_outline : Icons.forum_outlined,
+                  size: 16,
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  isUser ? 'You' : 'Recovery Companion',
+                  style: Theme.of(context).textTheme.labelMedium
+                      ?.copyWith(fontWeight: FontWeight.w600),
                 ),
               ],
             ),
+            const SizedBox(height: 6),
+            SelectableText(content),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ChatComposer extends StatelessWidget {
+  const _ChatComposer({
+    required this.controller,
+    required this.sending,
+    required this.onSend,
+  });
+
+  final TextEditingController controller;
+  final bool sending;
+  final VoidCallback onSend;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(12, 10, 12, 14),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        border: Border(
+          top: BorderSide(
+            color: Theme.of(context).colorScheme.outline
+                .withValues(alpha: 0.22),
+          ),
+        ),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          Expanded(
+            child: TextField(
+              key: const ValueKey('chat-input'),
+              controller: controller,
+              enabled: !sending,
+              minLines: 1,
+              maxLines: 5,
+              textCapitalization: TextCapitalization.sentences,
+              textInputAction: TextInputAction.newline,
+              decoration: const InputDecoration(
+                hintText: 'Message Recovery Companion',
+                prefixIcon: Icon(Icons.chat_bubble_outline),
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          IconButton.filled(
+            key: const ValueKey('chat-send'),
+            onPressed: sending ? null : onSend,
+            tooltip: 'Send message',
+            icon: sending
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.send),
           ),
         ],
       ),
