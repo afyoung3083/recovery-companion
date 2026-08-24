@@ -124,6 +124,18 @@ def get_dashboard_data() -> dict[str, Any]:
                 "contact_type",
                 "",
             ),
+            "contact_method": contact.get(
+                "contact_method",
+                "",
+            ),
+            "notes": contact.get(
+                "notes",
+                "",
+            ),
+            "active": contact.get(
+                "active",
+                True,
+            ),
         }
         for contact in recommended_contacts
     ]

@@ -38,6 +38,9 @@ void main() {
             'id': 2,
             'handle': 'SponsorBob',
             'contact_type': 'sponsor',
+            'contact_method': '555-0100',
+            'notes': 'Call when isolating.',
+            'active': true,
           },
           <String, dynamic>{
             'id': 3,
@@ -179,6 +182,46 @@ void main() {
     expect(requestCount, 2);
 
     expect(find.text('378 days'), findsOneWidget);
+
+    apiClient.close();
+  });
+  testWidgets('Dashboard fellowship contact opens editable profile', (
+    tester,
+  ) async {
+    final mockClient = MockClient((request) async {
+      if (request.method == 'GET' && request.url.path == '/dashboard') {
+        return http.Response(jsonEncode(dashboardResponse()), 200);
+      }
+
+      throw StateError(
+        'Unexpected request: '
+        '${request.method} ${request.url}',
+      );
+    });
+
+    final apiClient = ApiClient(
+      baseUrl: baseUrl,
+      apiToken: token,
+      httpClient: mockClient,
+    );
+
+    await tester.pumpWidget(appFor(apiClient));
+
+    await tester.pumpAndSettle();
+
+    final contactTile = find.byKey(const ValueKey('dashboard-contact-2'));
+
+    await tester.scrollUntilVisible(contactTile, 250);
+
+    await tester.tap(contactTile);
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey('contact-profile-screen')),
+      findsOneWidget,
+    );
+
+    expect(find.text('555-0100'), findsOneWidget);
 
     apiClient.close();
   });

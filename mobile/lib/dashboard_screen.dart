@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'api_client.dart';
 import 'app_components.dart';
+import 'contact_profile_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({required this.apiClient, super.key});
@@ -69,6 +70,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     '${word.substring(1)}',
         )
         .join(' ');
+  }
+
+  Future<void> _openContact(Map<String, dynamic> contact) async {
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) =>
+            ContactProfileScreen(apiClient: widget.apiClient, contact: contact),
+      ),
+    );
+
+    if (mounted) {
+      _refresh();
+    }
   }
 
   @override
@@ -376,6 +390,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     children: [
                       for (var index = 0; index < contacts.length; index++) ...[
                         ListTile(
+                          key: ValueKey(
+                            'dashboard-contact-${contacts[index]['id']}',
+                          ),
                           leading: CircleAvatar(
                             child: Icon(
                               index == 0
@@ -393,6 +410,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                   .toString(),
                             ),
                           ),
+                          trailing: const Icon(Icons.chevron_right),
+                          onTap: () {
+                            _openContact(contacts[index]);
+                          },
                         ),
                         if (index < contacts.length - 1)
                           const Divider(height: 1, indent: 72),

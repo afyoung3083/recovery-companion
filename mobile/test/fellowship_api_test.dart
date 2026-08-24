@@ -189,4 +189,62 @@ void main() {
 
     apiClient.close();
   });
+
+  test('updateFellowshipContact sends expected JSON', () async {
+    final mockClient = MockClient((request) async {
+      expect(request.method, 'PUT');
+      expect(
+        request.url.toString(),
+        '$baseUrl/fellowship/2',
+      );
+      expect(
+        request.headers['Authorization'],
+        'Bearer $token',
+      );
+
+      final body =
+          jsonDecode(request.body) as Map<String, dynamic>;
+
+      expect(body['handle'], 'Sponsor Bob');
+      expect(body['contact_type'], 'sponsor');
+      expect(body['contact_method'], '555-0100');
+      expect(body['notes'], 'Call when isolating.');
+
+      return http.Response(
+        jsonEncode({
+          'contact': {
+            'id': 2,
+            'handle': 'Sponsor Bob',
+            'contact_type': 'sponsor',
+            'contact_method': '555-0100',
+            'notes': 'Call when isolating.',
+            'active': true,
+          },
+        }),
+        200,
+      );
+    });
+
+    final apiClient = ApiClient(
+      baseUrl: baseUrl,
+      apiToken: token,
+      httpClient: mockClient,
+    );
+
+    final response =
+        await apiClient.updateFellowshipContact(
+      contactId: 2,
+      handle: 'Sponsor Bob',
+      contactType: 'sponsor',
+      contactMethod: '555-0100',
+      notes: 'Call when isolating.',
+    );
+
+    expect(
+      response['contact']['handle'],
+      'Sponsor Bob',
+    );
+
+    apiClient.close();
+  });
 }

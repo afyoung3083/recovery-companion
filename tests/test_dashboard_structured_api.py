@@ -65,6 +65,9 @@ def test_dashboard_returns_text_and_structured_data(
                 "id": 2,
                 "handle": "SponsorBob",
                 "contact_type": "sponsor",
+                "contact_method": "555-0100",
+                "notes": "Call when isolating.",
+                "active": True,
             },
         ],
         "generated_at": "2026-08-23T21:30:00",
@@ -94,6 +97,12 @@ def test_dashboard_returns_text_and_structured_data(
     assert (
         data["recommended_contacts"][0]["handle"]
         == "SponsorBob"
+    )
+    assert (
+        data["recommended_contacts"][0][
+            "contact_method"
+        ]
+        == "555-0100"
     )
 
 
