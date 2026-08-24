@@ -5,159 +5,181 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:mobile/api_client.dart';
+import 'package:mobile/app_theme.dart';
 import 'package:mobile/dashboard_screen.dart';
 
 void main() {
   const baseUrl = 'http://example.test';
   const token = 'test-token';
 
-  testWidgets(
-    'Dashboard shows deterministic recovery summary',
-    (tester) async {
-      final mockClient = MockClient((request) async {
-        expect(
-          request.method,
-          'GET',
-        );
-        expect(
-          request.url.path,
-          '/dashboard',
-        );
-        expect(
-          request.headers['Authorization'],
-          'Bearer $token',
-        );
+  Map<String, dynamic> dashboardResponse() {
+    return <String, dynamic>{
+      'dashboard': 'Legacy Dashboard text',
+      'dashboard_data': <String, dynamic>{
+        'sobriety_date': '2025-08-12',
+        'sobriety_days': 378,
+        'today_checkin': <String, dynamic>{
+          'saved': true,
+          'completed_count': 4,
+          'total': 6,
+          'note': 'Stayed connected today.',
+        },
+        'current_step': 8,
+        'open_assignments': <Map<String, dynamic>>[
+          <String, dynamic>{'id': 7, 'text': 'Review inventory.'},
+        ],
+        'latest_journal_entry': <String, dynamic>{
+          'id': 9,
+          'created_at': '2026-08-23T18:53:23',
+          'text': 'Recovery reflection.',
+        },
+        'recommended_contacts': <Map<String, dynamic>>[
+          <String, dynamic>{
+            'id': 2,
+            'handle': 'SponsorBob',
+            'contact_type': 'sponsor',
+          },
+          <String, dynamic>{
+            'id': 3,
+            'handle': 'RecoveryPeer',
+            'contact_type': 'recovery_peer',
+          },
+        ],
+        'generated_at': '2026-08-23T21:30:00',
+      },
+    };
+  }
 
-        return http.Response(
-          jsonEncode({
-            'dashboard':
-                'Daily Recovery Dashboard\n'
-                'Sobriety: 12 day(s)\n'
-                'Current Step: 4',
-          }),
-          200,
-        );
-      });
+  Widget appFor(ApiClient apiClient) {
+    return MaterialApp(
+      theme: AppTheme.light(),
+      home: Scaffold(body: DashboardScreen(apiClient: apiClient)),
+    );
+  }
 
-      final apiClient = ApiClient(
-        baseUrl: baseUrl,
-        apiToken: token,
-        httpClient: mockClient,
-      );
+  testWidgets('Dashboard renders structured recovery cards', (tester) async {
+    final mockClient = MockClient((request) async {
+      expect(request.method, 'GET');
 
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: DashboardScreen(
-              apiClient: apiClient,
-            ),
-          ),
-        ),
-      );
+      expect(request.url.path, '/dashboard');
 
-      await tester.pumpAndSettle();
+      expect(request.headers['Authorization'], 'Bearer $token');
 
-      expect(
-        find.byKey(
-          const ValueKey(
-            'dashboard-summary',
-          ),
-        ),
-        findsOneWidget,
-      );
+      return http.Response(jsonEncode(dashboardResponse()), 200);
+    });
 
-      expect(
-        find.textContaining(
-          'Sobriety: 12 day(s)',
-        ),
-        findsOneWidget,
-      );
+    final apiClient = ApiClient(
+      baseUrl: baseUrl,
+      apiToken: token,
+      httpClient: mockClient,
+    );
 
-      expect(
-        find.textContaining(
-          'Current Step: 4',
-        ),
-        findsOneWidget,
-      );
+    await tester.pumpWidget(appFor(apiClient));
 
-      apiClient.close();
-    },
-  );
+    await tester.pumpAndSettle();
 
-  testWidgets(
-    'Dashboard retry reloads after API failure',
-    (tester) async {
-      var requestCount = 0;
+    expect(
+      find.byKey(const ValueKey('dashboard-sobriety-card')),
+      findsOneWidget,
+    );
 
-      final mockClient = MockClient((request) async {
-        requestCount += 1;
+    expect(find.text('378 days'), findsOneWidget);
 
-        if (requestCount == 1) {
-          return http.Response(
-            '{}',
-            500,
-          );
-        }
+    expect(find.text('4 of 6'), findsOneWidget);
 
-        return http.Response(
-          jsonEncode({
-            'dashboard':
-                'Daily Recovery Dashboard\n'
-                'Sobriety: 12 day(s)',
-          }),
-          200,
-        );
-      });
+    expect(find.text('Step 8'), findsOneWidget);
 
-      final apiClient = ApiClient(
-        baseUrl: baseUrl,
-        apiToken: token,
-        httpClient: mockClient,
-      );
+    expect(find.text('Review inventory.'), findsOneWidget);
 
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: DashboardScreen(
-              apiClient: apiClient,
-            ),
-          ),
-        ),
-      );
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('dashboard-latest-journal')),
+      250,
+    );
 
-      await tester.pumpAndSettle();
+    expect(find.text('Recovery reflection.'), findsOneWidget);
 
-      expect(
-        find.text(
-          'Unable to load Dashboard',
-        ),
-        findsOneWidget,
-      );
+    await tester.scrollUntilVisible(find.text('SponsorBob'), 250);
 
-      await tester.tap(
-        find.byKey(
-          const ValueKey(
-            'dashboard-retry',
-          ),
-        ),
-      );
-      await tester.pumpAndSettle();
+    expect(find.text('SponsorBob'), findsOneWidget);
 
-      expect(
-        requestCount,
-        2,
-      );
+    expect(find.text('Legacy Dashboard text'), findsNothing);
 
-      expect(
-        find.byKey(
-          const ValueKey(
-            'dashboard-summary',
-          ),
-        ),
-        findsOneWidget,
-      );
+    apiClient.close();
+  });
 
-      apiClient.close();
-    },
-  );
+  testWidgets('Dashboard handles empty recovery sections', (tester) async {
+    final response = dashboardResponse();
+
+    final data = response['dashboard_data'] as Map<String, dynamic>;
+
+    data['open_assignments'] = <Map<String, dynamic>>[];
+
+    data.remove('latest_journal_entry');
+
+    data['recommended_contacts'] = <Map<String, dynamic>>[];
+
+    final mockClient = MockClient((request) async {
+      return http.Response(jsonEncode(response), 200);
+    });
+
+    final apiClient = ApiClient(
+      baseUrl: baseUrl,
+      apiToken: token,
+      httpClient: mockClient,
+    );
+
+    await tester.pumpWidget(appFor(apiClient));
+
+    await tester.pumpAndSettle();
+
+    await tester.scrollUntilVisible(find.text('No open assignments').last, 250);
+
+    expect(find.text('No open assignments'), findsNWidgets(2));
+
+    await tester.scrollUntilVisible(find.text('No journal entries yet'), 250);
+
+    expect(find.text('No journal entries yet'), findsOneWidget);
+
+    await tester.scrollUntilVisible(find.text('No contacts available'), 250);
+
+    expect(find.text('No contacts available'), findsOneWidget);
+
+    apiClient.close();
+  });
+
+  testWidgets('Dashboard retry reloads after API failure', (tester) async {
+    var requestCount = 0;
+
+    final mockClient = MockClient((request) async {
+      requestCount += 1;
+
+      if (requestCount == 1) {
+        return http.Response('{}', 500);
+      }
+
+      return http.Response(jsonEncode(dashboardResponse()), 200);
+    });
+
+    final apiClient = ApiClient(
+      baseUrl: baseUrl,
+      apiToken: token,
+      httpClient: mockClient,
+    );
+
+    await tester.pumpWidget(appFor(apiClient));
+
+    await tester.pumpAndSettle();
+
+    expect(find.text('Unable to load Dashboard'), findsOneWidget);
+
+    await tester.tap(find.text('Retry'));
+
+    await tester.pumpAndSettle();
+
+    expect(requestCount, 2);
+
+    expect(find.text('378 days'), findsOneWidget);
+
+    apiClient.close();
+  });
 }
