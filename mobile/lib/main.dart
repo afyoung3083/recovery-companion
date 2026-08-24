@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'api_client.dart';
+import 'app_theme.dart';
 import 'chat_screen.dart';
 import 'daily_checkin_screen.dart';
 import 'dashboard_screen.dart';
@@ -29,10 +30,7 @@ class RecoveryCompanionApp extends StatelessWidget {
     return MaterialApp(
       title: 'Recovery Companion',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        useMaterial3: true,
-        colorSchemeSeed: Colors.blue,
-      ),
+      theme: AppTheme.light(),
       home: const HomeShell(),
     );
   }
