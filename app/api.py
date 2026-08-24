@@ -4,7 +4,10 @@ from fastapi import Depends, FastAPI, HTTPException
 from pydantic import BaseModel
 
 from app.auth import require_api_token
-from app.dashboard import build_dashboard
+from app.dashboard import (
+    build_dashboard,
+    get_dashboard_data,
+)
 from app.daily_checkin import (
     format_checkin_history,
     format_checkin_trends,
@@ -165,11 +168,12 @@ def health() -> dict[str, str]:
         Depends(require_api_token)
     ],
 )
-def dashboard() -> dict[str, str]:
-    """Return the deterministic Daily Recovery Dashboard."""
+def dashboard() -> dict[str, object]:
+    """Return deterministic Dashboard text and structured data."""
 
     return {
         "dashboard": build_dashboard(),
+        "dashboard_data": get_dashboard_data(),
     }
 
 
