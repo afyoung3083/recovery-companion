@@ -1,18 +1,15 @@
 import 'package:flutter/material.dart';
 
 import 'api_client.dart';
+import 'app_components.dart';
 
 class WeeklyReviewScreen extends StatefulWidget {
-  const WeeklyReviewScreen({
-    required this.apiClient,
-    super.key,
-  });
+  const WeeklyReviewScreen({required this.apiClient, super.key});
 
   final ApiClient apiClient;
 
   @override
-  State<WeeklyReviewScreen> createState() =>
-      _WeeklyReviewScreenState();
+  State<WeeklyReviewScreen> createState() => _WeeklyReviewScreenState();
 }
 
 class _WeeklyReviewScreenState extends State<WeeklyReviewScreen> {
@@ -28,23 +25,48 @@ class _WeeklyReviewScreenState extends State<WeeklyReviewScreen> {
   @override
   void initState() {
     super.initState();
-    _loadAll();
+
+    _currentFuture = widget.apiClient.getCurrentWeeklyReview();
+    _historyFuture = widget.apiClient.getWeeklyReviewHistory();
+    _comparisonFuture = widget.apiClient.getWeeklyReviewComparison();
   }
 
-  void _loadAll() {
+  void _reloadAll({bool clearReflection = false}) {
     setState(() {
       _error = null;
-      _reflection = null;
 
-      _currentFuture =
-          widget.apiClient.getCurrentWeeklyReview();
+      if (clearReflection) {
+        _reflection = null;
+      }
 
-      _historyFuture =
-          widget.apiClient.getWeeklyReviewHistory();
+      _currentFuture = widget.apiClient.getCurrentWeeklyReview();
 
-      _comparisonFuture =
-          widget.apiClient.getWeeklyReviewComparison();
+      _historyFuture = widget.apiClient.getWeeklyReviewHistory();
+
+      _comparisonFuture = widget.apiClient.getWeeklyReviewComparison();
     });
+  }
+
+  Future<void> _refresh() async {
+    final current = widget.apiClient.getCurrentWeeklyReview();
+
+    final history = widget.apiClient.getWeeklyReviewHistory();
+
+    final comparison = widget.apiClient.getWeeklyReviewComparison();
+
+    setState(() {
+      _error = null;
+      _currentFuture = current;
+      _historyFuture = history;
+      _comparisonFuture = comparison;
+    });
+
+    try {
+      await Future.wait([current, history, comparison]);
+    } catch (_) {
+      // Individual sections present their own safe
+      // loading errors.
+    }
   }
 
   Future<void> _saveSnapshot() async {
@@ -60,22 +82,17 @@ class _WeeklyReviewScreenState extends State<WeeklyReviewScreen> {
         return;
       }
 
-      _loadAll();
+      _reloadAll(clearReflection: true);
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Weekly review saved.',
-          ),
-        ),
-      );
-    } catch (error) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('Weekly review saved.')));
+    } catch (_) {
       if (!mounted) {
         return;
       }
 
       setState(() {
-        _error = error.toString();
+        _error = 'Unable to save this weekly review. Please try again.';
       });
     } finally {
       if (mounted) {
@@ -94,30 +111,27 @@ class _WeeklyReviewScreenState extends State<WeeklyReviewScreen> {
     });
 
     try {
-      final response =
-          await widget.apiClient.getWeeklyReviewAiReflection();
+      final response = await widget.apiClient.getWeeklyReviewAiReflection();
 
       if (!mounted) {
         return;
       }
 
-      final reflection = (
-        response['reflection'] ??
-        ''
-      ).toString();
+      final reflection = (response['reflection'] ?? '').toString().trim();
 
       setState(() {
         _reflection = reflection.isEmpty
-            ? 'No AI reflection was returned.'
+            ? 'No reflection was returned.'
             : reflection;
       });
-    } catch (error) {
+    } catch (_) {
       if (!mounted) {
         return;
       }
 
       setState(() {
-        _error = error.toString();
+        _error =
+            'Unable to generate an AI reflection right now. Please try again.';
       });
     } finally {
       if (mounted) {
@@ -132,277 +146,305 @@ class _WeeklyReviewScreenState extends State<WeeklyReviewScreen> {
   Widget build(BuildContext context) {
     final busy = _saving || _reflecting;
 
-    return ListView(
-      padding: const EdgeInsets.all(16),
-      children: [
-        Text(
-          'Weekly Review',
-          style: Theme.of(context)
-              .textTheme
-              .headlineMedium,
-        ),
-        const SizedBox(height: 8),
-        const Text(
-          'Review the past seven days and save a snapshot of your recovery activity.',
-        ),
-        const SizedBox(height: 20),
-
-        FilledButton.icon(
-          onPressed: busy
-              ? null
-              : _saveSnapshot,
-          icon: const Icon(
-            Icons.save_outlined,
+    return RefreshIndicator(
+      onRefresh: _refresh,
+      child: ListView(
+        key: const ValueKey('weekly-review-screen'),
+        padding: const EdgeInsets.fromLTRB(20, 20, 20, 32),
+        children: [
+          const AppPageHeader(
+            title: 'Weekly Review',
+            subtitle: 'Notice what happened over the past seven days without turning recovery into a score.',
+            icon: Icons.calendar_view_week_outlined,
           ),
-          label: Text(
-            _saving
-                ? 'Saving...'
-                : 'Save Weekly Snapshot',
+
+          const AppSectionTitle(
+            title: 'Save This Week',
+            subtitle: 'Create a snapshot you can look back on later.',
           ),
-        ),
 
-        const SizedBox(height: 12),
-
-        OutlinedButton.icon(
-          onPressed: busy
-              ? null
-              : _generateAiReflection,
-          icon: const Icon(
-            Icons.auto_awesome_outlined,
-          ),
-          label: Text(
-            _reflecting
-                ? 'Generating Reflection...'
-                : 'Generate AI Reflection',
-          ),
-        ),
-
-        const SizedBox(height: 8),
-
-        const Text(
-          'AI Reflection is optional and only runs when you request it.',
-          textAlign: TextAlign.center,
-        ),
-
-        if (_error != null) ...[
-          const SizedBox(height: 12),
-          Text(
-            _error!,
-            style: TextStyle(
-              color: Theme.of(context)
-                  .colorScheme
-                  .error,
-            ),
-          ),
-        ],
-
-        if (_reflection != null) ...[
-          const SizedBox(height: 28),
-
-          Text(
-            'AI Reflection',
-            style: Theme.of(context)
-                .textTheme
-                .titleLarge,
-          ),
-          const SizedBox(height: 12),
-
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: SelectableText(
-                _reflection!,
-              ),
-            ),
-          ),
-        ],
-
-        const SizedBox(height: 28),
-
-        Text(
-          'Current Review',
-          style: Theme.of(context)
-              .textTheme
-              .titleLarge,
-        ),
-        const SizedBox(height: 12),
-
-        FutureBuilder<Map<String, dynamic>>(
-          future: _currentFuture,
-          builder: (context, snapshot) {
-            if (snapshot.connectionState ==
-                ConnectionState.waiting) {
-              return const Center(
-                child: Padding(
-                  padding: EdgeInsets.all(20),
-                  child: CircularProgressIndicator(),
-                ),
-              );
-            }
-
-            if (snapshot.hasError) {
-              return Text(
-                snapshot.error.toString(),
-              );
-            }
-
-            final review = (
-              snapshot.data?['review'] ??
-              ''
-            ).toString();
-
-            return Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: SelectableText(
-                  review.isEmpty
-                      ? 'No weekly review available.'
-                      : review,
-                ),
-              ),
-            );
-          },
-        ),
-
-        const SizedBox(height: 28),
-
-        Text(
-          'Saved History',
-          style: Theme.of(context)
-              .textTheme
-              .titleLarge,
-        ),
-        const SizedBox(height: 12),
-
-        FutureBuilder<Map<String, dynamic>>(
-          future: _historyFuture,
-          builder: (context, snapshot) {
-            if (snapshot.connectionState ==
-                ConnectionState.waiting) {
-              return const Center(
-                child: Padding(
-                  padding: EdgeInsets.all(20),
-                  child: CircularProgressIndicator(),
-                ),
-              );
-            }
-
-            if (snapshot.hasError) {
-              return Text(
-                snapshot.error.toString(),
-              );
-            }
-
-            final rawHistory =
-                snapshot.data?['history'];
-
-            final history = rawHistory is List
-                ? rawHistory
-                    .whereType<Map<String, dynamic>>()
-                    .toList()
-                : <Map<String, dynamic>>[];
-
-            if (history.isEmpty) {
-              return const Card(
-                child: Padding(
-                  padding: EdgeInsets.all(16),
-                  child: Text(
-                    'No saved weekly reviews yet.',
-                  ),
-                ),
-              );
-            }
-
-            final recent =
-                history.reversed.take(5).toList();
-
-            return Column(
-              children: recent
-                  .map(
-                    (item) => Card(
-                      child: ListTile(
-                        leading: const Icon(
-                          Icons.calendar_view_week_outlined,
-                        ),
-                        title: Text(
-                          '${item['week_start'] ?? '?'} '
-                          'to ${item['week_end'] ?? '?'}',
-                        ),
-                        subtitle: Text(
-                          'Check-In Days: '
-                          '${item['checkin_days'] ?? 0}/7\n'
-                          'Journal Entries: '
-                          '${item['journal_entries'] ?? 0}',
-                        ),
+          AppSectionCard(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(Icons.bookmark_outline),
+                    SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        'Saving a snapshot records the current seven-day review in your history.',
                       ),
                     ),
-                  )
-                  .toList(),
-            );
-          },
-        ),
-
-        const SizedBox(height: 28),
-
-        Text(
-          'Latest Comparison',
-          style: Theme.of(context)
-              .textTheme
-              .titleLarge,
-        ),
-        const SizedBox(height: 12),
-
-        FutureBuilder<Map<String, dynamic>>(
-          future: _comparisonFuture,
-          builder: (context, snapshot) {
-            if (snapshot.connectionState ==
-                ConnectionState.waiting) {
-              return const Center(
-                child: Padding(
-                  padding: EdgeInsets.all(20),
-                  child: CircularProgressIndicator(),
+                  ],
                 ),
-              );
-            }
-
-            if (snapshot.hasError) {
-              return Text(
-                snapshot.error.toString(),
-              );
-            }
-
-            final comparison = (
-              snapshot.data?['comparison'] ??
-              ''
-            ).toString();
-
-            return Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: SelectableText(
-                  comparison.isEmpty
-                      ? 'No comparison available.'
-                      : comparison,
+                const SizedBox(height: 16),
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton.icon(
+                    key: const ValueKey('weekly-review-save'),
+                    onPressed: busy ? null : _saveSnapshot,
+                    icon: _saving
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.save_outlined),
+                    label: Text(_saving ? 'Saving...' : 'Save Weekly Snapshot'),
+                  ),
                 ),
+              ],
+            ),
+          ),
+
+          if (_error != null) ...[
+            const SizedBox(height: 16),
+            AppStatusMessage(
+              title: 'Weekly Review action unavailable',
+              message: _error!,
+              icon: Icons.error_outline,
+            ),
+          ],
+
+          const SizedBox(height: 28),
+
+          const AppSectionTitle(
+            title: 'Current Review',
+            subtitle: 'A summary of the recovery activity currently recorded for this week.',
+          ),
+
+          _TextFutureCard(
+            future: _currentFuture,
+            responseKey: 'review',
+            emptyMessage: 'No weekly review is available yet.',
+            errorTitle: 'Unable to load current review',
+          ),
+
+          const SizedBox(height: 28),
+
+          const AppSectionTitle(
+            title: 'Optional AI Reflection',
+            subtitle: 'AI is available as a reflection aid, not as a replacement for your sponsor, fellowship, therapist, clergy, or Higher Power.',
+          ),
+
+          AppSectionCard(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(Icons.auto_awesome_outlined),
+                    SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        'AI reflection only runs when you explicitly request it.',
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    key: const ValueKey('weekly-review-ai-button'),
+                    onPressed: busy ? null : _generateAiReflection,
+                    icon: _reflecting
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.psychology_alt_outlined),
+                    label: Text(
+                      _reflecting ? 'Reflecting...' : 'Reflect with AI',
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          if (_reflection != null) ...[
+            const SizedBox(height: 16),
+            AppSectionCard(
+              key: const ValueKey('weekly-review-ai-reflection'),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'AI Reflection',
+                    style: Theme.of(context).textTheme.titleMedium
+                        ?.copyWith(fontWeight: FontWeight.w600),
+                  ),
+                  const SizedBox(height: 10),
+                  SelectableText(_reflection!),
+                ],
               ),
-            );
-          },
-        ),
+            ),
+          ],
 
-        const SizedBox(height: 20),
+          const SizedBox(height: 28),
 
-        OutlinedButton.icon(
-          onPressed: busy
-              ? null
-              : _loadAll,
-          icon: const Icon(
-            Icons.refresh,
+          const AppSectionTitle(
+            title: 'Saved History',
+            subtitle: 'Recent snapshots of your weekly recovery activity.',
           ),
-          label: const Text(
-            'Refresh',
+
+          _WeeklyHistoryCard(future: _historyFuture),
+
+          const SizedBox(height: 28),
+
+          const AppSectionTitle(
+            title: 'Latest Comparison',
+            subtitle: 'Look for patterns between saved weeks without judging the result.',
           ),
-        ),
-      ],
+
+          _TextFutureCard(
+            future: _comparisonFuture,
+            responseKey: 'comparison',
+            emptyMessage: 'Save at least two weekly reviews to compare them.',
+            errorTitle: 'Unable to load comparison',
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _TextFutureCard extends StatelessWidget {
+  const _TextFutureCard({
+    required this.future,
+    required this.responseKey,
+    required this.emptyMessage,
+    required this.errorTitle,
+  });
+
+  final Future<Map<String, dynamic>> future;
+  final String responseKey;
+  final String emptyMessage;
+  final String errorTitle;
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<Map<String, dynamic>>(
+      future: future,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const AppSectionCard(
+            child: Center(
+              child: Padding(
+                padding: EdgeInsets.all(12),
+                child: CircularProgressIndicator(),
+              ),
+            ),
+          );
+        }
+
+        if (snapshot.hasError) {
+          return AppStatusMessage(
+            title: errorTitle,
+            message: 'Recovery Companion could not load this section. Pull down to try again.',
+            icon: Icons.cloud_off_outlined,
+          );
+        }
+
+        final text = (snapshot.data?[responseKey] ?? '').toString().trim();
+
+        return AppSectionCard(
+          child: SelectableText(text.isEmpty ? emptyMessage : text),
+        );
+      },
+    );
+  }
+}
+
+class _WeeklyHistoryCard extends StatelessWidget {
+  const _WeeklyHistoryCard({required this.future});
+
+  final Future<Map<String, dynamic>> future;
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<Map<String, dynamic>>(
+      future: future,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const AppSectionCard(
+            child: Center(
+              child: Padding(
+                padding: EdgeInsets.all(12),
+                child: CircularProgressIndicator(),
+              ),
+            ),
+          );
+        }
+
+        if (snapshot.hasError) {
+          return const AppStatusMessage(
+            title: 'Unable to load weekly history',
+            message: 'Recovery Companion could not load saved weekly reviews. Pull down to try again.',
+            icon: Icons.cloud_off_outlined,
+          );
+        }
+
+        final rawHistory = snapshot.data?['history'];
+
+        final history = rawHistory is List
+            ? rawHistory.whereType<Map<String, dynamic>>().toList()
+            : <Map<String, dynamic>>[];
+
+        if (history.isEmpty) {
+          return const AppStatusMessage(
+            title: 'No saved weekly reviews yet',
+            message: 'Save a weekly snapshot when you want to begin building a history.',
+            icon: Icons.history_outlined,
+          );
+        }
+
+        final recent = history.reversed.take(5).toList();
+
+        return AppSectionCard(
+          padding: EdgeInsets.zero,
+          child: Column(
+            children: [
+              for (var index = 0; index < recent.length; index++) ...[
+                _HistoryTile(item: recent[index]),
+                if (index < recent.length - 1)
+                  const Divider(height: 1, indent: 68),
+              ],
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _HistoryTile extends StatelessWidget {
+  const _HistoryTile({required this.item});
+
+  final Map<String, dynamic> item;
+
+  @override
+  Widget build(BuildContext context) {
+    final start = (item['week_start'] ?? '?').toString();
+
+    final end = (item['week_end'] ?? '?').toString();
+
+    final checkinDays = item['checkin_days'] ?? 0;
+
+    final journalEntries = item['journal_entries'] ?? 0;
+
+    return ListTile(
+      leading: const CircleAvatar(child: Icon(Icons.calendar_today_outlined)),
+      title: Text('$start to $end'),
+      subtitle: Text(
+        '$checkinDays check-in days '
+        '\u2022 $journalEntries journal entries',
+      ),
     );
   }
 }
