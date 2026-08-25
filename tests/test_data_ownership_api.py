@@ -84,3 +84,71 @@ def test_data_export_requires_authentication():
     )
 
     assert response.status_code == 401
+
+
+@patch("app.api.delete_all_recovery_data")
+def test_data_deletion_requires_exact_confirmation(
+    mock_delete_all_recovery_data,
+):
+    mock_delete_all_recovery_data.side_effect = (
+        ValueError(
+            "Confirmation phrase does not match."
+        )
+    )
+
+    response = client.request(
+        "DELETE",
+        "/data-ownership",
+        headers=auth_headers(),
+        json={
+            "confirmation": "delete my recovery data",
+        },
+    )
+
+    assert response.status_code == 400
+    assert response.json()["detail"] == (
+        "Confirmation phrase does not match."
+    )
+
+
+@patch("app.api.delete_all_recovery_data")
+def test_data_deletion_returns_deleted_counts(
+    mock_delete_all_recovery_data,
+):
+    mock_delete_all_recovery_data.return_value = {
+        "deleted": True,
+        "deleted_data_files": 9,
+        "deleted_backup_files": 2,
+    }
+
+    response = client.request(
+        "DELETE",
+        "/data-ownership",
+        headers=auth_headers(),
+        json={
+            "confirmation": (
+                "DELETE MY RECOVERY DATA"
+            ),
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "deleted": True,
+        "deleted_data_files": 9,
+        "deleted_backup_files": 2,
+    }
+
+
+def test_data_deletion_requires_authentication():
+    response = client.request(
+        "DELETE",
+        "/data-ownership",
+        json={
+            "confirmation": (
+                "DELETE MY RECOVERY DATA"
+            ),
+        },
+    )
+
+    assert response.status_code == 401
