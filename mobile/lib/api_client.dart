@@ -83,6 +83,39 @@ class ApiClient {
     );
   }
 
+
+  // ============================================================
+  // Data Ownership
+  // ============================================================
+
+  Future<Map<String, dynamic>> exportRecoveryData() async {
+    return _getJson(
+      '/data-ownership/export',
+      authenticated: true,
+    );
+  }
+
+  Future<Map<String, dynamic>> deleteRecoveryData({
+    required String confirmation,
+  }) async {
+    final response = await _httpClient.delete(
+      Uri.parse(
+        '$baseUrl/data-ownership',
+      ),
+      headers: {
+        ...authenticatedHeaders,
+        'Content-Type': 'application/json',
+      },
+      body: jsonEncode({
+        'confirmation': confirmation,
+      }),
+    );
+
+    return _handleJsonResponse(
+      response,
+    );
+  }
+
   // ============================================================
   // Chat
   // ============================================================
