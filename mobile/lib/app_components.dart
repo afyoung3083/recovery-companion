@@ -130,10 +130,16 @@ class AppStatusMessage extends StatelessWidget {
 }
 
 class AppSectionTitle extends StatelessWidget {
-  const AppSectionTitle({required this.title, this.subtitle, super.key});
+  const AppSectionTitle({
+    required this.title,
+    this.subtitle,
+    this.titleColor,
+    super.key,
+  });
 
   final String title;
   final String? subtitle;
+  final Color? titleColor;
 
   @override
   Widget build(BuildContext context) {
@@ -145,7 +151,7 @@ class AppSectionTitle extends StatelessWidget {
           Text(
             title,
             style: Theme.of(context).textTheme.titleLarge
-                ?.copyWith(fontWeight: FontWeight.w600),
+                ?.copyWith(fontWeight: FontWeight.w600, color: titleColor),
           ),
           if (subtitle != null) ...[
             const SizedBox(height: 4),

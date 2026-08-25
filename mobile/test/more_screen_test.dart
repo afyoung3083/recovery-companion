@@ -63,6 +63,8 @@ void main() {
 
     expect(find.text('Profile'), findsOneWidget);
 
+    expect(find.text('Settings & Privacy'), findsOneWidget);
+
     apiClient.close();
   });
 }
