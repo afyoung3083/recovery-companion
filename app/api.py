@@ -4,6 +4,8 @@ from fastapi import Depends, FastAPI, HTTPException
 from pydantic import BaseModel
 
 from app.auth import require_api_token
+from app.backup import build_backup_payload
+from app.data_ownership import delete_all_recovery_data
 from app.dashboard import (
     build_dashboard,
     get_dashboard_data,
@@ -88,6 +90,10 @@ app = FastAPI(
 
 class ProfileSobrietyDateRequest(BaseModel):
     sobriety_date: str
+
+
+class DataDeletionRequest(BaseModel):
+    confirmation: str
 
 
 class DailyCheckInRequest(BaseModel):
@@ -555,6 +561,57 @@ def update_routine_active(
     return {
         "routine": routine,
     }
+# ============================================================
+# Data Ownership
+# ============================================================
+
+@app.get(
+    "/data-ownership/export",
+    dependencies=[
+        Depends(require_api_token)
+    ],
+)
+def export_recovery_data() -> dict[str, object]:
+    """
+    Return a complete user-owned export of local recovery data.
+
+    The export uses the existing Recovery Companion backup format,
+    including its integrity hash. This endpoint does not create an
+    additional server-side backup file.
+    """
+
+    return {
+        "export": build_backup_payload(),
+    }
+
+
+@app.delete(
+    "/data-ownership",
+    dependencies=[
+        Depends(require_api_token)
+    ],
+)
+def delete_recovery_data(
+    request: DataDeletionRequest,
+) -> dict[str, object]:
+    """
+    Permanently delete local Recovery Companion recovery data.
+
+    An exact confirmation phrase is required. Recovery Companion
+    backups are deleted with the active recovery data.
+    """
+
+    try:
+        return delete_all_recovery_data(
+            request.confirmation
+        )
+    except ValueError as error:
+        raise HTTPException(
+            status_code=400,
+            detail=str(error),
+        ) from error
+
+
 # ============================================================
 # Synchronization
 # ============================================================

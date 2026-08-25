@@ -8,6 +8,7 @@ import 'fellowship_screen.dart';
 import 'journal_screen.dart';
 import 'monthly_review_screen.dart';
 import 'profile_screen.dart';
+import 'settings_privacy_screen.dart';
 import 'step_work_screen.dart';
 import 'weekly_review_screen.dart';
 
@@ -172,6 +173,18 @@ class MoreScreen extends StatelessWidget {
                   context,
                   title: 'Profile',
                   child: ProfileScreen(apiClient: apiClient),
+                );
+              },
+            ),
+            _ToolTile(
+              icon: Icons.privacy_tip_outlined,
+              title: 'Settings & Privacy',
+              subtitle: 'Export or permanently delete your recovery data.',
+              onTap: () {
+                _open(
+                  context,
+                  title: 'Settings & Privacy',
+                  child: SettingsPrivacyScreen(apiClient: apiClient),
                 );
               },
             ),
