@@ -4,6 +4,7 @@ from fastapi import Depends, FastAPI, HTTPException
 from pydantic import BaseModel
 
 from app.auth import require_api_token
+from app.backup import build_backup_payload
 from app.dashboard import (
     build_dashboard,
     get_dashboard_data,
@@ -555,6 +556,30 @@ def update_routine_active(
     return {
         "routine": routine,
     }
+# ============================================================
+# Data Ownership
+# ============================================================
+
+@app.get(
+    "/data-ownership/export",
+    dependencies=[
+        Depends(require_api_token)
+    ],
+)
+def export_recovery_data() -> dict[str, object]:
+    """
+    Return a complete user-owned export of local recovery data.
+
+    The export uses the existing Recovery Companion backup format,
+    including its integrity hash. This endpoint does not create an
+    additional server-side backup file.
+    """
+
+    return {
+        "export": build_backup_payload(),
+    }
+
+
 # ============================================================
 # Synchronization
 # ============================================================
