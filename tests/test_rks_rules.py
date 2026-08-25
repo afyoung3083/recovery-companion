@@ -1,4 +1,6 @@
 from tests.rks_rules import (
+    contains_no_intermediate_future_step_numbers,
+    has_exactly_one_numbered_action,
     has_no_more_than_three_numbered_actions,
     human_connection_is_first_action,
 )
@@ -121,6 +123,77 @@ Observations:
 
     assert (
         human_connection_is_first_action(
+            response
+        ).passed
+        is True
+    )
+
+
+def test_exactly_one_action_accepts_one_action():
+    response = """
+Next-right actions
+
+1. Call your sponsor today.
+
+After that conversation, focus on what comes next.
+"""
+
+    assert (
+        has_exactly_one_numbered_action(
+            response
+        ).passed
+        is True
+    )
+
+
+def test_exactly_one_action_rejects_skipped_numbering():
+    response = """
+Next-right actions
+
+1. Call your sponsor.
+3. Write questions about future amends.
+"""
+
+    assert (
+        has_exactly_one_numbered_action(
+            response
+        ).passed
+        is False
+    )
+
+
+def test_future_step_rule_rejects_intermediate_roadmap():
+    response = """
+Don't jump to Step 9.
+
+Next-right actions
+
+1. Call your sponsor.
+
+Then do Steps 6 and 7 and build a Step 8 list.
+"""
+
+    assert (
+        contains_no_intermediate_future_step_numbers(
+            response
+        ).passed
+        is False
+    )
+
+
+def test_future_step_rule_allows_current_and_named_target():
+    response = """
+Don't jump from Step 5 to Step 9 on your own.
+
+Next-right actions
+
+1. Call your sponsor and review where you are on Step 5.
+
+After that, focus on what comes next.
+"""
+
+    assert (
+        contains_no_intermediate_future_step_numbers(
             response
         ).passed
         is True

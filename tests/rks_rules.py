@@ -422,6 +422,136 @@ def has_no_more_than_three_numbered_actions(
     )
 
 
+
+def has_exactly_one_numbered_action(
+    response: str,
+) -> RuleResult:
+    """
+    Require ordinary chat to contain exactly one action under the
+    explicit Next-right actions heading.
+
+    This intentionally detects malformed numbering such as 1 then 3
+    rather than allowing the parser to silently stop at the gap.
+    """
+
+    lines = normalize_text(response).splitlines()
+
+    heading_index = None
+
+    for index, line in enumerate(lines):
+        heading = re.sub(
+            r"[*_`]",
+            "",
+            line.strip()
+            .lstrip("#")
+            .strip(),
+        ).rstrip(":").strip().lower()
+
+        if heading in {
+            "next-right actions",
+            "next right actions",
+        }:
+            heading_index = index
+            break
+
+    if heading_index is None:
+        return RuleResult(
+            rule="has_exactly_one_numbered_action",
+            passed=False,
+            detail="Could not find the Next-right actions section.",
+        )
+
+    numbered_items: list[int] = []
+    bullet_items = 0
+
+    for line in lines[
+        heading_index + 1:
+    ]:
+        stripped = line.strip()
+
+        numbered_match = re.match(
+            r"^(\d+)[.)]\s+",
+            stripped,
+        )
+
+        if numbered_match:
+            numbered_items.append(
+                int(numbered_match.group(1))
+            )
+            continue
+
+        if re.match(
+            r"^[-*]\s+",
+            stripped,
+        ):
+            bullet_items += 1
+
+    total_items = (
+        len(numbered_items)
+        + bullet_items
+    )
+
+    passed = (
+        total_items == 1
+        and numbered_items == [1]
+    )
+
+    return RuleResult(
+        rule="has_exactly_one_numbered_action",
+        passed=passed,
+        detail=(
+            "Found exactly one correctly numbered action."
+            if passed
+            else (
+                "Expected exactly one action numbered 1; "
+                f"found numbered={numbered_items}, "
+                f"bullets={bullet_items}."
+            )
+        ),
+    )
+
+
+def contains_no_intermediate_future_step_numbers(
+    response: str,
+) -> RuleResult:
+    """
+    For the Step-5 jump-ahead regression, reject personalized
+    roadmaps that introduce intermediate Steps 6, 7, or 8.
+    """
+
+    normalized = normalize_text(
+        response
+    ).lower()
+
+    pattern = (
+        r"\bstep(?:s)?\s+"
+        r"(?:6|7|8|six|seven|eight)\b"
+    )
+
+    matches = re.findall(
+        pattern,
+        normalized,
+    )
+
+    passed = not matches
+
+    return RuleResult(
+        rule=(
+            "contains_no_intermediate_"
+            "future_step_numbers"
+        ),
+        passed=passed,
+        detail=(
+            "No intermediate future Step roadmap was found."
+            if passed
+            else (
+                "Found intermediate future Step references: "
+                f"{', '.join(matches)}."
+            )
+        ),
+    )
+
+
 def human_connection_is_first_action(
     response: str,
 ) -> RuleResult:
@@ -657,6 +787,12 @@ RULES: dict[str, RuleCheck] = {
     ),
     "has_no_more_than_three_numbered_actions": (
         has_no_more_than_three_numbered_actions
+    ),
+    "has_exactly_one_numbered_action": (
+        has_exactly_one_numbered_action
+    ),
+    "contains_no_intermediate_future_step_numbers": (
+        contains_no_intermediate_future_step_numbers
     ),
     "human_connection_is_first_action": (
         human_connection_is_first_action

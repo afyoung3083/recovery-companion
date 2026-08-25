@@ -1,12 +1,10 @@
 import 'package:flutter/material.dart';
 
 import 'api_client.dart';
+import 'app_components.dart';
 
 class InsightsScreen extends StatefulWidget {
-  const InsightsScreen({
-    required this.apiClient,
-    super.key,
-  });
+  const InsightsScreen({required this.apiClient, super.key});
 
   final ApiClient apiClient;
 
@@ -33,14 +31,30 @@ class _InsightsScreenState extends State<InsightsScreen> {
     });
   }
 
+  Future<void> _refreshAsync() async {
+    final future = widget.apiClient.getRecoveryInsights();
+
+    setState(() {
+      _insightsFuture = future;
+    });
+
+    await future;
+  }
+
+  Map<String, dynamic> _asMap(dynamic value) {
+    if (value is Map<String, dynamic>) {
+      return value;
+    }
+
+    return const <String, dynamic>{};
+  }
+
   Future<void> _analyzeRecoveryInsights() async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) {
         return AlertDialog(
-          title: const Text(
-            'Analyze Recovery Insights?',
-          ),
+          title: const Text('Analyze Recovery Insights?'),
           content: const Text(
             'Recovery Companion will build your current Recovery '
             'Insights summary locally and send only that summary to '
@@ -54,17 +68,13 @@ class _InsightsScreenState extends State<InsightsScreen> {
               onPressed: () {
                 Navigator.of(dialogContext).pop(false);
               },
-              child: const Text(
-                'Cancel',
-              ),
+              child: const Text('Cancel'),
             ),
             FilledButton(
               onPressed: () {
                 Navigator.of(dialogContext).pop(true);
               },
-              child: const Text(
-                'Analyze Insights',
-              ),
+              child: const Text('Analyze Insights'),
             ),
           ],
         );
@@ -82,17 +92,13 @@ class _InsightsScreenState extends State<InsightsScreen> {
     });
 
     try {
-      final result =
-          await widget.apiClient.getRecoveryInsightsAiReflection();
+      final result = await widget.apiClient.getRecoveryInsightsAiReflection();
 
       if (!mounted) {
         return;
       }
 
-      final reflection = (
-        result['reflection'] ??
-        ''
-      ).toString().trim();
+      final reflection = (result['reflection'] ?? '').toString().trim();
 
       setState(() {
         _aiReflection = reflection.isEmpty
@@ -105,9 +111,7 @@ class _InsightsScreenState extends State<InsightsScreen> {
       }
 
       setState(() {
-        _aiError =
-            'Unable to generate Recovery Insights reflection. '
-            'Please try again.';
+        _aiError = 'Unable to generate a Recovery Insights reflection. Please try again.';
       });
     } finally {
       if (mounted) {
@@ -124,163 +128,270 @@ class _InsightsScreenState extends State<InsightsScreen> {
       future: _insightsFuture,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(
-            child: CircularProgressIndicator(),
-          );
+          return const Center(child: CircularProgressIndicator());
         }
 
         if (snapshot.hasError) {
-          return Center(
-            child: Padding(
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(
-                    Icons.cloud_off_outlined,
-                    size: 48,
-                  ),
-                  const SizedBox(height: 16),
-                  const Text(
-                    'Unable to load Recovery Insights',
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    snapshot.error.toString(),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 16),
-                  FilledButton(
-                    onPressed: _refresh,
-                    child: const Text('Retry'),
-                  ),
-                ],
+          return ListView(
+            padding: const EdgeInsets.all(20),
+            children: [
+              const AppPageHeader(
+                title: 'Recovery Insights',
+                subtitle: 'A wider view of your recovery activity.',
+                icon: Icons.insights_outlined,
               ),
-            ),
+              AppStatusMessage(
+                title: 'Unable to load Recovery Insights',
+                message: 'Recovery Companion could not load your recovery information.',
+                icon: Icons.cloud_off_outlined,
+                actionLabel: 'Retry',
+                onAction: _refresh,
+              ),
+            ],
           );
         }
 
-        final data = snapshot.data ?? const {};
-        final insights = (
-          data['recovery_insights'] ??
-          'No Recovery Insights available.'
-        ).toString();
+        final response = snapshot.data ?? const {};
 
-        return RefreshIndicator(
-          onRefresh: () async {
-            final future = widget.apiClient.getRecoveryInsights();
+        final insights = _asMap(response['recovery_insights_data']);
 
-            setState(() {
-              _insightsFuture = future;
-            });
-
-            await future;
-          },
-          child: ListView(
+        if (insights.isEmpty) {
+          return ListView(
             padding: const EdgeInsets.all(20),
             children: [
-              Text(
-                'Recovery Insights',
-                style: Theme.of(context)
-                    .textTheme
-                    .headlineMedium,
+              const AppPageHeader(
+                title: 'Recovery Insights',
+                subtitle: 'A wider view of your recovery activity.',
+                icon: Icons.insights_outlined,
               ),
-              const SizedBox(height: 20),
-              SelectableText(
-                insights,
-                key: const ValueKey(
-                  'recovery-insights-summary',
-                ),
-                style: Theme.of(context)
-                    .textTheme
-                    .bodyLarge,
+              AppStatusMessage(
+                title: 'Insights unavailable',
+                message:
+                    'No structured Recovery Insights information was returned.',
+                icon: Icons.info_outline,
+                actionLabel: 'Refresh',
+                onAction: _refresh,
+              ),
+            ],
+          );
+        }
+
+        final sobrietyDays = insights['sobriety_days'];
+
+        final sobrietyDate = (insights['sobriety_date'] ?? '').toString();
+
+        final currentStep = insights['current_step'] ?? 1;
+
+        final openAssignments = insights['open_step_assignments'] ?? 0;
+
+        final activeGoals = insights['active_recovery_goals'] ?? 0;
+
+        final checkinDays = insights['checkin_days_available'] ?? 0;
+
+        final checkinWindow = insights['checkin_window_days'] ?? 7;
+
+        final weekly = _asMap(insights['latest_weekly_snapshot']);
+
+        final monthly = _asMap(insights['latest_monthly_snapshot']);
+
+        return RefreshIndicator(
+          onRefresh: _refreshAsync,
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(20, 20, 20, 32),
+            children: [
+              const AppPageHeader(
+                title: 'Recovery Insights',
+                subtitle:
+                    'Notice patterns without turning recovery into a score.',
+                icon: Icons.insights_outlined,
+              ),
+
+              Column(
+                key: const ValueKey('recovery-insights-summary'),
+                children: [
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: _InsightMetric(
+                          icon: Icons.wb_sunny_outlined,
+                          label: 'Sobriety',
+                          value: sobrietyDays == null
+                              ? 'Not set'
+                              : '$sobrietyDays days',
+                          detail: sobrietyDate.isEmpty
+                              ? 'Sobriety date'
+                              : 'Since $sobrietyDate',
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: _InsightMetric(
+                          icon: Icons.format_list_numbered,
+                          label: 'Step Work',
+                          value: 'Step $currentStep',
+                          detail: '$openAssignments open assignments',
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: _InsightMetric(
+                          icon: Icons.check_circle_outline,
+                          label: 'Check-Ins',
+                          value: '$checkinDays of $checkinWindow',
+                          detail: 'recent days available',
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: _InsightMetric(
+                          icon: Icons.flag_outlined,
+                          label: 'Goals',
+                          value: '$activeGoals active',
+                          detail: 'recovery goals',
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ),
 
               const SizedBox(height: 28),
-              const Divider(),
-              const SizedBox(height: 20),
 
-              Text(
-                'AI Reflection',
-                style: Theme.of(context)
-                    .textTheme
-                    .titleLarge,
+              const AppSectionTitle(
+                title: 'Weekly View',
+                subtitle: 'Your most recent saved weekly review.',
               ),
 
-              const SizedBox(height: 8),
-
-              const Text(
-                'AI reflection is optional. Recovery Companion sends '
-                'only the locally built Recovery Insights summary '
-                'when you explicitly confirm.',
-              ),
-
-              const SizedBox(height: 16),
-
-              OutlinedButton.icon(
-                key: const ValueKey(
-                  'recovery-insights-ai',
+              if (weekly.isEmpty)
+                const AppStatusMessage(
+                  title: 'No weekly review saved yet',
+                  message:
+                      'A saved weekly review will appear here when available.',
+                  icon: Icons.calendar_view_week_outlined,
+                )
+              else
+                _ReviewSnapshotCard(
+                  icon: Icons.calendar_view_week_outlined,
+                  title: 'Latest Weekly Review',
+                  period: _weeklyPeriod(weekly),
+                  metrics: [
+                    '${weekly['checkin_days'] ?? 0} check-in days',
+                    '${weekly['journal_entries'] ?? 0} journal entries',
+                  ],
                 ),
-                onPressed: _analyzing
-                    ? null
-                    : _analyzeRecoveryInsights,
-                icon: _analyzing
-                    ? const SizedBox(
-                        width: 18,
-                        height: 18,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
+
+              const SizedBox(height: 28),
+
+              const AppSectionTitle(
+                title: 'Monthly View',
+                subtitle: 'Your most recent rolling recovery snapshot.',
+              ),
+
+              if (monthly.isEmpty)
+                const AppStatusMessage(
+                  title: 'No monthly review saved yet',
+                  message:
+                      'A saved monthly review will appear here when available.',
+                  icon: Icons.calendar_month_outlined,
+                )
+              else
+                _ReviewSnapshotCard(
+                  icon: Icons.calendar_month_outlined,
+                  title: 'Latest Monthly Review',
+                  period: _monthlyPeriod(monthly),
+                  metrics: [
+                    '${monthly['weekly_reviews_included'] ?? 0} of 4 weekly reviews',
+                    '${monthly['checkin_days'] ?? 0} check-in days',
+                    '${monthly['journal_entries'] ?? 0} journal entries',
+                  ],
+                ),
+
+              const SizedBox(height: 28),
+
+              const AppSectionTitle(
+                title: 'AI Reflection',
+                subtitle: 'Optional perspective, only when you choose to send the summary.',
+              ),
+
+              AppSectionCard(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Icon(
+                          Icons.privacy_tip_outlined,
+                          color: Theme.of(context).colorScheme.primary,
                         ),
-                      )
-                    : const Icon(
-                        Icons.auto_awesome_outlined,
+                        const SizedBox(width: 12),
+                        const Expanded(
+                          child: Text(
+                            'Only the locally built Insights summary is sent after you confirm. Raw journal entries and check-in notes are not included.',
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        key: const ValueKey('recovery-insights-ai'),
+                        onPressed: _analyzing ? null : _analyzeRecoveryInsights,
+                        icon: _analyzing
+                            ? const SizedBox(
+                                width: 18,
+                                height: 18,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : const Icon(Icons.auto_awesome_outlined),
+                        label: Text(
+                          _analyzing
+                              ? 'Generating Reflection...'
+                              : 'Reflect on Recovery Insights',
+                        ),
                       ),
-                label: Text(
-                  _analyzing
-                      ? 'Generating Reflection...'
-                      : 'Reflect on Recovery Insights',
+                    ),
+                  ],
                 ),
               ),
 
               if (_aiError != null) ...[
                 const SizedBox(height: 16),
-                Text(
-                  _aiError!,
-                  key: const ValueKey(
-                    'recovery-insights-ai-error',
-                  ),
-                  style: TextStyle(
-                    color: Theme.of(context)
-                        .colorScheme
-                        .error,
-                  ),
+                AppStatusMessage(
+                  title: 'Reflection unavailable',
+                  message: _aiError!,
+                  icon: Icons.error_outline,
                 ),
               ],
 
               if (_aiReflection != null) ...[
                 const SizedBox(height: 16),
-                Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment:
-                          CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Recovery Companion Reflection',
-                          style: Theme.of(context)
-                              .textTheme
-                              .titleMedium,
-                        ),
-                        const SizedBox(height: 12),
-                        SelectableText(
-                          _aiReflection!,
-                          key: const ValueKey(
-                            'recovery-insights-ai-reflection',
-                          ),
-                        ),
-                      ],
-                    ),
+                AppSectionCard(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Recovery Companion Reflection',
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(fontWeight: FontWeight.w600),
+                      ),
+                      const SizedBox(height: 12),
+                      SelectableText(
+                        _aiReflection!,
+                        key: const ValueKey('recovery-insights-ai-reflection'),
+                        style: Theme.of(context).textTheme.bodyLarge
+                            ?.copyWith(height: 1.45),
+                      ),
+                    ],
                   ),
                 ),
               ],
@@ -288,6 +399,133 @@ class _InsightsScreenState extends State<InsightsScreen> {
           ),
         );
       },
+    );
+  }
+
+  static String _weeklyPeriod(Map<String, dynamic> snapshot) {
+    final start = (snapshot['week_start'] ?? '').toString();
+
+    final end = (snapshot['week_end'] ?? '').toString();
+
+    if (start.isEmpty && end.isEmpty) {
+      return 'Saved weekly snapshot';
+    }
+
+    return '$start ? $end';
+  }
+
+  static String _monthlyPeriod(Map<String, dynamic> snapshot) {
+    final start = (snapshot['period_start'] ?? '').toString();
+
+    final end = (snapshot['period_end'] ?? '').toString();
+
+    if (start.isEmpty && end.isEmpty) {
+      return (snapshot['snapshot_date'] ?? 'Saved monthly snapshot').toString();
+    }
+
+    return '$start ? $end';
+  }
+}
+
+class _InsightMetric extends StatelessWidget {
+  const _InsightMetric({
+    required this.icon,
+    required this.label,
+    required this.value,
+    required this.detail,
+  });
+
+  final IconData icon;
+  final String label;
+  final String value;
+  final String detail;
+
+  @override
+  Widget build(BuildContext context) {
+    return AppSectionCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, color: Theme.of(context).colorScheme.primary),
+          const SizedBox(height: 14),
+          Text(
+            label,
+            style: Theme.of(context).textTheme.labelLarge?.copyWith(
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
+          ),
+          const SizedBox(height: 5),
+          Text(
+            value,
+            style: Theme.of(context).textTheme.titleLarge
+                ?.copyWith(fontWeight: FontWeight.w700),
+          ),
+          const SizedBox(height: 4),
+          Text(detail, style: Theme.of(context).textTheme.bodySmall),
+        ],
+      ),
+    );
+  }
+}
+
+class _ReviewSnapshotCard extends StatelessWidget {
+  const _ReviewSnapshotCard({
+    required this.icon,
+    required this.title,
+    required this.period,
+    required this.metrics,
+  });
+
+  final IconData icon;
+  final String title;
+  final String period;
+  final List<String> metrics;
+
+  @override
+  Widget build(BuildContext context) {
+    return AppSectionCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 42,
+                height: 42,
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.secondaryContainer,
+                  borderRadius: BorderRadius.circular(13),
+                ),
+                child: Icon(
+                  icon,
+                  color: Theme.of(context).colorScheme.onSecondaryContainer,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: Theme.of(context).textTheme.titleMedium
+                          ?.copyWith(fontWeight: FontWeight.w600),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(period, style: Theme.of(context).textTheme.bodySmall),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [for (final metric in metrics) Chip(label: Text(metric))],
+          ),
+        ],
+      ),
     );
   }
 }

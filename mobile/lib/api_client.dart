@@ -469,6 +469,33 @@ class ApiClient {
     );
   }
 
+  Future<Map<String, dynamic>> updateFellowshipContact({
+    required int contactId,
+    required String handle,
+    required String contactType,
+    String contactMethod = '',
+    String notes = '',
+  }) async {
+    final response = await _httpClient.put(
+      Uri.parse(
+        '$baseUrl/fellowship/$contactId',
+      ),
+      headers: {
+        ...authenticatedHeaders,
+        'Content-Type': 'application/json',
+      },
+      body: jsonEncode({
+        'handle': handle,
+        'contact_type': contactType,
+        'contact_method': contactMethod,
+        'notes': notes,
+      }),
+    );
+
+    return _handleJsonResponse(
+      response,
+    );
+  }
   Future<Map<String, dynamic>> setFellowshipContactActive({
     required int contactId,
     required bool active,

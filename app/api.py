@@ -4,7 +4,10 @@ from fastapi import Depends, FastAPI, HTTPException
 from pydantic import BaseModel
 
 from app.auth import require_api_token
-from app.dashboard import build_dashboard
+from app.dashboard import (
+    build_dashboard,
+    get_dashboard_data,
+)
 from app.daily_checkin import (
     format_checkin_history,
     format_checkin_trends,
@@ -24,7 +27,10 @@ from app.journal import (
     search_entries,
 )
 from app.profile import load_profile, set_sobriety_date
-from app.recovery_insights import build_recovery_insights
+from app.recovery_insights import (
+    build_recovery_insights,
+    get_recovery_insights_data,
+)
 from app.routines import (
     add_routine,
     get_active_routines,
@@ -43,6 +49,7 @@ from app.fellowship import (
     load_contacts,
     recommend_contacts,
     set_contact_active,
+    update_contact,
 )
 from app.weekly_review import (
     build_weekly_review,
@@ -165,11 +172,12 @@ def health() -> dict[str, str]:
         Depends(require_api_token)
     ],
 )
-def dashboard() -> dict[str, str]:
-    """Return the deterministic Daily Recovery Dashboard."""
+def dashboard() -> dict[str, object]:
+    """Return deterministic Dashboard text and structured data."""
 
     return {
         "dashboard": build_dashboard(),
+        "dashboard_data": get_dashboard_data(),
     }
 
 
@@ -235,9 +243,9 @@ def update_profile_sobriety_date(
         Depends(require_api_token)
     ],
 )
-def recovery_insights() -> dict[str, str]:
+def recovery_insights() -> dict[str, object]:
     """
-    Return the current deterministic Recovery Insights summary.
+    Return deterministic Recovery Insights text and structured data.
 
     Authentication is required because this endpoint exposes
     personal recovery data.
@@ -245,6 +253,7 @@ def recovery_insights() -> dict[str, str]:
 
     return {
         "recovery_insights": build_recovery_insights(),
+        "recovery_insights_data": get_recovery_insights_data(),
     }
 
 
@@ -925,6 +934,44 @@ def create_fellowship_contact(
         contact_method=request.contact_method,
         notes=request.notes,
     )
+
+    return {
+        "contact": contact,
+    }
+
+
+
+@app.put(
+    "/fellowship/{contact_id}",
+    dependencies=[
+        Depends(require_api_token)
+    ],
+)
+def update_fellowship_contact(
+    contact_id: int,
+    request: FellowshipContactRequest,
+) -> dict[str, object]:
+    """Update a fellowship contact."""
+
+    try:
+        contact = update_contact(
+            contact_id=contact_id,
+            handle=request.handle,
+            contact_type=request.contact_type,
+            contact_method=request.contact_method,
+            notes=request.notes,
+        )
+    except ValueError as error:
+        raise HTTPException(
+            status_code=400,
+            detail=str(error),
+        ) from error
+
+    if contact is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Fellowship contact not found.",
+        )
 
     return {
         "contact": contact,

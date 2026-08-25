@@ -1,5 +1,4 @@
 from datetime import date, datetime
-from datetime import date
 from typing import Any
 
 from app.fellowship import load_contacts, recommend_contacts
@@ -45,6 +44,120 @@ def get_open_assignments(
         )
     ]
 
+
+
+def get_dashboard_data() -> dict[str, Any]:
+    """Return structured deterministic Dashboard data."""
+
+    step_work = load_step_work()
+    journal_entries = load_entries()
+    contacts = load_contacts()
+    profile = load_profile()
+
+    current_step = step_work.get("current_step", 1)
+    open_assignments = get_open_assignments(step_work)
+    latest_entry = get_latest_journal_entry(journal_entries)
+    recommended_contacts = recommend_contacts(
+        contacts=contacts,
+        limit=3,
+    )
+
+    checkin = get_checkin_for_date(
+        date.today().isoformat()
+    )
+
+    if checkin is None:
+        checkin_data: dict[str, Any] = {
+            "saved": False,
+            "completed_count": 0,
+            "total": len(CHECKIN_FIELDS),
+            "note": "",
+        }
+    else:
+        checkin_data = {
+            "saved": True,
+            "completed_count": sum(
+                1
+                for field in CHECKIN_FIELDS
+                if checkin.get(field, False)
+            ),
+            "total": len(CHECKIN_FIELDS),
+            "note": str(
+                checkin.get("note", "")
+            ).strip(),
+        }
+
+    if latest_entry is None:
+        latest_entry_data = None
+    else:
+        latest_entry_data = {
+            "id": latest_entry.get("id"),
+            "created_at": latest_entry.get(
+                "created_at",
+                "",
+            ),
+            "text": latest_entry.get(
+                "text",
+                "",
+            ),
+        }
+
+    assignment_data = [
+        {
+            "id": assignment.get("id"),
+            "text": assignment.get(
+                "text",
+                "",
+            ),
+        }
+        for assignment in open_assignments
+    ]
+
+    contact_data = [
+        {
+            "id": contact.get("id"),
+            "handle": contact.get(
+                "handle",
+                "",
+            ),
+            "contact_type": contact.get(
+                "contact_type",
+                "",
+            ),
+            "contact_method": contact.get(
+                "contact_method",
+                "",
+            ),
+            "notes": contact.get(
+                "notes",
+                "",
+            ),
+            "active": contact.get(
+                "active",
+                True,
+            ),
+        }
+        for contact in recommended_contacts
+    ]
+
+    sobriety_date = profile.get(
+        "sobriety_date"
+    )
+
+    return {
+        "sobriety_date": sobriety_date,
+        "sobriety_days": calculate_sobriety_days(
+            sobriety_date
+        ),
+        "today_checkin": checkin_data,
+        "current_step": current_step,
+        "open_assignments": assignment_data,
+        "latest_journal_entry": latest_entry_data,
+        "recommended_contacts": contact_data,
+        "generated_at": datetime.now().isoformat(
+            timespec="seconds"
+        ),
+    }
 
 def build_dashboard() -> str:
     step_work = load_step_work()

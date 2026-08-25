@@ -74,6 +74,47 @@ def add_contact(
     return contact
 
 
+
+def update_contact(
+    contact_id: int,
+    handle: str,
+    contact_type: str,
+    contact_method: str = "",
+    notes: str = "",
+) -> dict[str, Any] | None:
+    """Update an existing fellowship contact."""
+
+    normalized_handle = handle.strip()
+    normalized_type = contact_type.strip().lower()
+
+    if not normalized_handle:
+        raise ValueError(
+            "Name or handle is required."
+        )
+
+    if normalized_type not in VALID_CONTACT_TYPES:
+        raise ValueError(
+            "Contact type must be sponsor, sponsee, dsr, fellowship, "
+            "therapist, clergy, family, or other."
+        )
+
+    contacts = load_contacts()
+
+    for contact in contacts:
+        if contact.get("id") == contact_id:
+            contact["handle"] = normalized_handle
+            contact["contact_type"] = normalized_type
+            contact["contact_method"] = (
+                contact_method.strip()
+            )
+            contact["notes"] = notes.strip()
+
+            save_contacts(contacts)
+            return contact
+
+    return None
+
+
 def set_contact_active(
     contact_id: int,
     active: bool,

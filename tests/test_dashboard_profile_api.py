@@ -31,13 +31,19 @@ def auth_headers() -> dict[str, str]:
     }
 
 
+@patch("app.api.get_dashboard_data")
 @patch("app.api.build_dashboard")
 def test_dashboard_returns_local_summary(
     mock_build_dashboard,
+    mock_get_dashboard_data,
 ):
     mock_build_dashboard.return_value = (
         "Daily Recovery Dashboard\nSobriety: 12 day(s)"
     )
+
+    mock_get_dashboard_data.return_value = {
+        "sobriety_days": 12,
+    }
 
     response = client.get(
         "/dashboard",
@@ -45,14 +51,20 @@ def test_dashboard_returns_local_summary(
     )
 
     assert response.status_code == 200
-    assert response.json() == {
-        "dashboard": (
-            "Daily Recovery Dashboard\n"
-            "Sobriety: 12 day(s)"
-        ),
+
+    body = response.json()
+
+    assert body["dashboard"] == (
+        "Daily Recovery Dashboard\n"
+        "Sobriety: 12 day(s)"
+    )
+
+    assert body["dashboard_data"] == {
+        "sobriety_days": 12,
     }
 
     mock_build_dashboard.assert_called_once_with()
+    mock_get_dashboard_data.assert_called_once_with()
 
 
 def test_dashboard_requires_authentication():

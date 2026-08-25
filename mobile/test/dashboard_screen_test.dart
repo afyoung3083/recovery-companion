@@ -5,159 +5,287 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:mobile/api_client.dart';
+import 'package:mobile/app_theme.dart';
 import 'package:mobile/dashboard_screen.dart';
+import 'package:mobile/daily_checkin_screen.dart';
+import 'package:mobile/journal_screen.dart';
+import 'package:mobile/profile_screen.dart';
+import 'package:mobile/step_work_screen.dart';
 
 void main() {
   const baseUrl = 'http://example.test';
   const token = 'test-token';
 
-  testWidgets(
-    'Dashboard shows deterministic recovery summary',
-    (tester) async {
-      final mockClient = MockClient((request) async {
-        expect(
-          request.method,
-          'GET',
-        );
-        expect(
-          request.url.path,
-          '/dashboard',
-        );
-        expect(
-          request.headers['Authorization'],
-          'Bearer $token',
-        );
+  Map<String, dynamic> dashboardResponse() {
+    return <String, dynamic>{
+      'dashboard': 'Legacy Dashboard text',
+      'dashboard_data': <String, dynamic>{
+        'sobriety_date': '2025-08-12',
+        'sobriety_days': 378,
+        'today_checkin': <String, dynamic>{
+          'saved': true,
+          'completed_count': 4,
+          'total': 6,
+          'note': 'Stayed connected today.',
+        },
+        'current_step': 8,
+        'open_assignments': <Map<String, dynamic>>[
+          <String, dynamic>{'id': 7, 'text': 'Review inventory.'},
+        ],
+        'latest_journal_entry': <String, dynamic>{
+          'id': 9,
+          'created_at': '2026-08-23T18:53:23',
+          'text': 'Recovery reflection.',
+        },
+        'recommended_contacts': <Map<String, dynamic>>[
+          <String, dynamic>{
+            'id': 2,
+            'handle': 'SponsorBob',
+            'contact_type': 'sponsor',
+            'contact_method': '555-0100',
+            'notes': 'Call when isolating.',
+            'active': true,
+          },
+          <String, dynamic>{
+            'id': 3,
+            'handle': 'RecoveryPeer',
+            'contact_type': 'recovery_peer',
+          },
+        ],
+        'generated_at': '2026-08-23T21:30:00',
+      },
+    };
+  }
 
-        return http.Response(
-          jsonEncode({
-            'dashboard':
-                'Daily Recovery Dashboard\n'
-                'Sobriety: 12 day(s)\n'
-                'Current Step: 4',
-          }),
-          200,
-        );
-      });
+  Widget appFor(ApiClient apiClient) {
+    return MaterialApp(
+      theme: AppTheme.light(),
+      home: Scaffold(body: DashboardScreen(apiClient: apiClient)),
+    );
+  }
 
-      final apiClient = ApiClient(
-        baseUrl: baseUrl,
-        apiToken: token,
-        httpClient: mockClient,
+  testWidgets('Dashboard renders structured recovery cards', (tester) async {
+    final mockClient = MockClient((request) async {
+      expect(request.method, 'GET');
+
+      expect(request.url.path, '/dashboard');
+
+      expect(request.headers['Authorization'], 'Bearer $token');
+
+      return http.Response(jsonEncode(dashboardResponse()), 200);
+    });
+
+    final apiClient = ApiClient(
+      baseUrl: baseUrl,
+      apiToken: token,
+      httpClient: mockClient,
+    );
+
+    await tester.pumpWidget(appFor(apiClient));
+
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey('dashboard-sobriety-card')),
+      findsOneWidget,
+    );
+
+    expect(find.text('378 days'), findsOneWidget);
+
+    expect(find.text('4 of 6'), findsOneWidget);
+
+    expect(find.text('Step 8'), findsOneWidget);
+
+    expect(find.text('Review inventory.'), findsOneWidget);
+
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('dashboard-latest-journal')),
+      250,
+    );
+
+    expect(find.text('Recovery reflection.'), findsOneWidget);
+
+    await tester.scrollUntilVisible(find.text('SponsorBob'), 250);
+
+    expect(find.text('SponsorBob'), findsOneWidget);
+
+    expect(find.text('Legacy Dashboard text'), findsNothing);
+
+    apiClient.close();
+  });
+
+  testWidgets('Dashboard handles empty recovery sections', (tester) async {
+    final response = dashboardResponse();
+
+    final data = response['dashboard_data'] as Map<String, dynamic>;
+
+    data['open_assignments'] = <Map<String, dynamic>>[];
+
+    data.remove('latest_journal_entry');
+
+    data['recommended_contacts'] = <Map<String, dynamic>>[];
+
+    final mockClient = MockClient((request) async {
+      return http.Response(jsonEncode(response), 200);
+    });
+
+    final apiClient = ApiClient(
+      baseUrl: baseUrl,
+      apiToken: token,
+      httpClient: mockClient,
+    );
+
+    await tester.pumpWidget(appFor(apiClient));
+
+    await tester.pumpAndSettle();
+
+    await tester.scrollUntilVisible(find.text('No open assignments').last, 250);
+
+    expect(find.text('No open assignments'), findsNWidgets(2));
+
+    await tester.scrollUntilVisible(find.text('No journal entries yet'), 250);
+
+    expect(find.text('No journal entries yet'), findsOneWidget);
+
+    await tester.scrollUntilVisible(find.text('No contacts available'), 250);
+
+    expect(find.text('No contacts available'), findsOneWidget);
+
+    apiClient.close();
+  });
+
+  testWidgets('Dashboard retry reloads after API failure', (tester) async {
+    var requestCount = 0;
+
+    final mockClient = MockClient((request) async {
+      requestCount += 1;
+
+      if (requestCount == 1) {
+        return http.Response('{}', 500);
+      }
+
+      return http.Response(jsonEncode(dashboardResponse()), 200);
+    });
+
+    final apiClient = ApiClient(
+      baseUrl: baseUrl,
+      apiToken: token,
+      httpClient: mockClient,
+    );
+
+    await tester.pumpWidget(appFor(apiClient));
+
+    await tester.pumpAndSettle();
+
+    expect(find.text('Unable to load Dashboard'), findsOneWidget);
+
+    await tester.tap(find.text('Retry'));
+
+    await tester.pumpAndSettle();
+
+    expect(requestCount, 2);
+
+    expect(find.text('378 days'), findsOneWidget);
+
+    apiClient.close();
+  });
+  testWidgets('Dashboard fellowship contact opens editable profile', (
+    tester,
+  ) async {
+    final mockClient = MockClient((request) async {
+      if (request.method == 'GET' && request.url.path == '/dashboard') {
+        return http.Response(jsonEncode(dashboardResponse()), 200);
+      }
+
+      throw StateError(
+        'Unexpected request: '
+        '${request.method} ${request.url}',
       );
+    });
 
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: DashboardScreen(
-              apiClient: apiClient,
-            ),
-          ),
-        ),
-      );
+    final apiClient = ApiClient(
+      baseUrl: baseUrl,
+      apiToken: token,
+      httpClient: mockClient,
+    );
 
-      await tester.pumpAndSettle();
+    await tester.pumpWidget(appFor(apiClient));
 
-      expect(
-        find.byKey(
-          const ValueKey(
-            'dashboard-summary',
-          ),
-        ),
-        findsOneWidget,
-      );
+    await tester.pumpAndSettle();
 
-      expect(
-        find.textContaining(
-          'Sobriety: 12 day(s)',
-        ),
-        findsOneWidget,
-      );
+    final contactTile = find.byKey(const ValueKey('dashboard-contact-2'));
 
-      expect(
-        find.textContaining(
-          'Current Step: 4',
-        ),
-        findsOneWidget,
-      );
+    await tester.scrollUntilVisible(contactTile, 250);
 
-      apiClient.close();
-    },
-  );
+    await tester.tap(contactTile);
+    await tester.pumpAndSettle();
 
-  testWidgets(
-    'Dashboard retry reloads after API failure',
-    (tester) async {
-      var requestCount = 0;
+    expect(
+      find.byKey(const ValueKey('contact-profile-screen')),
+      findsOneWidget,
+    );
 
-      final mockClient = MockClient((request) async {
-        requestCount += 1;
+    expect(find.text('555-0100'), findsOneWidget);
 
-        if (requestCount == 1) {
-          return http.Response(
-            '{}',
-            500,
-          );
-        }
+    apiClient.close();
+  });
+  testWidgets('Dashboard recovery cards open their destination screens', (
+    tester,
+  ) async {
+    final mockClient = MockClient((request) async {
+      if (request.url.path == '/dashboard') {
+        return http.Response(jsonEncode(dashboardResponse()), 200);
+      }
 
-        return http.Response(
-          jsonEncode({
-            'dashboard':
-                'Daily Recovery Dashboard\n'
-                'Sobriety: 12 day(s)',
-          }),
-          200,
-        );
-      });
+      // Destination screens may load their own data.
+      // Empty authenticated responses are sufficient for
+      // this navigation-focused test.
+      return http.Response(jsonEncode({}), 200);
+    });
 
-      final apiClient = ApiClient(
-        baseUrl: baseUrl,
-        apiToken: token,
-        httpClient: mockClient,
-      );
+    final apiClient = ApiClient(
+      baseUrl: baseUrl,
+      apiToken: token,
+      httpClient: mockClient,
+    );
 
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: DashboardScreen(
-              apiClient: apiClient,
-            ),
-          ),
-        ),
-      );
+    await tester.pumpWidget(appFor(apiClient));
 
-      await tester.pumpAndSettle();
+    await tester.pumpAndSettle();
 
-      expect(
-        find.text(
-          'Unable to load Dashboard',
-        ),
-        findsOneWidget,
-      );
+    await tester.tap(find.text('378 days'));
+    await tester.pumpAndSettle();
 
-      await tester.tap(
-        find.byKey(
-          const ValueKey(
-            'dashboard-retry',
-          ),
-        ),
-      );
-      await tester.pumpAndSettle();
+    expect(find.byType(ProfileScreen), findsOneWidget);
 
-      expect(
-        requestCount,
-        2,
-      );
+    await tester.pageBack();
+    await tester.pumpAndSettle();
 
-      expect(
-        find.byKey(
-          const ValueKey(
-            'dashboard-summary',
-          ),
-        ),
-        findsOneWidget,
-      );
+    await tester.tap(find.text('4 of 6'));
+    await tester.pumpAndSettle();
 
-      apiClient.close();
-    },
-  );
+    expect(find.byType(DailyCheckInScreen), findsOneWidget);
+
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Step 8'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(StepWorkScreen), findsOneWidget);
+
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+
+    final journalCard = find.byKey(const ValueKey('dashboard-journal-card'));
+
+    await tester.scrollUntilVisible(journalCard, 250);
+
+    await tester.tap(journalCard);
+    await tester.pumpAndSettle();
+
+    expect(find.byType(JournalScreen), findsOneWidget);
+
+    apiClient.close();
+  });
 }

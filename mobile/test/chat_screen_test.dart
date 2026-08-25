@@ -5,13 +5,148 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:mobile/api_client.dart';
+import 'package:mobile/app_theme.dart';
 import 'package:mobile/chat_screen.dart';
 
 void main() {
   const baseUrl = 'http://example.test';
   const token = 'test-token';
 
-  testWidgets('chat keeps ordered conversation across turns', (tester) async {
+  testWidgets('Chat shows session and human connection boundaries', (
+    tester,
+  ) async {
+    final apiClient = ApiClient(
+      baseUrl: baseUrl,
+      apiToken: token,
+      httpClient: MockClient((_) async => http.Response('{}', 200)),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.light(),
+        home: Scaffold(body: ChatScreen(apiClient: apiClient)),
+      ),
+    );
+
+    await tester.pumpAndSettle();
+
+    expect(find.text('Recovery Companion'), findsOneWidget);
+
+    expect(find.textContaining('session-only'), findsOneWidget);
+
+    expect(
+      find.textContaining('does not replace your sponsor'),
+      findsOneWidget,
+    );
+
+    apiClient.close();
+  });
+
+  testWidgets('Chat sends conversation and renders response', (tester) async {
+    final mockClient = MockClient((request) async {
+      expect(request.method, 'POST');
+
+      expect(request.url.path, '/chat');
+
+      expect(request.headers['Authorization'], 'Bearer $token');
+
+      final body = jsonDecode(request.body) as Map<String, dynamic>;
+
+      final conversation = body['conversation'] as List<dynamic>;
+
+      expect(conversation.length, 1);
+
+      expect(conversation.first['role'], 'user');
+
+      expect(conversation.first['content'], 'I feel stuck today.');
+
+      return http.Response(
+        jsonEncode({
+          'response': 'What feels most important about being stuck right now?',
+        }),
+        200,
+      );
+    });
+
+    final apiClient = ApiClient(
+      baseUrl: baseUrl,
+      apiToken: token,
+      httpClient: mockClient,
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.light(),
+        home: Scaffold(body: ChatScreen(apiClient: apiClient)),
+      ),
+    );
+
+    await tester.pumpAndSettle();
+
+    await tester.enterText(
+      find.byKey(const ValueKey('chat-input')),
+      'I feel stuck today.',
+    );
+
+    await tester.tap(find.byKey(const ValueKey('chat-send')));
+
+    await tester.pumpAndSettle();
+
+    expect(find.text('I feel stuck today.'), findsOneWidget);
+
+    expect(
+      find.text('What feels most important about being stuck right now?'),
+      findsOneWidget,
+    );
+
+    apiClient.close();
+  });
+
+  testWidgets('Chat restores message after send failure', (tester) async {
+    final mockClient = MockClient((request) async {
+      return http.Response(
+        jsonEncode({'detail': 'Internal error detail'}),
+        500,
+      );
+    });
+
+    final apiClient = ApiClient(
+      baseUrl: baseUrl,
+      apiToken: token,
+      httpClient: mockClient,
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.light(),
+        home: Scaffold(body: ChatScreen(apiClient: apiClient)),
+      ),
+    );
+
+    await tester.pumpAndSettle();
+
+    final input = find.byKey(const ValueKey('chat-input'));
+
+    await tester.enterText(input, 'Please keep this message.');
+
+    await tester.tap(find.byKey(const ValueKey('chat-send')));
+
+    await tester.pumpAndSettle();
+
+    final field = tester.widget<TextField>(input);
+
+    expect(field.controller?.text, 'Please keep this message.');
+
+    expect(
+      find.text('Unable to send your message. Please try again.'),
+      findsOneWidget,
+    );
+
+    expect(find.textContaining('Internal error detail'), findsNothing);
+
+    apiClient.close();
+  });
+  testWidgets('Chat keeps ordered conversation across turns', (tester) async {
     var requestCount = 0;
 
     final mockClient = MockClient((request) async {
@@ -54,17 +189,12 @@ void main() {
 
     await tester.pumpWidget(
       MaterialApp(
+        theme: AppTheme.light(),
         home: Scaffold(body: ChatScreen(apiClient: apiClient)),
       ),
     );
 
-    expect(
-      find.text(
-        'This conversation is session-only and '
-        'is not saved as chat history.',
-      ),
-      findsOneWidget,
-    );
+    await tester.pumpAndSettle();
 
     await tester.enterText(
       find.byKey(const ValueKey('chat-input')),
@@ -74,10 +204,6 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('chat-send')));
 
     await tester.pumpAndSettle();
-
-    expect(find.text('I had a hard morning.'), findsOneWidget);
-
-    expect(find.text('What felt hardest about it?'), findsOneWidget);
 
     await tester.enterText(
       find.byKey(const ValueKey('chat-input')),
@@ -94,52 +220,6 @@ void main() {
       find.text('It sounds like isolation was pulling at you.'),
       findsOneWidget,
     );
-
-    apiClient.close();
-  });
-
-  testWidgets('failed chat send is removed and text is restored', (
-    tester,
-  ) async {
-    final mockClient = MockClient((request) async {
-      return http.Response(
-        jsonEncode({
-          'detail': 'Unable to generate a Recovery Companion response.',
-        }),
-        502,
-      );
-    });
-
-    final apiClient = ApiClient(
-      baseUrl: baseUrl,
-      apiToken: token,
-      httpClient: mockClient,
-    );
-
-    await tester.pumpWidget(
-      MaterialApp(
-        home: Scaffold(body: ChatScreen(apiClient: apiClient)),
-      ),
-    );
-
-    await tester.enterText(
-      find.byKey(const ValueKey('chat-input')),
-      'Please keep this for retry.',
-    );
-
-    await tester.tap(find.byKey(const ValueKey('chat-send')));
-
-    await tester.pumpAndSettle();
-
-    expect(find.byKey(const ValueKey('chat-message-user-0')), findsNothing);
-
-    expect(find.byKey(const ValueKey('chat-error')), findsOneWidget);
-
-    final input = tester.widget<TextField>(
-      find.byKey(const ValueKey('chat-input')),
-    );
-
-    expect(input.controller!.text, 'Please keep this for retry.');
 
     apiClient.close();
   });
