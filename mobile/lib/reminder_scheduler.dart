@@ -8,6 +8,21 @@ import 'reminder_preferences.dart';
 
 enum ReminderKind { dailyRecovery, weeklyReview }
 
+String reminderPayload(ReminderKind kind) {
+  return switch (kind) {
+    ReminderKind.dailyRecovery => 'daily_recovery',
+    ReminderKind.weeklyReview => 'weekly_review',
+  };
+}
+
+ReminderKind? reminderKindFromPayload(String? payload) {
+  return switch (payload) {
+    'daily_recovery' => ReminderKind.dailyRecovery,
+    'weekly_review' => ReminderKind.weeklyReview,
+    _ => null,
+  };
+}
+
 class ReminderNotificationCopy {
   const ReminderNotificationCopy({required this.title, required this.body});
 
@@ -82,9 +97,17 @@ DateTime nextWeeklyReminder({
   return candidate;
 }
 
-class ReminderScheduler {
-  ReminderScheduler({FlutterLocalNotificationsPlugin? plugin})
-    : _plugin = plugin ?? FlutterLocalNotificationsPlugin();
+abstract class ReminderSchedulingService {
+  Future<bool> requestPermission();
+
+  Future<void> apply(ReminderPreferences preferences);
+}
+
+class ReminderScheduler implements ReminderSchedulingService {
+  ReminderScheduler({
+    FlutterLocalNotificationsPlugin? plugin,
+    this.onNotificationTap,
+  }) : _plugin = plugin ?? FlutterLocalNotificationsPlugin();
 
   static const int dailyRecoveryNotificationId = 4901;
 
@@ -98,6 +121,9 @@ class ReminderScheduler {
       'Reminders the user chose in Recovery Companion.';
 
   final FlutterLocalNotificationsPlugin _plugin;
+  final ValueChanged<String>? onNotificationTap;
+
+  String? _launchPayload;
 
   bool _initialized = false;
   bool _supported = true;
@@ -139,11 +165,40 @@ class ReminderScheduler {
         iOS: apple,
         macOS: apple,
       ),
+      onDidReceiveNotificationResponse: _handleNotificationResponse,
     );
+
+    final launchDetails = await _plugin.getNotificationAppLaunchDetails();
+
+    if (launchDetails?.didNotificationLaunchApp ?? false) {
+      _launchPayload = launchDetails?.notificationResponse?.payload;
+    }
 
     _initialized = true;
   }
 
+  void _handleNotificationResponse(NotificationResponse response) {
+    final payload = response.payload;
+
+    if (reminderKindFromPayload(payload) == null) {
+      return;
+    }
+
+    onNotificationTap?.call(payload!);
+  }
+
+  String? takeLaunchPayload() {
+    final payload = _launchPayload;
+    _launchPayload = null;
+
+    if (reminderKindFromPayload(payload) == null) {
+      return null;
+    }
+
+    return payload;
+  }
+
+  @override
   Future<bool> requestPermission() async {
     await initialize();
 
@@ -181,6 +236,7 @@ class ReminderScheduler {
     }
   }
 
+  @override
   Future<void> apply(ReminderPreferences preferences) async {
     await initialize();
 
@@ -230,7 +286,7 @@ class ReminderScheduler {
       notificationDetails: _details(),
       androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
       matchDateTimeComponents: DateTimeComponents.time,
-      payload: 'daily_recovery',
+      payload: reminderPayload(ReminderKind.dailyRecovery),
     );
   }
 
@@ -264,7 +320,7 @@ class ReminderScheduler {
       notificationDetails: _details(),
       androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
       matchDateTimeComponents: DateTimeComponents.dayOfWeekAndTime,
-      payload: 'weekly_review',
+      payload: reminderPayload(ReminderKind.weeklyReview),
     );
   }
 

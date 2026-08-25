@@ -2,12 +2,15 @@ import 'package:flutter/material.dart';
 
 import 'api_client.dart';
 import 'app_theme.dart';
+import 'daily_checkin_screen.dart';
 import 'dashboard_screen.dart';
 import 'goals_screen.dart';
 import 'insights_screen.dart';
 import 'mobile_config.dart';
 import 'more_screen.dart';
+import 'reminder_scheduler.dart';
 import 'routines_screen.dart';
+import 'weekly_review_screen.dart';
 
 void main() {
   runApp(const RecoveryCompanionApp());
@@ -42,6 +45,7 @@ class _HomeShellState extends State<HomeShell> {
   int _selectedIndex = 0;
 
   late final ApiClient _apiClient;
+  late final ReminderScheduler _reminderScheduler;
 
   static const List<_Destination> _destinations = [
     _Destination(
@@ -73,6 +77,71 @@ class _HomeShellState extends State<HomeShell> {
     _apiClient = ApiClient(
       baseUrl: MobileConfig.apiBaseUrl,
       apiToken: MobileConfig.apiToken,
+    );
+
+    _reminderScheduler = ReminderScheduler(
+      onNotificationTap: _openReminderPayload,
+    );
+
+    _initializeReminderNavigation();
+  }
+
+  Future<void> _initializeReminderNavigation() async {
+    await _reminderScheduler.initialize();
+
+    if (!mounted) {
+      return;
+    }
+
+    final payload =
+        _reminderScheduler.takeLaunchPayload();
+
+    if (payload == null) {
+      return;
+    }
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _openReminderPayload(payload);
+      }
+    });
+  }
+
+  void _openReminderPayload(String payload) {
+    if (!mounted) {
+      return;
+    }
+
+    final kind = reminderKindFromPayload(payload);
+
+    if (kind == null) {
+      return;
+    }
+
+    late final String title;
+    late final Widget screen;
+
+    switch (kind) {
+      case ReminderKind.dailyRecovery:
+        title = 'Daily Recovery';
+        screen = DailyCheckInScreen(
+          apiClient: _apiClient,
+        );
+
+      case ReminderKind.weeklyReview:
+        title = 'Weekly Review';
+        screen = WeeklyReviewScreen(
+          apiClient: _apiClient,
+        );
+    }
+
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => Scaffold(
+          appBar: AppBar(title: Text(title)),
+          body: screen,
+        ),
+      ),
     );
   }
 
@@ -107,6 +176,7 @@ class _HomeShellState extends State<HomeShell> {
       case 4:
         return MoreScreen(
           apiClient: _apiClient,
+          reminderScheduler: _reminderScheduler,
         );
 
       default:

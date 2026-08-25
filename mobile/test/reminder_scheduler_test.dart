@@ -78,4 +78,18 @@ void main() {
 
     expect(next, DateTime(2026, 9, 6, 19, 0));
   });
+  test('Reminder payloads map to their recovery destinations', () {
+    expect(
+      reminderKindFromPayload('daily_recovery'),
+      ReminderKind.dailyRecovery,
+    );
+
+    expect(reminderKindFromPayload('weekly_review'), ReminderKind.weeklyReview);
+  });
+
+  test('Unknown notification payload is ignored', () {
+    expect(reminderKindFromPayload('unknown'), isNull);
+
+    expect(reminderKindFromPayload(null), isNull);
+  });
 }
