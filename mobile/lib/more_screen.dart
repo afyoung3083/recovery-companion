@@ -8,14 +8,21 @@ import 'fellowship_screen.dart';
 import 'journal_screen.dart';
 import 'monthly_review_screen.dart';
 import 'profile_screen.dart';
+import 'reminder_scheduler.dart';
+import 'reminders_screen.dart';
 import 'settings_privacy_screen.dart';
 import 'step_work_screen.dart';
 import 'weekly_review_screen.dart';
 
 class MoreScreen extends StatelessWidget {
-  const MoreScreen({required this.apiClient, super.key});
+  const MoreScreen({
+    required this.apiClient,
+    this.reminderScheduler,
+    super.key,
+  });
 
   final ApiClient apiClient;
+  final ReminderSchedulingService? reminderScheduler;
 
   void _open(
     BuildContext context, {
@@ -173,6 +180,18 @@ class MoreScreen extends StatelessWidget {
                   context,
                   title: 'Profile',
                   child: ProfileScreen(apiClient: apiClient),
+                );
+              },
+            ),
+            _ToolTile(
+              icon: Icons.notifications_active_outlined,
+              title: 'Reminders',
+              subtitle: 'Choose private, device-based recovery reminders.',
+              onTap: () {
+                _open(
+                  context,
+                  title: 'Reminders',
+                  child: RemindersScreen(scheduler: reminderScheduler),
                 );
               },
             ),
