@@ -135,6 +135,7 @@ class _HomeShellState extends State<HomeShell> {
         title = 'Daily Recovery';
         screen = DailyCheckInScreen(
           apiClient: _apiClient,
+          offlineReadService: _offlineReadService,
         );
 
       case ReminderKind.weeklyReview:
@@ -186,6 +187,7 @@ class _HomeShellState extends State<HomeShell> {
       case 4:
         return MoreScreen(
           apiClient: _apiClient,
+          offlineReadService: _offlineReadService,
           reminderScheduler: _reminderScheduler,
         );
 

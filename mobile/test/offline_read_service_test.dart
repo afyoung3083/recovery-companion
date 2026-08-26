@@ -204,4 +204,15 @@ void main() {
       true,
     );
   });
+  test('Daily check-in cache keys are date specific', () {
+    expect(
+      OfflineCacheKeys.dailyCheckin(DateTime(2026, 8, 5)),
+      'daily_checkin.2026-08-05',
+    );
+
+    expect(
+      OfflineCacheKeys.dailyCheckin(DateTime(2026, 8, 5)),
+      isNot(OfflineCacheKeys.dailyCheckin(DateTime(2026, 8, 6))),
+    );
+  });
 }

@@ -2,18 +2,25 @@ import 'package:flutter/material.dart';
 
 import 'api_client.dart';
 import 'app_components.dart';
+import 'offline_copy_notice.dart';
+import 'offline_read_service.dart';
 
 class JournalScreen extends StatefulWidget {
-  const JournalScreen({required this.apiClient, super.key});
+  const JournalScreen({
+    required this.apiClient,
+    this.offlineReadService,
+    super.key,
+  });
 
   final ApiClient apiClient;
+  final OfflineReadService? offlineReadService;
 
   @override
   State<JournalScreen> createState() => _JournalScreenState();
 }
 
 class _JournalScreenState extends State<JournalScreen> {
-  late Future<Map<String, dynamic>> _entriesFuture;
+  late Future<OfflineReadResult> _entriesFuture;
 
   final TextEditingController _entryController = TextEditingController();
 
@@ -22,15 +29,49 @@ class _JournalScreenState extends State<JournalScreen> {
   final TextEditingController _searchController = TextEditingController();
 
   bool _saving = false;
+  bool _showingOfflineCopy = false;
   int? _analyzingEntryId;
   int? _reflectionEntryId;
   String? _reflection;
   String? _error;
 
+  Future<OfflineReadResult> _loadJournalEntries() async {
+    final service = widget.offlineReadService;
+
+    late final OfflineReadResult result;
+
+    if (service == null) {
+      final data = await widget.apiClient.getJournalEntries();
+
+      result = OfflineReadResult(data: data, source: OfflineReadSource.network);
+    } else {
+      result = await service.read(
+        cacheKey: OfflineCacheKeys.journal,
+        networkRead: widget.apiClient.getJournalEntries,
+      );
+    }
+
+    if (mounted && _showingOfflineCopy != result.isCached) {
+      setState(() {
+        _showingOfflineCopy = result.isCached;
+      });
+    }
+
+    return result;
+  }
+
+  Future<OfflineReadResult> _searchJournal(String query) async {
+    final data = await widget.apiClient.searchJournal(query);
+
+    _showingOfflineCopy = false;
+
+    return OfflineReadResult(data: data, source: OfflineReadSource.network);
+  }
+
   @override
   void initState() {
     super.initState();
-    _entriesFuture = widget.apiClient.getJournalEntries();
+    _entriesFuture = _loadJournalEntries();
   }
 
   @override
@@ -44,15 +85,17 @@ class _JournalScreenState extends State<JournalScreen> {
   void _loadAll() {
     setState(() {
       _error = null;
-      _entriesFuture = widget.apiClient.getJournalEntries();
+      _showingOfflineCopy = false;
+      _entriesFuture = _loadJournalEntries();
     });
   }
 
   Future<void> _refresh() async {
-    final future = widget.apiClient.getJournalEntries();
+    final future = _loadJournalEntries();
 
     setState(() {
       _error = null;
+      _showingOfflineCopy = false;
       _entriesFuture = future;
     });
 
@@ -67,9 +110,14 @@ class _JournalScreenState extends State<JournalScreen> {
       return;
     }
 
+    if (_showingOfflineCopy) {
+      return;
+    }
+
     setState(() {
       _error = null;
-      _entriesFuture = widget.apiClient.searchJournal(query);
+      _showingOfflineCopy = false;
+      _entriesFuture = _searchJournal(query);
     });
   }
 
@@ -295,6 +343,7 @@ class _JournalScreenState extends State<JournalScreen> {
               children: [
                 TextField(
                   controller: _searchController,
+                  enabled: !_showingOfflineCopy,
                   decoration: InputDecoration(
                     labelText: 'Search journal',
                     hintText: 'Search text or tags',
@@ -323,7 +372,7 @@ class _JournalScreenState extends State<JournalScreen> {
                 SizedBox(
                   width: double.infinity,
                   child: OutlinedButton.icon(
-                    onPressed: _search,
+                    onPressed: _showingOfflineCopy ? null : _search,
                     icon: const Icon(Icons.search),
                     label: const Text('Search'),
                   ),
@@ -353,7 +402,7 @@ class _JournalScreenState extends State<JournalScreen> {
 
           const SizedBox(height: 18),
 
-          FutureBuilder<Map<String, dynamic>>(
+          FutureBuilder<OfflineReadResult>(
             future: _entriesFuture,
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
@@ -374,33 +423,46 @@ class _JournalScreenState extends State<JournalScreen> {
                 );
               }
 
-              final entries = _entriesFrom(snapshot.data);
-
-              if (entries.isEmpty) {
-                return const AppStatusMessage(
-                  title: 'No journal entries found',
-                  message: 'Write a new entry above, or clear your search to see all entries.',
-                  icon: Icons.menu_book_outlined,
-                );
-              }
+              final readResult = snapshot.data!;
+              final entries = _entriesFrom(readResult.data);
 
               return Column(
                 children: [
-                  for (final entry in entries)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 12),
-                      child: _JournalEntryCard(
-                        entry: entry,
-                        analyzing: _analyzingEntryId == entry['id'],
-                        reflection: _reflectionEntryId == entry['id']
-                            ? _reflection
-                            : null,
-                        canAnalyze: _analyzingEntryId == null,
-                        onAnalyze: (entryId) {
-                          _analyzeEntry(entryId: entryId);
-                        },
-                      ),
+                  if (readResult.isCached) ...[
+                    OfflineCopyNotice(
+                      cachedAt: readResult.cachedAt,
+                      onRetry: _loadAll,
+                      detail:
+                          'Saving, online search, and AI '
+                          'reflection still require a connection.',
                     ),
+                    const SizedBox(height: 16),
+                  ],
+                  if (entries.isEmpty)
+                    const AppStatusMessage(
+                      title: 'No journal entries found',
+                      message:
+                          'Write a new entry above, or clear '
+                          'your search to see all entries.',
+                      icon: Icons.menu_book_outlined,
+                    )
+                  else
+                    for (final entry in entries)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 12),
+                        child: _JournalEntryCard(
+                          entry: entry,
+                          analyzing: _analyzingEntryId == entry['id'],
+                          reflection: _reflectionEntryId == entry['id']
+                              ? _reflection
+                              : null,
+                          canAnalyze:
+                              !readResult.isCached && _analyzingEntryId == null,
+                          onAnalyze: (entryId) {
+                            _analyzeEntry(entryId: entryId);
+                          },
+                        ),
+                      ),
                 ],
               );
             },

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'api_client.dart';
 import 'app_components.dart';
+import 'offline_copy_notice.dart';
 import 'offline_read_service.dart';
 import 'contact_profile_screen.dart';
 import 'daily_checkin_screen.dart';
@@ -63,17 +64,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
     });
 
     await future;
-  }
-
-  String _cachedAtText(BuildContext context, DateTime cachedAt) {
-    final local = cachedAt.toLocal();
-    final localizations = MaterialLocalizations.of(context);
-
-    final date = localizations.formatMediumDate(local);
-
-    final time = localizations.formatTimeOfDay(TimeOfDay.fromDateTime(local));
-
-    return '$date at $time';
   }
 
   Map<String, dynamic> _asMap(dynamic value) {
@@ -234,16 +224,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ),
 
               if (readResult.isCached) ...[
-                AppStatusMessage(
-                  title: 'Offline copy',
-                  message:
-                      'Showing the most recent encrypted copy '
-                      'saved on this device'
-                      '${readResult.cachedAt == null ? '' : ' on ${_cachedAtText(context, readResult.cachedAt!)}'}. '
-                      'Some information may be out of date.',
-                  icon: Icons.cloud_off_outlined,
-                  actionLabel: 'Retry',
-                  onAction: _refresh,
+                OfflineCopyNotice(
+                  cachedAt: readResult.cachedAt,
+                  onRetry: _refresh,
                 ),
                 const SizedBox(height: 16),
               ],
@@ -281,6 +264,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           title: 'Daily Recovery',
                           screen: DailyCheckInScreen(
                             apiClient: widget.apiClient,
+                            offlineReadService: widget.offlineReadService,
                           ),
                         );
                       },
@@ -424,7 +408,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   onTap: () {
                     _openScreen(
                       title: 'Journal',
-                      screen: JournalScreen(apiClient: widget.apiClient),
+                      screen: JournalScreen(
+                        apiClient: widget.apiClient,
+                        offlineReadService: widget.offlineReadService,
+                      ),
                     );
                   },
                   child: AppSectionCard(
