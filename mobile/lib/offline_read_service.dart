@@ -7,6 +7,10 @@ import 'api_client.dart';
 
 enum OfflineReadSource { network, cache }
 
+abstract final class OfflineCacheKeys {
+  static const String dashboard = 'dashboard';
+}
+
 class OfflineCacheEntry {
   const OfflineCacheEntry({required this.data, required this.cachedAt});
 

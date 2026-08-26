@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'api_client.dart';
 import 'app_components.dart';
+import 'offline_read_service.dart';
 import 'contact_profile_screen.dart';
 import 'daily_checkin_screen.dart';
 import 'journal_screen.dart';
@@ -9,9 +10,14 @@ import 'profile_screen.dart';
 import 'step_work_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
-  const DashboardScreen({required this.apiClient, super.key});
+  const DashboardScreen({
+    required this.apiClient,
+    this.offlineReadService,
+    super.key,
+  });
 
   final ApiClient apiClient;
+  final OfflineReadService? offlineReadService;
 
   @override
   State<DashboardScreen> createState() {
@@ -20,28 +26,54 @@ class DashboardScreen extends StatefulWidget {
 }
 
 class _DashboardScreenState extends State<DashboardScreen> {
-  late Future<Map<String, dynamic>> _dashboardFuture;
+  late Future<OfflineReadResult> _dashboardFuture;
+
+  Future<OfflineReadResult> _loadDashboard() async {
+    final service = widget.offlineReadService;
+
+    if (service == null) {
+      final data = await widget.apiClient.getDashboard();
+
+      return OfflineReadResult(data: data, source: OfflineReadSource.network);
+    }
+
+    return service.read(
+      cacheKey: OfflineCacheKeys.dashboard,
+      networkRead: widget.apiClient.getDashboard,
+    );
+  }
 
   @override
   void initState() {
     super.initState();
-    _dashboardFuture = widget.apiClient.getDashboard();
+    _dashboardFuture = _loadDashboard();
   }
 
   void _refresh() {
     setState(() {
-      _dashboardFuture = widget.apiClient.getDashboard();
+      _dashboardFuture = _loadDashboard();
     });
   }
 
   Future<void> _refreshAsync() async {
-    final future = widget.apiClient.getDashboard();
+    final future = _loadDashboard();
 
     setState(() {
       _dashboardFuture = future;
     });
 
     await future;
+  }
+
+  String _cachedAtText(BuildContext context, DateTime cachedAt) {
+    final local = cachedAt.toLocal();
+    final localizations = MaterialLocalizations.of(context);
+
+    final date = localizations.formatMediumDate(local);
+
+    final time = localizations.formatTimeOfDay(TimeOfDay.fromDateTime(local));
+
+    return '$date at $time';
   }
 
   Map<String, dynamic> _asMap(dynamic value) {
@@ -109,7 +141,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder<Map<String, dynamic>>(
+    return FutureBuilder<OfflineReadResult>(
       future: _dashboardFuture,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
@@ -138,7 +170,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
           );
         }
 
-        final response = snapshot.data ?? const {};
+        final readResult = snapshot.data!;
+        final response = readResult.data;
         final dashboard = _asMap(response['dashboard_data']);
 
         if (dashboard.isEmpty) {
@@ -199,6 +232,21 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 subtitle: 'A clear view of your recovery today.',
                 icon: Icons.favorite_outline,
               ),
+
+              if (readResult.isCached) ...[
+                AppStatusMessage(
+                  title: 'Offline copy',
+                  message:
+                      'Showing the most recent encrypted copy '
+                      'saved on this device'
+                      '${readResult.cachedAt == null ? '' : ' on ${_cachedAtText(context, readResult.cachedAt!)}'}. '
+                      'Some information may be out of date.',
+                  icon: Icons.cloud_off_outlined,
+                  actionLabel: 'Retry',
+                  onAction: _refresh,
+                ),
+                const SizedBox(height: 16),
+              ],
 
               _SobrietyCard(
                 sobrietyDays: sobrietyDays,
