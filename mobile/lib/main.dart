@@ -177,11 +177,13 @@ class _HomeShellState extends State<HomeShell> {
       case 2:
         return GoalsScreen(
           apiClient: _apiClient,
+          offlineReadService: _offlineReadService,
         );
 
       case 3:
         return RoutinesScreen(
           apiClient: _apiClient,
+          offlineReadService: _offlineReadService,
         );
 
       case 4:

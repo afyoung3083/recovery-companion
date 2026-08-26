@@ -2,11 +2,18 @@ import 'package:flutter/material.dart';
 
 import 'api_client.dart';
 import 'app_components.dart';
+import 'offline_copy_notice.dart';
+import 'offline_read_service.dart';
 
 class GoalsScreen extends StatefulWidget {
-  const GoalsScreen({required this.apiClient, super.key});
+  const GoalsScreen({
+    required this.apiClient,
+    this.offlineReadService,
+    super.key,
+  });
 
   final ApiClient apiClient;
+  final OfflineReadService? offlineReadService;
 
   @override
   State<GoalsScreen> createState() => _GoalsScreenState();
@@ -24,19 +31,45 @@ class _GoalsScreenState extends State<GoalsScreen> {
     'other',
   ];
 
-  late Future<Map<String, dynamic>> _goalsFuture;
+  late Future<OfflineReadResult> _goalsFuture;
 
   final TextEditingController _textController = TextEditingController();
   final TextEditingController _targetDateController = TextEditingController();
 
   String _area = 'other';
   bool _saving = false;
+  bool _showingOfflineCopy = false;
   String? _actionError;
+
+  Future<OfflineReadResult> _loadGoals() async {
+    final service = widget.offlineReadService;
+
+    late final OfflineReadResult result;
+
+    if (service == null) {
+      final data = await widget.apiClient.getGoals();
+
+      result = OfflineReadResult(data: data, source: OfflineReadSource.network);
+    } else {
+      result = await service.read(
+        cacheKey: OfflineCacheKeys.goals,
+        networkRead: widget.apiClient.getGoals,
+      );
+    }
+
+    if (mounted && _showingOfflineCopy != result.isCached) {
+      setState(() {
+        _showingOfflineCopy = result.isCached;
+      });
+    }
+
+    return result;
+  }
 
   @override
   void initState() {
     super.initState();
-    _goalsFuture = widget.apiClient.getGoals();
+    _goalsFuture = _loadGoals();
   }
 
   @override
@@ -48,13 +81,13 @@ class _GoalsScreenState extends State<GoalsScreen> {
 
   void _refresh() {
     setState(() {
-      _goalsFuture = widget.apiClient.getGoals();
+      _goalsFuture = _loadGoals();
       _actionError = null;
     });
   }
 
   Future<void> _refreshAsync() async {
-    final future = widget.apiClient.getGoals();
+    final future = _loadGoals();
 
     setState(() {
       _goalsFuture = future;
@@ -209,7 +242,7 @@ class _GoalsScreenState extends State<GoalsScreen> {
                       ),
                     )
                     .toList(),
-                onChanged: _saving
+                onChanged: _saving || _showingOfflineCopy
                     ? null
                     : (value) {
                         if (value != null) {
@@ -232,7 +265,9 @@ class _GoalsScreenState extends State<GoalsScreen> {
               SizedBox(
                 width: double.infinity,
                 child: FilledButton.icon(
-                  onPressed: _saving ? null : _createGoal,
+                  onPressed: _saving || _showingOfflineCopy
+                      ? null
+                      : _createGoal,
                   icon: const Icon(Icons.add),
                   label: Text(_saving ? 'Saving...' : 'Add Goal'),
                 ),
@@ -268,7 +303,7 @@ class _GoalsScreenState extends State<GoalsScreen> {
           ],
         ),
 
-        FutureBuilder<Map<String, dynamic>>(
+        FutureBuilder<OfflineReadResult>(
           future: _goalsFuture,
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
@@ -291,27 +326,39 @@ class _GoalsScreenState extends State<GoalsScreen> {
               );
             }
 
-            final goals = _goalsFrom(snapshot.data);
-
-            if (goals.isEmpty) {
-              return const AppStatusMessage(
-                title: 'No active goals',
-                message: 'Add a recovery goal when there is something specific you want to work toward.',
-                icon: Icons.flag_outlined,
-              );
-            }
+            final readResult = snapshot.data!;
+            final goals = _goalsFrom(readResult.data);
 
             return Column(
               children: [
-                for (final goal in goals)
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 12),
-                    child: _GoalCard(
-                      goal: goal,
-                      saving: _saving,
-                      onComplete: _completeGoal,
-                    ),
+                if (readResult.isCached) ...[
+                  OfflineCopyNotice(
+                    cachedAt: readResult.cachedAt,
+                    onRetry: _refresh,
+                    detail:
+                        'Adding or completing goals '
+                        'still requires a connection.',
                   ),
+                  const SizedBox(height: 16),
+                ],
+                if (goals.isEmpty)
+                  const AppStatusMessage(
+                    title: 'No active goals',
+                    message:
+                        'Add a recovery goal when there is '
+                        'something specific you want to work toward.',
+                    icon: Icons.flag_outlined,
+                  )
+                else
+                  for (final goal in goals)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: _GoalCard(
+                        goal: goal,
+                        saving: _saving || readResult.isCached,
+                        onComplete: _completeGoal,
+                      ),
+                    ),
               ],
             );
           },

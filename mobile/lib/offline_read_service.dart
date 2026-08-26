@@ -9,7 +9,9 @@ enum OfflineReadSource { network, cache }
 
 abstract final class OfflineCacheKeys {
   static const String dashboard = 'dashboard';
+  static const String goals = 'goals';
   static const String journal = 'journal';
+  static const String routines = 'routines';
 
   static String dailyCheckin(DateTime date) {
     final year = date.year.toString().padLeft(4, '0');
