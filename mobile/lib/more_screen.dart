@@ -188,7 +188,10 @@ class MoreScreen extends StatelessWidget {
                 _open(
                   context,
                   title: 'Profile',
-                  child: ProfileScreen(apiClient: apiClient),
+                  child: ProfileScreen(
+                    apiClient: apiClient,
+                    offlineReadService: offlineReadService,
+                  ),
                 );
               },
             ),

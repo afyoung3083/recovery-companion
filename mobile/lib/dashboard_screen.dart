@@ -237,7 +237,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 onTap: () {
                   _openScreen(
                     title: 'Profile',
-                    screen: ProfileScreen(apiClient: widget.apiClient),
+                    screen: ProfileScreen(
+                      apiClient: widget.apiClient,
+                      offlineReadService: widget.offlineReadService,
+                    ),
                   );
                 },
               ),
