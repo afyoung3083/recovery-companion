@@ -4,17 +4,20 @@ import 'api_client.dart';
 import 'app_components.dart';
 import 'offline_copy_notice.dart';
 import 'offline_read_service.dart';
+import 'local_daily_checkin_repository.dart';
 
 class DailyCheckInScreen extends StatefulWidget {
   const DailyCheckInScreen({
     required this.apiClient,
     this.offlineReadService,
+    this.localRepository,
     this.now,
     super.key,
   });
 
   final ApiClient apiClient;
   final OfflineReadService? offlineReadService;
+  final LocalDailyCheckInRepository? localRepository;
   final DateTime Function()? now;
 
   @override
@@ -59,6 +62,14 @@ class _DailyCheckInScreenState extends State<DailyCheckInScreen> {
   }
 
   Future<OfflineReadResult> _readToday() async {
+    final localRepository = widget.localRepository;
+
+    if (localRepository != null) {
+      final data = await localRepository.getToday();
+
+      return OfflineReadResult(data: data, source: OfflineReadSource.network);
+    }
+
     final service = widget.offlineReadService;
 
     if (service == null) {
@@ -133,15 +144,29 @@ class _DailyCheckInScreenState extends State<DailyCheckInScreen> {
     });
 
     try {
-      await widget.apiClient.saveTodayCheckin(
-        prayerMeditation: _prayerMeditation,
-        recoveryContact: _recoveryContact,
-        meeting: _meeting,
-        stepWork: _stepWork,
-        journal: _journal,
-        service: _service,
-        note: _noteController.text.trim(),
-      );
+      final localRepository = widget.localRepository;
+
+      if (localRepository != null) {
+        await localRepository.saveToday(
+          prayerMeditation: _prayerMeditation,
+          recoveryContact: _recoveryContact,
+          meeting: _meeting,
+          stepWork: _stepWork,
+          journal: _journal,
+          service: _service,
+          note: _noteController.text.trim(),
+        );
+      } else {
+        await widget.apiClient.saveTodayCheckin(
+          prayerMeditation: _prayerMeditation,
+          recoveryContact: _recoveryContact,
+          meeting: _meeting,
+          stepWork: _stepWork,
+          journal: _journal,
+          service: _service,
+          note: _noteController.text.trim(),
+        );
+      }
 
       if (!mounted) {
         return;
@@ -261,9 +286,7 @@ class _DailyCheckInScreenState extends State<DailyCheckInScreen> {
           OfflineCopyNotice(
             cachedAt: _readResult?.cachedAt,
             onRetry: _loadToday,
-            detail:
-                'Saving changes and AI reflection '
-                'still require a connection.',
+            detail: 'AI reflection still requires a connection.',
           ),
           const SizedBox(height: 20),
         ],

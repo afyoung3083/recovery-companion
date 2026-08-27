@@ -6,6 +6,8 @@ import 'daily_checkin_screen.dart';
 import 'dashboard_screen.dart';
 import 'goals_screen.dart';
 import 'insights_screen.dart';
+import 'local_daily_checkin_repository.dart';
+import 'local_recovery_store.dart';
 import 'mobile_config.dart';
 import 'more_screen.dart';
 import 'offline_read_service.dart';
@@ -19,9 +21,7 @@ void main() {
 }
 
 class RecoveryCompanionApp extends StatelessWidget {
-  const RecoveryCompanionApp({
-    super.key,
-  });
+  const RecoveryCompanionApp({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -35,9 +35,7 @@ class RecoveryCompanionApp extends StatelessWidget {
 }
 
 class HomeShell extends StatefulWidget {
-  const HomeShell({
-    super.key,
-  });
+  const HomeShell({super.key});
 
   @override
   State<HomeShell> createState() => _HomeShellState();
@@ -50,27 +48,14 @@ class _HomeShellState extends State<HomeShell> {
   late final OfflineReadService _offlineReadService;
   late final ReminderScheduler _reminderScheduler;
 
+  LocalDailyCheckInRepository? _localDailyCheckInRepository;
+
   static const List<_Destination> _destinations = [
-    _Destination(
-      label: 'Dashboard',
-      icon: Icons.dashboard_outlined,
-    ),
-    _Destination(
-      label: 'Insights',
-      icon: Icons.insights_outlined,
-    ),
-    _Destination(
-      label: 'Goals',
-      icon: Icons.flag_outlined,
-    ),
-    _Destination(
-      label: 'Routines',
-      icon: Icons.repeat_outlined,
-    ),
-    _Destination(
-      label: 'More',
-      icon: Icons.menu,
-    ),
+    _Destination(label: 'Dashboard', icon: Icons.dashboard_outlined),
+    _Destination(label: 'Insights', icon: Icons.insights_outlined),
+    _Destination(label: 'Goals', icon: Icons.flag_outlined),
+    _Destination(label: 'Routines', icon: Icons.repeat_outlined),
+    _Destination(label: 'More', icon: Icons.menu),
   ];
 
   @override
@@ -83,9 +68,7 @@ class _HomeShellState extends State<HomeShell> {
     );
 
     _offlineReadService = OfflineReadService(
-      cache: SecureOfflineCacheStore(
-        storage: FlutterSecureKeyValueStore(),
-      ),
+      cache: SecureOfflineCacheStore(storage: FlutterSecureKeyValueStore()),
     );
 
     _reminderScheduler = ReminderScheduler(
@@ -93,6 +76,19 @@ class _HomeShellState extends State<HomeShell> {
     );
 
     _initializeReminderNavigation();
+    _initializeLocalRecovery();
+  }
+
+  Future<void> _initializeLocalRecovery() async {
+    final store = await LocalRecoveryStore.openDefault();
+
+    if (!mounted) {
+      return;
+    }
+
+    setState(() {
+      _localDailyCheckInRepository = LocalDailyCheckInRepository(store: store);
+    });
   }
 
   Future<void> _initializeReminderNavigation() async {
@@ -102,8 +98,7 @@ class _HomeShellState extends State<HomeShell> {
       return;
     }
 
-    final payload =
-        _reminderScheduler.takeLaunchPayload();
+    final payload = _reminderScheduler.takeLaunchPayload();
 
     if (payload == null) {
       return;
@@ -136,13 +131,12 @@ class _HomeShellState extends State<HomeShell> {
         screen = DailyCheckInScreen(
           apiClient: _apiClient,
           offlineReadService: _offlineReadService,
+          localRepository: _localDailyCheckInRepository,
         );
 
       case ReminderKind.weeklyReview:
         title = 'Weekly Review';
-        screen = WeeklyReviewScreen(
-          apiClient: _apiClient,
-        );
+        screen = WeeklyReviewScreen(apiClient: _apiClient);
     }
 
     Navigator.of(context).push(
@@ -170,9 +164,7 @@ class _HomeShellState extends State<HomeShell> {
         );
 
       case 1:
-        return InsightsScreen(
-          apiClient: _apiClient,
-        );
+        return InsightsScreen(apiClient: _apiClient);
 
       case 2:
         return GoalsScreen(
@@ -190,6 +182,7 @@ class _HomeShellState extends State<HomeShell> {
         return MoreScreen(
           apiClient: _apiClient,
           offlineReadService: _offlineReadService,
+          localDailyCheckInRepository: _localDailyCheckInRepository,
           reminderScheduler: _reminderScheduler,
         );
 
@@ -204,11 +197,7 @@ class _HomeShellState extends State<HomeShell> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text(
-          'Recovery Companion',
-        ),
-      ),
+      appBar: AppBar(title: const Text('Recovery Companion')),
       body: _buildSelectedScreen(),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _selectedIndex,
@@ -220,9 +209,7 @@ class _HomeShellState extends State<HomeShell> {
         destinations: _destinations
             .map(
               (destination) => NavigationDestination(
-                icon: Icon(
-                  destination.icon,
-                ),
+                icon: Icon(destination.icon),
                 label: destination.label,
               ),
             )
@@ -232,12 +219,8 @@ class _HomeShellState extends State<HomeShell> {
   }
 }
 
-
 class _Destination {
-  const _Destination({
-    required this.label,
-    required this.icon,
-  });
+  const _Destination({required this.label, required this.icon});
 
   final String label;
   final IconData icon;
