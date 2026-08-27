@@ -2,11 +2,20 @@ import 'package:flutter/material.dart';
 
 import 'api_client.dart';
 import 'app_components.dart';
+import 'offline_copy_notice.dart';
+import 'offline_read_service.dart';
 
 class DailyCheckInScreen extends StatefulWidget {
-  const DailyCheckInScreen({required this.apiClient, super.key});
+  const DailyCheckInScreen({
+    required this.apiClient,
+    this.offlineReadService,
+    this.now,
+    super.key,
+  });
 
   final ApiClient apiClient;
+  final OfflineReadService? offlineReadService;
+  final DateTime Function()? now;
 
   @override
   State<DailyCheckInScreen> createState() => _DailyCheckInScreenState();
@@ -16,6 +25,8 @@ class _DailyCheckInScreenState extends State<DailyCheckInScreen> {
   bool _loading = true;
   bool _saving = false;
   bool _analyzing = false;
+
+  OfflineReadResult? _readResult;
 
   String? _error;
   String? _aiError;
@@ -43,6 +54,25 @@ class _DailyCheckInScreenState extends State<DailyCheckInScreen> {
     super.dispose();
   }
 
+  DateTime _now() {
+    return widget.now?.call() ?? DateTime.now();
+  }
+
+  Future<OfflineReadResult> _readToday() async {
+    final service = widget.offlineReadService;
+
+    if (service == null) {
+      final data = await widget.apiClient.getTodayCheckin();
+
+      return OfflineReadResult(data: data, source: OfflineReadSource.network);
+    }
+
+    return service.read(
+      cacheKey: OfflineCacheKeys.dailyCheckin(_now()),
+      networkRead: widget.apiClient.getTodayCheckin,
+    );
+  }
+
   Future<void> _loadToday() async {
     setState(() {
       _loading = true;
@@ -50,35 +80,50 @@ class _DailyCheckInScreenState extends State<DailyCheckInScreen> {
     });
 
     try {
-      final result = await widget.apiClient.getTodayCheckin();
+      final readResult = await _readToday();
+      final checkin = readResult.data['checkin'];
 
-      final checkin = result['checkin'];
-
-      if (checkin is Map<String, dynamic>) {
-        _prayerMeditation = checkin['prayer_meditation'] == true;
-        _recoveryContact = checkin['recovery_contact'] == true;
-        _meeting = checkin['meeting'] == true;
-        _stepWork = checkin['step_work'] == true;
-        _journal = checkin['journal'] == true;
-        _service = checkin['service'] == true;
-
-        _noteController.text = (checkin['note'] ?? '').toString();
+      if (!mounted) {
+        return;
       }
+
+      setState(() {
+        _readResult = readResult;
+
+        if (checkin is Map<String, dynamic>) {
+          _prayerMeditation = checkin['prayer_meditation'] == true;
+          _recoveryContact = checkin['recovery_contact'] == true;
+          _meeting = checkin['meeting'] == true;
+          _stepWork = checkin['step_work'] == true;
+          _journal = checkin['journal'] == true;
+          _service = checkin['service'] == true;
+
+          _noteController.text = (checkin['note'] ?? '').toString();
+        } else {
+          _prayerMeditation = false;
+          _recoveryContact = false;
+          _meeting = false;
+          _stepWork = false;
+          _journal = false;
+          _service = false;
+          _noteController.clear();
+        }
+
+        _loading = false;
+      });
     } catch (_) {
-      if (mounted) {
-        setState(() {
-          _error = 'Unable to load today\'s check-in. Please try again.';
-        });
+      if (!mounted) {
+        return;
       }
-    }
 
-    if (!mounted) {
-      return;
+      setState(() {
+        _readResult = null;
+        _loading = false;
+        _error =
+            'Unable to load today\'s check-in. '
+            'Please try again.';
+      });
     }
-
-    setState(() {
-      _loading = false;
-    });
   }
 
   Future<void> _save() async {
@@ -211,6 +256,17 @@ class _DailyCheckInScreenState extends State<DailyCheckInScreen> {
           subtitle: 'Notice the recovery practices that were part of your day.',
           icon: Icons.today_outlined,
         ),
+
+        if (_readResult?.isCached == true) ...[
+          OfflineCopyNotice(
+            cachedAt: _readResult?.cachedAt,
+            onRetry: _loadToday,
+            detail:
+                'Saving changes and AI reflection '
+                'still require a connection.',
+          ),
+          const SizedBox(height: 20),
+        ],
 
         if (_error != null) ...[
           AppStatusMessage(
@@ -395,7 +451,9 @@ class _DailyCheckInScreenState extends State<DailyCheckInScreen> {
                 width: double.infinity,
                 child: OutlinedButton.icon(
                   key: const ValueKey('daily-checkin-ai'),
-                  onPressed: _analyzing ? null : _analyzeRecentCheckins,
+                  onPressed: _analyzing || _readResult?.isCached == true
+                      ? null
+                      : _analyzeRecentCheckins,
                   icon: _analyzing
                       ? const SizedBox(
                           width: 18,

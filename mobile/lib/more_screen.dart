@@ -7,6 +7,7 @@ import 'daily_checkin_screen.dart';
 import 'fellowship_screen.dart';
 import 'journal_screen.dart';
 import 'monthly_review_screen.dart';
+import 'offline_read_service.dart';
 import 'profile_screen.dart';
 import 'reminder_scheduler.dart';
 import 'reminders_screen.dart';
@@ -17,11 +18,13 @@ import 'weekly_review_screen.dart';
 class MoreScreen extends StatelessWidget {
   const MoreScreen({
     required this.apiClient,
+    this.offlineReadService,
     this.reminderScheduler,
     super.key,
   });
 
   final ApiClient apiClient;
+  final OfflineReadService? offlineReadService;
   final ReminderSchedulingService? reminderScheduler;
 
   void _open(
@@ -62,7 +65,10 @@ class MoreScreen extends StatelessWidget {
                 _open(
                   context,
                   title: 'Daily Recovery',
-                  child: DailyCheckInScreen(apiClient: apiClient),
+                  child: DailyCheckInScreen(
+                    apiClient: apiClient,
+                    offlineReadService: offlineReadService,
+                  ),
                 );
               },
             ),
@@ -74,7 +80,10 @@ class MoreScreen extends StatelessWidget {
                 _open(
                   context,
                   title: 'Journal',
-                  child: JournalScreen(apiClient: apiClient),
+                  child: JournalScreen(
+                    apiClient: apiClient,
+                    offlineReadService: offlineReadService,
+                  ),
                 );
               },
             ),
@@ -179,7 +188,10 @@ class MoreScreen extends StatelessWidget {
                 _open(
                   context,
                   title: 'Profile',
-                  child: ProfileScreen(apiClient: apiClient),
+                  child: ProfileScreen(
+                    apiClient: apiClient,
+                    offlineReadService: offlineReadService,
+                  ),
                 );
               },
             ),
@@ -203,7 +215,10 @@ class MoreScreen extends StatelessWidget {
                 _open(
                   context,
                   title: 'Settings & Privacy',
-                  child: SettingsPrivacyScreen(apiClient: apiClient),
+                  child: SettingsPrivacyScreen(
+                    apiClient: apiClient,
+                    offlineReadService: offlineReadService,
+                  ),
                 );
               },
             ),

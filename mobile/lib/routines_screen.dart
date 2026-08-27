@@ -2,11 +2,18 @@ import 'package:flutter/material.dart';
 
 import 'api_client.dart';
 import 'app_components.dart';
+import 'offline_copy_notice.dart';
+import 'offline_read_service.dart';
 
 class RoutinesScreen extends StatefulWidget {
-  const RoutinesScreen({required this.apiClient, super.key});
+  const RoutinesScreen({
+    required this.apiClient,
+    this.offlineReadService,
+    super.key,
+  });
 
   final ApiClient apiClient;
+  final OfflineReadService? offlineReadService;
 
   @override
   State<RoutinesScreen> createState() => _RoutinesScreenState();
@@ -34,7 +41,7 @@ class _RoutinesScreenState extends State<RoutinesScreen> {
     'sunday',
   ];
 
-  late Future<Map<String, dynamic>> _routinesFuture;
+  late Future<OfflineReadResult> _routinesFuture;
 
   final TextEditingController _textController = TextEditingController();
 
@@ -42,12 +49,38 @@ class _RoutinesScreenState extends State<RoutinesScreen> {
   String _frequency = 'daily';
   String _dayOfWeek = 'monday';
   bool _saving = false;
+  bool _showingOfflineCopy = false;
   String? _actionError;
+
+  Future<OfflineReadResult> _loadRoutines() async {
+    final service = widget.offlineReadService;
+
+    late final OfflineReadResult result;
+
+    if (service == null) {
+      final data = await widget.apiClient.getRoutines();
+
+      result = OfflineReadResult(data: data, source: OfflineReadSource.network);
+    } else {
+      result = await service.read(
+        cacheKey: OfflineCacheKeys.routines,
+        networkRead: widget.apiClient.getRoutines,
+      );
+    }
+
+    if (mounted && _showingOfflineCopy != result.isCached) {
+      setState(() {
+        _showingOfflineCopy = result.isCached;
+      });
+    }
+
+    return result;
+  }
 
   @override
   void initState() {
     super.initState();
-    _routinesFuture = widget.apiClient.getRoutines();
+    _routinesFuture = _loadRoutines();
   }
 
   @override
@@ -58,13 +91,13 @@ class _RoutinesScreenState extends State<RoutinesScreen> {
 
   void _refresh() {
     setState(() {
-      _routinesFuture = widget.apiClient.getRoutines();
+      _routinesFuture = _loadRoutines();
       _actionError = null;
     });
   }
 
   Future<void> _refreshAsync() async {
-    final future = widget.apiClient.getRoutines();
+    final future = _loadRoutines();
 
     setState(() {
       _routinesFuture = future;
@@ -220,7 +253,7 @@ class _RoutinesScreenState extends State<RoutinesScreen> {
                       ),
                     )
                     .toList(),
-                onChanged: _saving
+                onChanged: _saving || _showingOfflineCopy
                     ? null
                     : (value) {
                         if (value != null) {
@@ -238,7 +271,7 @@ class _RoutinesScreenState extends State<RoutinesScreen> {
                   DropdownMenuItem(value: 'daily', child: Text('Daily')),
                   DropdownMenuItem(value: 'weekly', child: Text('Weekly')),
                 ],
-                onChanged: _saving
+                onChanged: _saving || _showingOfflineCopy
                     ? null
                     : (value) {
                         if (value != null) {
@@ -261,7 +294,7 @@ class _RoutinesScreenState extends State<RoutinesScreen> {
                         ),
                       )
                       .toList(),
-                  onChanged: _saving
+                  onChanged: _saving || _showingOfflineCopy
                       ? null
                       : (value) {
                           if (value != null) {
@@ -276,7 +309,9 @@ class _RoutinesScreenState extends State<RoutinesScreen> {
               SizedBox(
                 width: double.infinity,
                 child: FilledButton.icon(
-                  onPressed: _saving ? null : _createRoutine,
+                  onPressed: _saving || _showingOfflineCopy
+                      ? null
+                      : _createRoutine,
                   icon: const Icon(Icons.add),
                   label: Text(_saving ? 'Saving...' : 'Add Routine'),
                 ),
@@ -312,7 +347,7 @@ class _RoutinesScreenState extends State<RoutinesScreen> {
           ],
         ),
 
-        FutureBuilder<Map<String, dynamic>>(
+        FutureBuilder<OfflineReadResult>(
           future: _routinesFuture,
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
@@ -335,27 +370,39 @@ class _RoutinesScreenState extends State<RoutinesScreen> {
               );
             }
 
-            final routines = _routinesFrom(snapshot.data);
-
-            if (routines.isEmpty) {
-              return const AppStatusMessage(
-                title: 'No active routines',
-                message: 'Add a repeatable practice when there is something you want to keep returning to.',
-                icon: Icons.repeat_outlined,
-              );
-            }
+            final readResult = snapshot.data!;
+            final routines = _routinesFrom(readResult.data);
 
             return Column(
               children: [
-                for (final routine in routines)
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 12),
-                    child: _RoutineCard(
-                      routine: routine,
-                      saving: _saving,
-                      onSetActive: _setActive,
-                    ),
+                if (readResult.isCached) ...[
+                  OfflineCopyNotice(
+                    cachedAt: readResult.cachedAt,
+                    onRetry: _refresh,
+                    detail:
+                        'Adding or changing routines '
+                        'still requires a connection.',
                   ),
+                  const SizedBox(height: 16),
+                ],
+                if (routines.isEmpty)
+                  const AppStatusMessage(
+                    title: 'No active routines',
+                    message:
+                        'Add a repeatable practice when there is '
+                        'something you want to keep returning to.',
+                    icon: Icons.repeat_outlined,
+                  )
+                else
+                  for (final routine in routines)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: _RoutineCard(
+                        routine: routine,
+                        saving: _saving || readResult.isCached,
+                        onSetActive: _setActive,
+                      ),
+                    ),
               ],
             );
           },

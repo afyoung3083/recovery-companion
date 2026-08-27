@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 
 import 'api_client.dart';
 import 'app_components.dart';
+import 'offline_copy_notice.dart';
+import 'offline_read_service.dart';
 import 'contact_profile_screen.dart';
 import 'daily_checkin_screen.dart';
 import 'journal_screen.dart';
@@ -9,9 +11,14 @@ import 'profile_screen.dart';
 import 'step_work_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
-  const DashboardScreen({required this.apiClient, super.key});
+  const DashboardScreen({
+    required this.apiClient,
+    this.offlineReadService,
+    super.key,
+  });
 
   final ApiClient apiClient;
+  final OfflineReadService? offlineReadService;
 
   @override
   State<DashboardScreen> createState() {
@@ -20,22 +27,37 @@ class DashboardScreen extends StatefulWidget {
 }
 
 class _DashboardScreenState extends State<DashboardScreen> {
-  late Future<Map<String, dynamic>> _dashboardFuture;
+  late Future<OfflineReadResult> _dashboardFuture;
+
+  Future<OfflineReadResult> _loadDashboard() async {
+    final service = widget.offlineReadService;
+
+    if (service == null) {
+      final data = await widget.apiClient.getDashboard();
+
+      return OfflineReadResult(data: data, source: OfflineReadSource.network);
+    }
+
+    return service.read(
+      cacheKey: OfflineCacheKeys.dashboard,
+      networkRead: widget.apiClient.getDashboard,
+    );
+  }
 
   @override
   void initState() {
     super.initState();
-    _dashboardFuture = widget.apiClient.getDashboard();
+    _dashboardFuture = _loadDashboard();
   }
 
   void _refresh() {
     setState(() {
-      _dashboardFuture = widget.apiClient.getDashboard();
+      _dashboardFuture = _loadDashboard();
     });
   }
 
   Future<void> _refreshAsync() async {
-    final future = widget.apiClient.getDashboard();
+    final future = _loadDashboard();
 
     setState(() {
       _dashboardFuture = future;
@@ -109,7 +131,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder<Map<String, dynamic>>(
+    return FutureBuilder<OfflineReadResult>(
       future: _dashboardFuture,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
@@ -138,7 +160,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
           );
         }
 
-        final response = snapshot.data ?? const {};
+        final readResult = snapshot.data!;
+        final response = readResult.data;
         final dashboard = _asMap(response['dashboard_data']);
 
         if (dashboard.isEmpty) {
@@ -200,13 +223,24 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 icon: Icons.favorite_outline,
               ),
 
+              if (readResult.isCached) ...[
+                OfflineCopyNotice(
+                  cachedAt: readResult.cachedAt,
+                  onRetry: _refresh,
+                ),
+                const SizedBox(height: 16),
+              ],
+
               _SobrietyCard(
                 sobrietyDays: sobrietyDays,
                 sobrietyDate: sobrietyDate,
                 onTap: () {
                   _openScreen(
                     title: 'Profile',
-                    screen: ProfileScreen(apiClient: widget.apiClient),
+                    screen: ProfileScreen(
+                      apiClient: widget.apiClient,
+                      offlineReadService: widget.offlineReadService,
+                    ),
                   );
                 },
               ),
@@ -233,6 +267,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           title: 'Daily Recovery',
                           screen: DailyCheckInScreen(
                             apiClient: widget.apiClient,
+                            offlineReadService: widget.offlineReadService,
                           ),
                         );
                       },
@@ -376,7 +411,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   onTap: () {
                     _openScreen(
                       title: 'Journal',
-                      screen: JournalScreen(apiClient: widget.apiClient),
+                      screen: JournalScreen(
+                        apiClient: widget.apiClient,
+                        offlineReadService: widget.offlineReadService,
+                      ),
                     );
                   },
                   child: AppSectionCard(

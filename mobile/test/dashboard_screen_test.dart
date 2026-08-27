@@ -9,6 +9,7 @@ import 'package:mobile/app_theme.dart';
 import 'package:mobile/dashboard_screen.dart';
 import 'package:mobile/daily_checkin_screen.dart';
 import 'package:mobile/journal_screen.dart';
+import 'package:mobile/offline_read_service.dart';
 import 'package:mobile/profile_screen.dart';
 import 'package:mobile/step_work_screen.dart';
 
@@ -57,10 +58,15 @@ void main() {
     };
   }
 
-  Widget appFor(ApiClient apiClient) {
+  Widget appFor(ApiClient apiClient, {OfflineReadService? offlineReadService}) {
     return MaterialApp(
       theme: AppTheme.light(),
-      home: Scaffold(body: DashboardScreen(apiClient: apiClient)),
+      home: Scaffold(
+        body: DashboardScreen(
+          apiClient: apiClient,
+          offlineReadService: offlineReadService,
+        ),
+      ),
     );
   }
 
@@ -285,6 +291,98 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byType(JournalScreen), findsOneWidget);
+
+    apiClient.close();
+  });
+  testWidgets('Dashboard shows encrypted offline copy and recovers on retry', (
+    tester,
+  ) async {
+    final cache = MemoryOfflineCacheStore();
+
+    await cache.write(
+      OfflineCacheKeys.dashboard,
+      OfflineCacheEntry(
+        data: dashboardResponse(),
+        cachedAt: DateTime.utc(2026, 8, 25, 20, 15),
+      ),
+    );
+
+    var online = false;
+
+    final mockClient = MockClient((request) async {
+      if (!online) {
+        throw http.ClientException('Device is offline');
+      }
+
+      return http.Response(jsonEncode(dashboardResponse()), 200);
+    });
+
+    final apiClient = ApiClient(
+      baseUrl: baseUrl,
+      apiToken: token,
+      httpClient: mockClient,
+    );
+
+    final offlineReadService = OfflineReadService(cache: cache);
+
+    await tester.pumpWidget(
+      appFor(apiClient, offlineReadService: offlineReadService),
+    );
+
+    await tester.pumpAndSettle();
+
+    expect(find.text('Offline copy'), findsOneWidget);
+
+    expect(find.textContaining('most recent encrypted copy'), findsOneWidget);
+
+    expect(find.text('378 days'), findsOneWidget);
+
+    online = true;
+
+    await tester.tap(find.text('Retry'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Offline copy'), findsNothing);
+
+    expect(find.text('378 days'), findsOneWidget);
+
+    apiClient.close();
+  });
+
+  testWidgets('Dashboard never exposes cached data after auth failure', (
+    tester,
+  ) async {
+    final cache = MemoryOfflineCacheStore();
+
+    await cache.write(
+      OfflineCacheKeys.dashboard,
+      OfflineCacheEntry(
+        data: dashboardResponse(),
+        cachedAt: DateTime.utc(2026, 8, 25),
+      ),
+    );
+
+    final mockClient = MockClient((request) async {
+      return http.Response('{}', 401);
+    });
+
+    final apiClient = ApiClient(
+      baseUrl: baseUrl,
+      apiToken: token,
+      httpClient: mockClient,
+    );
+
+    await tester.pumpWidget(
+      appFor(apiClient, offlineReadService: OfflineReadService(cache: cache)),
+    );
+
+    await tester.pumpAndSettle();
+
+    expect(find.text('Unable to load Dashboard'), findsOneWidget);
+
+    expect(find.text('Offline copy'), findsNothing);
+
+    expect(find.text('378 days'), findsNothing);
 
     apiClient.close();
   });

@@ -8,8 +8,10 @@ import 'goals_screen.dart';
 import 'insights_screen.dart';
 import 'mobile_config.dart';
 import 'more_screen.dart';
+import 'offline_read_service.dart';
 import 'reminder_scheduler.dart';
 import 'routines_screen.dart';
+import 'secure_offline_cache_store.dart';
 import 'weekly_review_screen.dart';
 
 void main() {
@@ -45,6 +47,7 @@ class _HomeShellState extends State<HomeShell> {
   int _selectedIndex = 0;
 
   late final ApiClient _apiClient;
+  late final OfflineReadService _offlineReadService;
   late final ReminderScheduler _reminderScheduler;
 
   static const List<_Destination> _destinations = [
@@ -77,6 +80,12 @@ class _HomeShellState extends State<HomeShell> {
     _apiClient = ApiClient(
       baseUrl: MobileConfig.apiBaseUrl,
       apiToken: MobileConfig.apiToken,
+    );
+
+    _offlineReadService = OfflineReadService(
+      cache: SecureOfflineCacheStore(
+        storage: FlutterSecureKeyValueStore(),
+      ),
     );
 
     _reminderScheduler = ReminderScheduler(
@@ -126,6 +135,7 @@ class _HomeShellState extends State<HomeShell> {
         title = 'Daily Recovery';
         screen = DailyCheckInScreen(
           apiClient: _apiClient,
+          offlineReadService: _offlineReadService,
         );
 
       case ReminderKind.weeklyReview:
@@ -156,6 +166,7 @@ class _HomeShellState extends State<HomeShell> {
       case 0:
         return DashboardScreen(
           apiClient: _apiClient,
+          offlineReadService: _offlineReadService,
         );
 
       case 1:
@@ -166,22 +177,26 @@ class _HomeShellState extends State<HomeShell> {
       case 2:
         return GoalsScreen(
           apiClient: _apiClient,
+          offlineReadService: _offlineReadService,
         );
 
       case 3:
         return RoutinesScreen(
           apiClient: _apiClient,
+          offlineReadService: _offlineReadService,
         );
 
       case 4:
         return MoreScreen(
           apiClient: _apiClient,
+          offlineReadService: _offlineReadService,
           reminderScheduler: _reminderScheduler,
         );
 
       default:
         return DashboardScreen(
           apiClient: _apiClient,
+          offlineReadService: _offlineReadService,
         );
     }
   }

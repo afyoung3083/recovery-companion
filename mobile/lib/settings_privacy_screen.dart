@@ -5,11 +5,17 @@ import 'package:flutter/services.dart';
 
 import 'api_client.dart';
 import 'app_components.dart';
+import 'offline_read_service.dart';
 
 class SettingsPrivacyScreen extends StatefulWidget {
-  const SettingsPrivacyScreen({required this.apiClient, super.key});
+  const SettingsPrivacyScreen({
+    required this.apiClient,
+    this.offlineReadService,
+    super.key,
+  });
 
   final ApiClient apiClient;
+  final OfflineReadService? offlineReadService;
 
   @override
   State<SettingsPrivacyScreen> createState() => _SettingsPrivacyScreenState();
@@ -162,6 +168,29 @@ class _SettingsPrivacyScreenState extends State<SettingsPrivacyScreen> {
     try {
       await widget.apiClient.deleteRecoveryData(confirmation: _deletePhrase);
 
+      try {
+        await widget.offlineReadService?.clearCachedData();
+      } catch (_) {
+        if (!mounted) {
+          return;
+        }
+
+        _deleteController.clear();
+
+        setState(() {
+          _exportJson = null;
+          _exportCreatedAt = null;
+          _exportHash = null;
+          _errorMessage =
+              'Recovery data was deleted from Recovery Companion, '
+              'but encrypted offline copies could not be cleared '
+              'from this device. Please try deletion again before '
+              'using the app offline.';
+        });
+
+        return;
+      }
+
       if (!mounted) {
         return;
       }
@@ -172,7 +201,9 @@ class _SettingsPrivacyScreenState extends State<SettingsPrivacyScreen> {
         _exportJson = null;
         _exportCreatedAt = null;
         _exportHash = null;
-        _statusMessage = 'Recovery data was permanently deleted.';
+        _statusMessage =
+            'Recovery data and encrypted offline copies '
+            'were permanently deleted.';
       });
     } catch (_) {
       if (!mounted) {
