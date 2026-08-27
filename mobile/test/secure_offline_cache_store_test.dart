@@ -16,6 +16,11 @@ class FakeSecureKeyValueStore implements SecureKeyValueStore {
   }
 
   @override
+  Future<Map<String, String>> readAll() async {
+    return Map<String, String>.from(values);
+  }
+
+  @override
   Future<void> write({required String key, required String value}) async {
     values[key] = value;
   }
@@ -166,5 +171,36 @@ void main() {
       'recovery_companion.'
       'offline_cache.v1.goals',
     );
+  });
+
+  test('Clearing secure cache preserves unrelated secure storage', () async {
+    final storage = FakeSecureKeyValueStore();
+
+    const dashboardKey = 'recovery_companion.offline_cache.v1.dashboard';
+    const dailyKey =
+        'recovery_companion.offline_cache.v1.daily_checkin.2026-08-26';
+    const unrelatedKey = 'recovery_companion.reminders.v1.preferences';
+    const futureAuthKey = 'recovery_companion.auth.token';
+
+    storage.values[dashboardKey] = 'dashboard-cache';
+    storage.values[dailyKey] = 'daily-cache';
+    storage.values[unrelatedKey] = 'keep-reminders';
+    storage.values[futureAuthKey] = 'keep-auth';
+
+    final cache = SecureOfflineCacheStore(storage: storage);
+
+    await cache.clear();
+
+    expect(storage.values.containsKey(dashboardKey), false);
+    expect(storage.values.containsKey(dailyKey), false);
+
+    expect(storage.values[unrelatedKey], 'keep-reminders');
+    expect(storage.values[futureAuthKey], 'keep-auth');
+
+    expect(storage.deletedKeys, contains(dashboardKey));
+    expect(storage.deletedKeys, contains(dailyKey));
+
+    expect(storage.deletedKeys, isNot(contains(unrelatedKey)));
+    expect(storage.deletedKeys, isNot(contains(futureAuthKey)));
   });
 }

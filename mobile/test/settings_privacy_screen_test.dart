@@ -7,6 +7,7 @@ import 'package:http/testing.dart';
 
 import 'package:mobile/api_client.dart';
 import 'package:mobile/app_theme.dart';
+import 'package:mobile/offline_read_service.dart';
 import 'package:mobile/settings_privacy_screen.dart';
 
 void main() {
@@ -149,6 +150,163 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(deleteCalled, false);
+
+    apiClient.close();
+  });
+
+  testWidgets('Successful deletion clears cached recovery data', (
+    tester,
+  ) async {
+    final cache = MemoryOfflineCacheStore();
+
+    await cache.write(
+      OfflineCacheKeys.dashboard,
+      OfflineCacheEntry(
+        data: {
+          'dashboard_data': {'sobriety_days': 365},
+        },
+        cachedAt: DateTime.utc(2026, 8, 26),
+      ),
+    );
+
+    final dailyKey = OfflineCacheKeys.dailyCheckin(DateTime(2026, 8, 26));
+
+    await cache.write(
+      dailyKey,
+      OfflineCacheEntry(
+        data: {
+          'checkin': {'saved': true},
+        },
+        cachedAt: DateTime.utc(2026, 8, 26),
+      ),
+    );
+
+    var deleteCalled = false;
+
+    final apiClient = ApiClient(
+      baseUrl: baseUrl,
+      apiToken: token,
+      httpClient: MockClient((request) async {
+        if (request.method == 'DELETE') {
+          deleteCalled = true;
+
+          return http.Response(
+            jsonEncode({
+              'deleted': true,
+              'deleted_data_files': 9,
+              'deleted_backup_files': 1,
+            }),
+            200,
+          );
+        }
+
+        return http.Response('{}', 200);
+      }),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.light(),
+        home: Scaffold(
+          body: SettingsPrivacyScreen(
+            apiClient: apiClient,
+            offlineReadService: OfflineReadService(cache: cache),
+          ),
+        ),
+      ),
+    );
+
+    await tester.pumpAndSettle();
+
+    final deleteButton = find.byKey(const ValueKey('delete-recovery-data'));
+
+    await tester.scrollUntilVisible(deleteButton, 300);
+
+    await tester.enterText(
+      find.byKey(const ValueKey('delete-confirmation-field')),
+      'DELETE MY RECOVERY DATA',
+    );
+    await tester.pump();
+
+    await tester.tap(deleteButton);
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Delete permanently'));
+    await tester.pumpAndSettle();
+
+    expect(deleteCalled, true);
+
+    expect(await cache.read(OfflineCacheKeys.dashboard), isNull);
+
+    expect(await cache.read(dailyKey), isNull);
+
+    apiClient.close();
+  });
+
+  testWidgets('Failed server deletion preserves cached recovery data', (
+    tester,
+  ) async {
+    final cache = MemoryOfflineCacheStore();
+
+    await cache.write(
+      OfflineCacheKeys.dashboard,
+      OfflineCacheEntry(
+        data: {
+          'dashboard_data': {'sobriety_days': 365},
+        },
+        cachedAt: DateTime.utc(2026, 8, 26),
+      ),
+    );
+
+    var deleteCalled = false;
+
+    final apiClient = ApiClient(
+      baseUrl: baseUrl,
+      apiToken: token,
+      httpClient: MockClient((request) async {
+        if (request.method == 'DELETE') {
+          deleteCalled = true;
+
+          return http.Response(jsonEncode({'detail': 'Deletion failed'}), 500);
+        }
+
+        return http.Response('{}', 200);
+      }),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.light(),
+        home: Scaffold(
+          body: SettingsPrivacyScreen(
+            apiClient: apiClient,
+            offlineReadService: OfflineReadService(cache: cache),
+          ),
+        ),
+      ),
+    );
+
+    await tester.pumpAndSettle();
+
+    final deleteButton = find.byKey(const ValueKey('delete-recovery-data'));
+
+    await tester.scrollUntilVisible(deleteButton, 300);
+
+    await tester.enterText(
+      find.byKey(const ValueKey('delete-confirmation-field')),
+      'DELETE MY RECOVERY DATA',
+    );
+    await tester.pump();
+
+    await tester.tap(deleteButton);
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Delete permanently'));
+    await tester.pumpAndSettle();
+
+    expect(deleteCalled, true);
+
+    expect(await cache.read(OfflineCacheKeys.dashboard), isNotNull);
 
     apiClient.close();
   });

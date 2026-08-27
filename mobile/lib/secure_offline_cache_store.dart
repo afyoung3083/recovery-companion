@@ -7,6 +7,8 @@ import 'offline_read_service.dart';
 abstract class SecureKeyValueStore {
   Future<String?> read({required String key});
 
+  Future<Map<String, String>> readAll();
+
   Future<void> write({required String key, required String value});
 
   Future<void> delete({required String key});
@@ -21,6 +23,11 @@ class FlutterSecureKeyValueStore implements SecureKeyValueStore {
   @override
   Future<String?> read({required String key}) {
     return _storage.read(key: key);
+  }
+
+  @override
+  Future<Map<String, String>> readAll() {
+    return _storage.readAll();
   }
 
   @override
@@ -106,6 +113,16 @@ class SecureOfflineCacheStore implements OfflineCacheStore {
   @override
   Future<void> remove(String key) {
     return storage.delete(key: _storageKey(key));
+  }
+
+  @override
+  Future<void> clear() async {
+    final values = await storage.readAll();
+    final prefix = '$namespace.';
+
+    for (final key in values.keys.where((key) => key.startsWith(prefix))) {
+      await storage.delete(key: key);
+    }
   }
 
   String _storageKey(String key) {

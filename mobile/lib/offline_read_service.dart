@@ -49,6 +49,8 @@ abstract class OfflineCacheStore {
   Future<void> write(String key, OfflineCacheEntry entry);
 
   Future<void> remove(String key);
+
+  Future<void> clear();
 }
 
 class MemoryOfflineCacheStore implements OfflineCacheStore {
@@ -71,6 +73,11 @@ class MemoryOfflineCacheStore implements OfflineCacheStore {
   Future<void> remove(String key) async {
     _entries.remove(key);
   }
+
+  @override
+  Future<void> clear() async {
+    _entries.clear();
+  }
 }
 
 class OfflineReadService {
@@ -79,6 +86,10 @@ class OfflineReadService {
 
   final OfflineCacheStore cache;
   final DateTime Function() _clock;
+
+  Future<void> clearCachedData() {
+    return cache.clear();
+  }
 
   Future<OfflineReadResult> read({
     required String cacheKey,

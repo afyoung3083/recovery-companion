@@ -215,7 +215,10 @@ class MoreScreen extends StatelessWidget {
                 _open(
                   context,
                   title: 'Settings & Privacy',
-                  child: SettingsPrivacyScreen(apiClient: apiClient),
+                  child: SettingsPrivacyScreen(
+                    apiClient: apiClient,
+                    offlineReadService: offlineReadService,
+                  ),
                 );
               },
             ),
