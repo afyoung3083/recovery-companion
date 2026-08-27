@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+Sprint 50: Fix Insights closing bracesimport 'package:flutter/material.dart';
 
 import 'api_client.dart';
 import 'app_components.dart';
@@ -718,3 +718,5 @@ class _ReviewSnapshotCard
         ],
       ),
     );
+  }
+}
