@@ -7,6 +7,12 @@ import 'offline_read_service.dart';
 import 'contact_profile_screen.dart';
 import 'daily_checkin_screen.dart';
 import 'journal_screen.dart';
+import 'local_daily_checkin_repository.dart';
+import 'local_dashboard_repository.dart';
+import 'local_fellowship_repository.dart';
+import 'local_journal_repository.dart';
+import 'local_profile_repository.dart';
+import 'local_step_work_repository.dart';
 import 'profile_screen.dart';
 import 'step_work_screen.dart';
 
@@ -14,11 +20,23 @@ class DashboardScreen extends StatefulWidget {
   const DashboardScreen({
     required this.apiClient,
     this.offlineReadService,
+    this.localRepository,
+    this.localDailyCheckInRepository,
+    this.localFellowshipRepository,
+    this.localJournalRepository,
+    this.localProfileRepository,
+    this.localStepWorkRepository,
     super.key,
   });
 
   final ApiClient apiClient;
   final OfflineReadService? offlineReadService;
+  final LocalDashboardRepository? localRepository;
+  final LocalDailyCheckInRepository? localDailyCheckInRepository;
+  final LocalFellowshipRepository? localFellowshipRepository;
+  final LocalJournalRepository? localJournalRepository;
+  final LocalProfileRepository? localProfileRepository;
+  final LocalStepWorkRepository? localStepWorkRepository;
 
   @override
   State<DashboardScreen> createState() {
@@ -30,6 +48,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
   late Future<OfflineReadResult> _dashboardFuture;
 
   Future<OfflineReadResult> _loadDashboard() async {
+    final localRepository = widget.localRepository;
+
+    if (localRepository != null) {
+      final data = await localRepository.getDashboard();
+
+      return OfflineReadResult(data: data, source: OfflineReadSource.network);
+    }
+
     final service = widget.offlineReadService;
 
     if (service == null) {
@@ -101,8 +127,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Future<void> _openContact(Map<String, dynamic> contact) async {
     await Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (_) =>
-            ContactProfileScreen(apiClient: widget.apiClient, contact: contact),
+        builder: (_) => ContactProfileScreen(
+          apiClient: widget.apiClient,
+          contact: contact,
+          localRepository: widget.localFellowshipRepository,
+        ),
       ),
     );
 
@@ -240,6 +269,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     screen: ProfileScreen(
                       apiClient: widget.apiClient,
                       offlineReadService: widget.offlineReadService,
+                      localRepository: widget.localProfileRepository,
                     ),
                   );
                 },
@@ -268,6 +298,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           screen: DailyCheckInScreen(
                             apiClient: widget.apiClient,
                             offlineReadService: widget.offlineReadService,
+                            localRepository: widget.localDailyCheckInRepository,
                           ),
                         );
                       },
@@ -287,7 +318,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       onTap: () {
                         _openScreen(
                           title: 'Step Work',
-                          screen: StepWorkScreen(apiClient: widget.apiClient),
+                          screen: StepWorkScreen(
+                            apiClient: widget.apiClient,
+                            localRepository: widget.localStepWorkRepository,
+                          ),
                         );
                       },
                     ),
@@ -414,6 +448,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       screen: JournalScreen(
                         apiClient: widget.apiClient,
                         offlineReadService: widget.offlineReadService,
+                        localRepository: widget.localJournalRepository,
                       ),
                     );
                   },

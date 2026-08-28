@@ -7,6 +7,7 @@ import 'dashboard_screen.dart';
 import 'goals_screen.dart';
 import 'insights_screen.dart';
 import 'local_daily_checkin_repository.dart';
+import 'local_dashboard_repository.dart';
 import 'local_fellowship_repository.dart';
 import 'local_goals_repository.dart';
 import 'local_journal_repository.dart';
@@ -57,6 +58,7 @@ class _HomeShellState extends State<HomeShell> {
   late final ReminderScheduler _reminderScheduler;
 
   LocalDailyCheckInRepository? _localDailyCheckInRepository;
+  LocalDashboardRepository? _localDashboardRepository;
   LocalFellowshipRepository? _localFellowshipRepository;
   LocalGoalsRepository? _localGoalsRepository;
   LocalJournalRepository? _localJournalRepository;
@@ -105,6 +107,7 @@ class _HomeShellState extends State<HomeShell> {
     setState(() {
       _localGoalsRepository = LocalGoalsRepository(store: store);
       _localDailyCheckInRepository = LocalDailyCheckInRepository(store: store);
+      _localDashboardRepository = LocalDashboardRepository(store: store);
       _localFellowshipRepository = LocalFellowshipRepository(store: store);
 
       _localJournalRepository = LocalJournalRepository(store: store);
@@ -191,6 +194,12 @@ class _HomeShellState extends State<HomeShell> {
         return DashboardScreen(
           apiClient: _apiClient,
           offlineReadService: _offlineReadService,
+          localRepository: _localDashboardRepository,
+          localDailyCheckInRepository: _localDailyCheckInRepository,
+          localFellowshipRepository: _localFellowshipRepository,
+          localJournalRepository: _localJournalRepository,
+          localProfileRepository: _localProfileRepository,
+          localStepWorkRepository: _localStepWorkRepository,
         );
 
       case 1:
