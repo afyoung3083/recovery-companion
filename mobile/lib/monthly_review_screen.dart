@@ -140,7 +140,25 @@ class _MonthlyReviewScreenState extends State<MonthlyReviewScreen> {
     });
 
     try {
-      final response = await widget.apiClient.getMonthlyReviewAiReflection();
+      final localRepository = widget.localRepository;
+
+      late final Map<String, dynamic> response;
+
+      if (localRepository != null) {
+        final payload = await localRepository.buildAiReflectionPayload();
+
+        final summary = (payload['summary'] ?? '').toString().trim();
+
+        if (summary.isEmpty) {
+          throw StateError('No local Monthly Review summary is available.');
+        }
+
+        response = await widget.apiClient.getMonthlyReviewAiReflection(
+          summary: summary,
+        );
+      } else {
+        response = await widget.apiClient.getMonthlyReviewAiReflection();
+      }
 
       if (!mounted) {
         return;
@@ -271,7 +289,8 @@ class _MonthlyReviewScreenState extends State<MonthlyReviewScreen> {
                     SizedBox(width: 12),
                     Expanded(
                       child: Text(
-                        'AI reflection only runs when you explicitly request it.',
+                        'AI reflection only runs when you explicitly request it. '
+                        'Only the locally constructed Monthly Review summary is sent.',
                       ),
                     ),
                   ],
@@ -281,9 +300,7 @@ class _MonthlyReviewScreenState extends State<MonthlyReviewScreen> {
                   width: double.infinity,
                   child: OutlinedButton.icon(
                     key: const ValueKey('monthly-review-ai-button'),
-                    onPressed: busy || widget.localRepository != null
-                        ? null
-                        : _generateAiReflection,
+                    onPressed: busy ? null : _generateAiReflection,
                     icon: _reflecting
                         ? const SizedBox(
                             width: 18,
@@ -292,11 +309,7 @@ class _MonthlyReviewScreenState extends State<MonthlyReviewScreen> {
                           )
                         : const Icon(Icons.psychology_alt_outlined),
                     label: Text(
-                      widget.localRepository != null
-                          ? 'AI Reflection Requires Sync'
-                          : _reflecting
-                          ? 'Reflecting...'
-                          : 'Reflect with AI',
+                      _reflecting ? 'Reflecting...' : 'Reflect with AI',
                     ),
                   ),
                 ),

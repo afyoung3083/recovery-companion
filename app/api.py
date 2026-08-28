@@ -119,6 +119,10 @@ class WeeklyReviewAiRequest(BaseModel):
     summary: str
 
 
+class MonthlyReviewAiRequest(BaseModel):
+    summary: str
+
+
 class JournalEntryRequest(BaseModel):
     text: str
     tags: list[str] = []
@@ -1339,19 +1343,43 @@ def weekly_review_ai_reflection(
         Depends(require_api_token)
     ],
 )
-def create_monthly_review_ai_reflection() -> dict[str, str]:
+def create_monthly_review_ai_reflection(
+    request: MonthlyReviewAiRequest | None = None,
+) -> dict[str, str]:
     """
     Generate an AI reflection for the current Monthly Recovery Review.
 
-    Calling this endpoint represents an explicit user request to share
-    the deterministic monthly summary with the AI analysis layer.
+    Local-first clients may explicitly supply the deterministic
+    monthly summary built from authoritative on-device recovery data.
+
+    Older clients may omit the request body and preserve the original
+    server-side Monthly Review behavior.
     """
 
-    review = build_monthly_review()
+    if request is not None:
+        review = request.summary.strip()
 
-    reflection = analyze_monthly_review(
-        review
-    )
+        if not review:
+            raise HTTPException(
+                status_code=400,
+                detail=(
+                    "Monthly Review summary cannot be empty."
+                ),
+            )
+    else:
+        review = build_monthly_review()
+
+    try:
+        reflection = analyze_monthly_review(
+            review
+        )
+    except Exception as error:
+        raise HTTPException(
+            status_code=502,
+            detail=(
+                "Unable to generate Monthly Review reflection."
+            ),
+        ) from error
 
     return {
         "review": review,

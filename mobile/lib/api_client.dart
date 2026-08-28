@@ -449,10 +449,17 @@ class ApiClient {
     return _getJson('/monthly-review/comparison', authenticated: true);
   }
 
-  Future<Map<String, dynamic>> getMonthlyReviewAiReflection() async {
+  Future<Map<String, dynamic>> getMonthlyReviewAiReflection({
+    String? summary,
+  }) async {
+    final hasLocalSummary = summary != null && summary.trim().isNotEmpty;
+
     final response = await _httpClient.post(
       Uri.parse('$baseUrl/monthly-review/ai-reflection'),
-      headers: authenticatedHeaders,
+      headers: hasLocalSummary
+          ? {...authenticatedHeaders, 'Content-Type': 'application/json'}
+          : authenticatedHeaders,
+      body: hasLocalSummary ? jsonEncode({'summary': summary.trim()}) : null,
     );
 
     return _handleJsonResponse(response);
