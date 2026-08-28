@@ -10,6 +10,7 @@ import 'local_daily_checkin_repository.dart';
 import 'local_dashboard_repository.dart';
 import 'local_fellowship_repository.dart';
 import 'local_goals_repository.dart';
+import 'local_insights_repository.dart';
 import 'local_journal_repository.dart';
 import 'local_monthly_review_repository.dart';
 import 'local_profile_repository.dart';
@@ -61,6 +62,7 @@ class _HomeShellState extends State<HomeShell> {
   LocalDashboardRepository? _localDashboardRepository;
   LocalFellowshipRepository? _localFellowshipRepository;
   LocalGoalsRepository? _localGoalsRepository;
+  LocalInsightsRepository? _localInsightsRepository;
   LocalJournalRepository? _localJournalRepository;
   LocalMonthlyReviewRepository? _localMonthlyReviewRepository;
   LocalProfileRepository? _localProfileRepository;
@@ -106,6 +108,7 @@ class _HomeShellState extends State<HomeShell> {
 
     setState(() {
       _localGoalsRepository = LocalGoalsRepository(store: store);
+      _localInsightsRepository = LocalInsightsRepository(store: store);
       _localDailyCheckInRepository = LocalDailyCheckInRepository(store: store);
       _localDashboardRepository = LocalDashboardRepository(store: store);
       _localFellowshipRepository = LocalFellowshipRepository(store: store);
@@ -203,7 +206,11 @@ class _HomeShellState extends State<HomeShell> {
         );
 
       case 1:
-        return InsightsScreen(apiClient: _apiClient);
+        return InsightsScreen(
+          apiClient: _apiClient,
+          offlineReadService: _offlineReadService,
+          localRepository: _localInsightsRepository,
+        );
 
       case 2:
         return GoalsScreen(

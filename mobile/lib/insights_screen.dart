@@ -4,16 +4,19 @@ import 'api_client.dart';
 import 'app_components.dart';
 import 'offline_copy_notice.dart';
 import 'offline_read_service.dart';
+import 'local_insights_repository.dart';
 
 class InsightsScreen extends StatefulWidget {
   const InsightsScreen({
     required this.apiClient,
     this.offlineReadService,
+    this.localRepository,
     super.key,
   });
 
   final ApiClient apiClient;
   final OfflineReadService? offlineReadService;
+  final LocalInsightsRepository? localRepository;
 
   @override
   State<InsightsScreen> createState() => _InsightsScreenState();
@@ -29,15 +32,20 @@ class _InsightsScreenState extends State<InsightsScreen> {
   String? _aiReflection;
 
   Future<OfflineReadResult> _loadInsights() async {
+    final localRepository = widget.localRepository;
+
+    if (localRepository != null) {
+      final data = await localRepository.getInsights();
+
+      return OfflineReadResult(data: data, source: OfflineReadSource.network);
+    }
+
     final service = widget.offlineReadService;
 
     if (service == null) {
       final data = await widget.apiClient.getRecoveryInsights();
 
-      return OfflineReadResult(
-        data: data,
-        source: OfflineReadSource.network,
-      );
+      return OfflineReadResult(data: data, source: OfflineReadSource.network);
     }
 
     return service.read(
@@ -119,15 +127,13 @@ class _InsightsScreenState extends State<InsightsScreen> {
     });
 
     try {
-      final result =
-          await widget.apiClient.getRecoveryInsightsAiReflection();
+      final result = await widget.apiClient.getRecoveryInsightsAiReflection();
 
       if (!mounted) {
         return;
       }
 
-      final reflection =
-          (result['reflection'] ?? '').toString().trim();
+      final reflection = (result['reflection'] ?? '').toString().trim();
 
       setState(() {
         _aiReflection = reflection.isEmpty
@@ -158,11 +164,8 @@ class _InsightsScreenState extends State<InsightsScreen> {
     return FutureBuilder<OfflineReadResult>(
       future: _insightsFuture,
       builder: (context, snapshot) {
-        if (snapshot.connectionState ==
-            ConnectionState.waiting) {
-          return const Center(
-            child: CircularProgressIndicator(),
-          );
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
         }
 
         if (snapshot.hasError) {
@@ -171,8 +174,7 @@ class _InsightsScreenState extends State<InsightsScreen> {
             children: [
               const AppPageHeader(
                 title: 'Recovery Insights',
-                subtitle:
-                    'A wider view of your recovery activity.',
+                subtitle: 'A wider view of your recovery activity.',
                 icon: Icons.insights_outlined,
               ),
               AppStatusMessage(
@@ -191,8 +193,7 @@ class _InsightsScreenState extends State<InsightsScreen> {
         final readResult = snapshot.data!;
         final response = readResult.data;
 
-        final insights =
-            _asMap(response['recovery_insights_data']);
+        final insights = _asMap(response['recovery_insights_data']);
 
         if (insights.isEmpty) {
           return ListView(
@@ -200,8 +201,7 @@ class _InsightsScreenState extends State<InsightsScreen> {
             children: [
               const AppPageHeader(
                 title: 'Recovery Insights',
-                subtitle:
-                    'A wider view of your recovery activity.',
+                subtitle: 'A wider view of your recovery activity.',
                 icon: Icons.insights_outlined,
               ),
               AppStatusMessage(
@@ -217,42 +217,28 @@ class _InsightsScreenState extends State<InsightsScreen> {
           );
         }
 
-        final sobrietyDays =
-            insights['sobriety_days'];
+        final sobrietyDays = insights['sobriety_days'];
 
-        final sobrietyDate =
-            (insights['sobriety_date'] ?? '').toString();
+        final sobrietyDate = (insights['sobriety_date'] ?? '').toString();
 
-        final currentStep =
-            insights['current_step'] ?? 1;
+        final currentStep = insights['current_step'] ?? 1;
 
-        final openAssignments =
-            insights['open_step_assignments'] ?? 0;
+        final openAssignments = insights['open_step_assignments'] ?? 0;
 
-        final activeGoals =
-            insights['active_recovery_goals'] ?? 0;
+        final activeGoals = insights['active_recovery_goals'] ?? 0;
 
-        final checkinDays =
-            insights['checkin_days_available'] ?? 0;
+        final checkinDays = insights['checkin_days_available'] ?? 0;
 
-        final checkinWindow =
-            insights['checkin_window_days'] ?? 7;
+        final checkinWindow = insights['checkin_window_days'] ?? 7;
 
-        final weekly =
-            _asMap(insights['latest_weekly_snapshot']);
+        final weekly = _asMap(insights['latest_weekly_snapshot']);
 
-        final monthly =
-            _asMap(insights['latest_monthly_snapshot']);
+        final monthly = _asMap(insights['latest_monthly_snapshot']);
 
         return RefreshIndicator(
           onRefresh: _refreshAsync,
           child: ListView(
-            padding: const EdgeInsets.fromLTRB(
-              20,
-              20,
-              20,
-              32,
-            ),
+            padding: const EdgeInsets.fromLTRB(20, 20, 20, 32),
             children: [
               const AppPageHeader(
                 title: 'Recovery Insights',
@@ -274,24 +260,19 @@ class _InsightsScreenState extends State<InsightsScreen> {
               ],
 
               Column(
-                key: const ValueKey(
-                  'recovery-insights-summary',
-                ),
+                key: const ValueKey('recovery-insights-summary'),
                 children: [
                   Row(
-                    crossAxisAlignment:
-                        CrossAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Expanded(
                         child: _InsightMetric(
-                          icon:
-                              Icons.wb_sunny_outlined,
+                          icon: Icons.wb_sunny_outlined,
                           label: 'Sobriety',
                           value: sobrietyDays == null
                               ? 'Not set'
                               : '$sobrietyDays days',
-                          detail:
-                              sobrietyDate.isEmpty
+                          detail: sobrietyDate.isEmpty
                               ? 'Sobriety date'
                               : 'Since $sobrietyDate',
                         ),
@@ -299,11 +280,9 @@ class _InsightsScreenState extends State<InsightsScreen> {
                       const SizedBox(width: 12),
                       Expanded(
                         child: _InsightMetric(
-                          icon: Icons
-                              .format_list_numbered,
+                          icon: Icons.format_list_numbered,
                           label: 'Step Work',
-                          value:
-                              'Step $currentStep',
+                          value: 'Step $currentStep',
                           detail:
                               '$openAssignments '
                               'open assignments',
@@ -313,19 +292,16 @@ class _InsightsScreenState extends State<InsightsScreen> {
                   ),
                   const SizedBox(height: 12),
                   Row(
-                    crossAxisAlignment:
-                        CrossAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Expanded(
                         child: _InsightMetric(
-                          icon: Icons
-                              .check_circle_outline,
+                          icon: Icons.check_circle_outline,
                           label: 'Check-Ins',
                           value:
                               '$checkinDays of '
                               '$checkinWindow',
-                          detail:
-                              'recent days available',
+                          detail: 'recent days available',
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -333,10 +309,8 @@ class _InsightsScreenState extends State<InsightsScreen> {
                         child: _InsightMetric(
                           icon: Icons.flag_outlined,
                           label: 'Goals',
-                          value:
-                              '$activeGoals active',
-                          detail:
-                              'recovery goals',
+                          value: '$activeGoals active',
+                          detail: 'recovery goals',
                         ),
                       ),
                     ],
@@ -355,22 +329,17 @@ class _InsightsScreenState extends State<InsightsScreen> {
 
               if (weekly.isEmpty)
                 const AppStatusMessage(
-                  title:
-                      'No weekly review saved yet',
+                  title: 'No weekly review saved yet',
                   message:
                       'A saved weekly review will '
                       'appear here when available.',
-                  icon: Icons
-                      .calendar_view_week_outlined,
+                  icon: Icons.calendar_view_week_outlined,
                 )
               else
                 _ReviewSnapshotCard(
-                  icon: Icons
-                      .calendar_view_week_outlined,
-                  title:
-                      'Latest Weekly Review',
-                  period:
-                      _weeklyPeriod(weekly),
+                  icon: Icons.calendar_view_week_outlined,
+                  title: 'Latest Weekly Review',
+                  period: _weeklyPeriod(weekly),
                   metrics: [
                     '${weekly['checkin_days'] ?? 0} '
                         'check-in days',
@@ -390,22 +359,17 @@ class _InsightsScreenState extends State<InsightsScreen> {
 
               if (monthly.isEmpty)
                 const AppStatusMessage(
-                  title:
-                      'No monthly review saved yet',
+                  title: 'No monthly review saved yet',
                   message:
                       'A saved monthly review will '
                       'appear here when available.',
-                  icon: Icons
-                      .calendar_month_outlined,
+                  icon: Icons.calendar_month_outlined,
                 )
               else
                 _ReviewSnapshotCard(
-                  icon: Icons
-                      .calendar_month_outlined,
-                  title:
-                      'Latest Monthly Review',
-                  period:
-                      _monthlyPeriod(monthly),
+                  icon: Icons.calendar_month_outlined,
+                  title: 'Latest Monthly Review',
+                  period: _monthlyPeriod(monthly),
                   metrics: [
                     '${monthly['weekly_reviews_included'] ?? 0} '
                         'of 4 weekly reviews',
@@ -427,28 +391,25 @@ class _InsightsScreenState extends State<InsightsScreen> {
 
               AppSectionCard(
                 child: Column(
-                  crossAxisAlignment:
-                      CrossAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(
-                      crossAxisAlignment:
-                          CrossAxisAlignment.start,
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Icon(
-                          Icons
-                              .privacy_tip_outlined,
-                          color: Theme.of(context)
-                              .colorScheme
-                              .primary,
+                          Icons.privacy_tip_outlined,
+                          color: Theme.of(context).colorScheme.primary,
                         ),
                         const SizedBox(width: 12),
-                        const Expanded(
+                        Expanded(
                           child: Text(
-                            'Only the locally built '
-                            'Insights summary is sent '
-                            'after you confirm. Raw '
-                            'journal entries and check-in '
-                            'notes are not included.',
+                            widget.localRepository != null
+                                ? 'Your Insights summary stays on this device. '
+                                      'AI reflection will be enabled after the '
+                                      'explicit local-summary sharing path is added.'
+                                : 'Only the Recovery Insights summary is sent '
+                                      'after you confirm. Raw journal entries and '
+                                      'check-in notes are not included.',
                           ),
                         ),
                       ],
@@ -457,29 +418,26 @@ class _InsightsScreenState extends State<InsightsScreen> {
                     SizedBox(
                       width: double.infinity,
                       child: OutlinedButton.icon(
-                        key: const ValueKey(
-                          'recovery-insights-ai',
-                        ),
+                        key: const ValueKey('recovery-insights-ai'),
                         onPressed:
                             _analyzing ||
-                                readResult.isCached
+                                readResult.isCached ||
+                                widget.localRepository != null
                             ? null
                             : _analyzeRecoveryInsights,
                         icon: _analyzing
                             ? const SizedBox(
                                 width: 18,
                                 height: 18,
-                                child:
-                                    CircularProgressIndicator(
+                                child: CircularProgressIndicator(
                                   strokeWidth: 2,
                                 ),
                               )
-                            : const Icon(
-                                Icons
-                                    .auto_awesome_outlined,
-                              ),
+                            : const Icon(Icons.auto_awesome_outlined),
                         label: Text(
-                          _analyzing
+                          widget.localRepository != null
+                              ? 'AI Reflection Requires Sync'
+                              : _analyzing
                               ? 'Generating Reflection...'
                               : 'Reflect on Recovery Insights',
                         ),
@@ -492,8 +450,7 @@ class _InsightsScreenState extends State<InsightsScreen> {
               if (_aiError != null) ...[
                 const SizedBox(height: 16),
                 AppStatusMessage(
-                  title:
-                      'Reflection unavailable',
+                  title: 'Reflection unavailable',
                   message: _aiError!,
                   icon: Icons.error_outline,
                 ),
@@ -503,28 +460,18 @@ class _InsightsScreenState extends State<InsightsScreen> {
                 const SizedBox(height: 16),
                 AppSectionCard(
                   child: Column(
-                    crossAxisAlignment:
-                        CrossAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
                         'Recovery Companion Reflection',
-                        style: Theme.of(context)
-                            .textTheme
-                            .titleMedium
-                            ?.copyWith(
-                              fontWeight:
-                                  FontWeight.w600,
-                            ),
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(fontWeight: FontWeight.w600),
                       ),
                       const SizedBox(height: 12),
                       SelectableText(
                         _aiReflection!,
-                        key: const ValueKey(
-                          'recovery-insights-ai-reflection',
-                        ),
-                        style: Theme.of(context)
-                            .textTheme
-                            .bodyLarge
+                        key: const ValueKey('recovery-insights-ai-reflection'),
+                        style: Theme.of(context).textTheme.bodyLarge
                             ?.copyWith(height: 1.45),
                       ),
                     ],
@@ -538,14 +485,10 @@ class _InsightsScreenState extends State<InsightsScreen> {
     );
   }
 
-  static String _weeklyPeriod(
-    Map<String, dynamic> snapshot,
-  ) {
-    final start =
-        (snapshot['week_start'] ?? '').toString();
+  static String _weeklyPeriod(Map<String, dynamic> snapshot) {
+    final start = (snapshot['week_start'] ?? '').toString();
 
-    final end =
-        (snapshot['week_end'] ?? '').toString();
+    final end = (snapshot['week_end'] ?? '').toString();
 
     if (start.isEmpty && end.isEmpty) {
       return 'Saved weekly snapshot';
@@ -554,20 +497,13 @@ class _InsightsScreenState extends State<InsightsScreen> {
     return '$start ? $end';
   }
 
-  static String _monthlyPeriod(
-    Map<String, dynamic> snapshot,
-  ) {
-    final start =
-        (snapshot['period_start'] ?? '').toString();
+  static String _monthlyPeriod(Map<String, dynamic> snapshot) {
+    final start = (snapshot['period_start'] ?? '').toString();
 
-    final end =
-        (snapshot['period_end'] ?? '').toString();
+    final end = (snapshot['period_end'] ?? '').toString();
 
     if (start.isEmpty && end.isEmpty) {
-      return (
-        snapshot['snapshot_date'] ??
-            'Saved monthly snapshot'
-      ).toString();
+      return (snapshot['snapshot_date'] ?? 'Saved monthly snapshot').toString();
     }
 
     return '$start ? $end';
@@ -591,53 +527,31 @@ class _InsightMetric extends StatelessWidget {
   Widget build(BuildContext context) {
     return AppSectionCard(
       child: Column(
-        crossAxisAlignment:
-            CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(
-            icon,
-            color: Theme.of(context)
-                .colorScheme
-                .primary,
-          ),
+          Icon(icon, color: Theme.of(context).colorScheme.primary),
           const SizedBox(height: 14),
           Text(
             label,
-            style: Theme.of(context)
-                .textTheme
-                .labelLarge
-                ?.copyWith(
-                  color: Theme.of(context)
-                      .colorScheme
-                      .onSurfaceVariant,
-                ),
+            style: Theme.of(context).textTheme.labelLarge?.copyWith(
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
           ),
           const SizedBox(height: 5),
           Text(
             value,
-            style: Theme.of(context)
-                .textTheme
-                .titleLarge
-                ?.copyWith(
-                  fontWeight:
-                      FontWeight.w700,
-                ),
+            style: Theme.of(context).textTheme.titleLarge
+                ?.copyWith(fontWeight: FontWeight.w700),
           ),
           const SizedBox(height: 4),
-          Text(
-            detail,
-            style: Theme.of(context)
-                .textTheme
-                .bodySmall,
-          ),
+          Text(detail, style: Theme.of(context).textTheme.bodySmall),
         ],
       ),
     );
   }
 }
 
-class _ReviewSnapshotCard
-    extends StatelessWidget {
+class _ReviewSnapshotCard extends StatelessWidget {
   const _ReviewSnapshotCard({
     required this.icon,
     required this.title,
@@ -654,8 +568,7 @@ class _ReviewSnapshotCard
   Widget build(BuildContext context) {
     return AppSectionCard(
       child: Column(
-        crossAxisAlignment:
-            CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
@@ -663,42 +576,26 @@ class _ReviewSnapshotCard
                 width: 42,
                 height: 42,
                 decoration: BoxDecoration(
-                  color: Theme.of(context)
-                      .colorScheme
-                      .secondaryContainer,
-                  borderRadius:
-                      BorderRadius.circular(13),
+                  color: Theme.of(context).colorScheme.secondaryContainer,
+                  borderRadius: BorderRadius.circular(13),
                 ),
                 child: Icon(
                   icon,
-                  color: Theme.of(context)
-                      .colorScheme
-                      .onSecondaryContainer,
+                  color: Theme.of(context).colorScheme.onSecondaryContainer,
                 ),
               ),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
-                  crossAxisAlignment:
-                      CrossAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       title,
-                      style: Theme.of(context)
-                          .textTheme
-                          .titleMedium
-                          ?.copyWith(
-                            fontWeight:
-                                FontWeight.w600,
-                          ),
+                      style: Theme.of(context).textTheme.titleMedium
+                          ?.copyWith(fontWeight: FontWeight.w600),
                     ),
                     const SizedBox(height: 3),
-                    Text(
-                      period,
-                      style: Theme.of(context)
-                          .textTheme
-                          .bodySmall,
-                    ),
+                    Text(period, style: Theme.of(context).textTheme.bodySmall),
                   ],
                 ),
               ),
@@ -708,12 +605,7 @@ class _ReviewSnapshotCard
           Wrap(
             spacing: 8,
             runSpacing: 8,
-            children: [
-              for (final metric in metrics)
-                Chip(
-                  label: Text(metric),
-                ),
-            ],
+            children: [for (final metric in metrics) Chip(label: Text(metric))],
           ),
         ],
       ),
