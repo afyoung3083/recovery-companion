@@ -8,6 +8,7 @@ import 'app_components.dart';
 import 'offline_read_service.dart';
 import 'local_data_ownership_repository.dart';
 import 'onboarding_store.dart';
+import 'privacy_health_info_screen.dart';
 
 class SettingsPrivacyScreen extends StatefulWidget {
   const SettingsPrivacyScreen({
@@ -464,6 +465,43 @@ class _SettingsPrivacyScreenState extends State<SettingsPrivacyScreen> {
                     'AI is designed to support, not replace, '
                     'your sponsor, fellowship, therapist, '
                     'clergy, or other trusted people.',
+              ),
+            ],
+          ),
+        ),
+
+        const SizedBox(height: 28),
+
+        const AppSectionTitle(
+          title: 'Privacy policy & health information',
+          subtitle:
+              'Review data handling, health limitations, and AI boundaries.',
+        ),
+
+        AppSectionCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const _InfoRow(
+                icon: Icons.health_and_safety_outlined,
+                title: 'Privacy & Health Information',
+                text: 'Read how Recovery Companion handles recovery data and what the app is ? and is not ? designed to do.',
+              ),
+              const SizedBox(height: 18),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  key: const ValueKey('open-privacy-health-info'),
+                  onPressed: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        builder: (_) => const PrivacyHealthInfoScreen(),
+                      ),
+                    );
+                  },
+                  icon: const Icon(Icons.description_outlined),
+                  label: const Text('Read Privacy & Health Information'),
+                ),
               ),
             ],
           ),
