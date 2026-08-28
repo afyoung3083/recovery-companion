@@ -89,4 +89,35 @@ void main() {
     expect(result?.weeklyReminderEnabled, isFalse);
     expect(result?.descriptiveNotifications, isTrue);
   });
+
+  testWidgets('failed setup save stays recoverable', (tester) async {
+    var attempts = 0;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: InitialSetupScreen(
+          onFinish: (_) async {
+            attempts++;
+            throw StateError('simulated failure');
+          },
+          onSkip: () async {},
+        ),
+      ),
+    );
+
+    for (var index = 0; index < 4; index++) {
+      await tester.tap(find.byKey(const ValueKey('initial-setup-next')));
+
+      await tester.pumpAndSettle();
+    }
+
+    expect(attempts, 1);
+
+    expect(
+      find.byKey(const ValueKey('initial-setup-save-error')),
+      findsOneWidget,
+    );
+
+    expect(find.textContaining('You can retry or skip setup'), findsOneWidget);
+  });
 }

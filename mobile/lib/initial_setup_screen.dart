@@ -28,6 +28,7 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> {
 
   int _page = 0;
   bool _busy = false;
+  String? _saveError;
 
   bool _dailyReminder = false;
   bool _weeklyReminder = false;
@@ -81,6 +82,10 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> {
     });
 
     try {
+      setState(() {
+        _saveError = null;
+      });
+
       await widget.onFinish(
         InitialSetupDraft(
           sobrietyDate: _sobrietyDateController.text,
@@ -91,6 +96,15 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> {
           descriptiveNotifications: _descriptiveNotifications,
         ),
       );
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          _saveError =
+              'Setup could not be saved completely. '
+              'Your entries are still here. '
+              'You can retry or skip setup.';
+        });
+      }
     } finally {
       if (mounted) {
         setState(() {
@@ -206,6 +220,24 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> {
               padding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
               child: Column(
                 children: [
+                  if (_saveError != null) ...[
+                    Container(
+                      key: const ValueKey('initial-setup-save-error'),
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.errorContainer,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        _saveError!,
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.onErrorContainer,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                  ],
                   Text('${_page + 1} of $_pageCount'),
                   const SizedBox(height: 14),
                   SizedBox(

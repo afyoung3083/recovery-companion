@@ -31,11 +31,26 @@ class _OnboardingGateState extends State<OnboardingGate> {
   @override
   void initState() {
     super.initState();
+
     _store = widget.store ?? OnboardingStore();
+
+    OnboardingStore.changes.addListener(_handleOnboardingStoreChanged);
+
     _load();
   }
 
-  Future<void> _load() async {
+  @override
+  void dispose() {
+    OnboardingStore.changes.removeListener(_handleOnboardingStoreChanged);
+
+    super.dispose();
+  }
+
+  void _handleOnboardingStoreChanged() {
+    _load(resetFlow: true);
+  }
+
+  Future<void> _load({bool resetFlow = false}) async {
     try {
       final complete = await _store.isComplete();
 
@@ -46,6 +61,10 @@ class _OnboardingGateState extends State<OnboardingGate> {
       setState(() {
         _complete = complete;
         _error = null;
+
+        if (resetFlow && !complete) {
+          _showInitialSetup = false;
+        }
       });
     } catch (error) {
       if (!mounted) {
@@ -69,21 +88,11 @@ class _OnboardingGateState extends State<OnboardingGate> {
   }
 
   Future<void> _finishSetup(InitialSetupDraft draft) async {
-    try {
-      final service =
-          widget.initialSetupService ?? await InitialSetupService.openDefault();
+    final service =
+        widget.initialSetupService ?? await InitialSetupService.openDefault();
 
-      await service.apply(draft);
-      await _markComplete();
-    } catch (error) {
-      if (!mounted) {
-        return;
-      }
-
-      setState(() {
-        _error = error;
-      });
-    }
+    await service.apply(draft);
+    await _markComplete();
   }
 
   Future<void> _skipSetup() async {

@@ -165,4 +165,22 @@ void main() {
       );
     },
   );
+
+  test('retrying setup does not duplicate goal or routine', () async {
+    const draft = InitialSetupDraft(
+      goalText: 'Stay connected today',
+      routineText: 'Morning recovery reading',
+    );
+
+    await service.apply(draft);
+    await service.apply(draft);
+
+    final document = await store.read();
+
+    final data = Map<String, dynamic>.from(document['data'] as Map);
+
+    expect((data['goals'] as List).length, 1);
+
+    expect((data['routines'] as List).length, 1);
+  });
 }

@@ -62,7 +62,9 @@ class InitialSetupService {
 
   Future<void> apply(InitialSetupDraft draft) async {
     final sobrietyDate = draft.sobrietyDate.trim();
+
     final goalText = draft.goalText.trim();
+
     final routineText = draft.routineText.trim();
 
     if (sobrietyDate.isNotEmpty) {
@@ -70,15 +72,38 @@ class InitialSetupService {
     }
 
     if (goalText.isNotEmpty) {
-      await goalsRepository.createGoal(text: goalText, area: 'recovery');
+      final response = await goalsRepository.getGoals();
+
+      final goals = response['goals'] as List? ?? const [];
+
+      final exists = goals.any(
+        (goal) =>
+            goal is Map && (goal['text'] ?? '').toString().trim() == goalText,
+      );
+
+      if (!exists) {
+        await goalsRepository.createGoal(text: goalText, area: 'recovery');
+      }
     }
 
     if (routineText.isNotEmpty) {
-      await routinesRepository.createRoutine(
-        text: routineText,
-        area: 'recovery',
-        frequency: 'daily',
+      final response = await routinesRepository.getRoutines();
+
+      final routines = response['routines'] as List? ?? const [];
+
+      final exists = routines.any(
+        (routine) =>
+            routine is Map &&
+            (routine['text'] ?? '').toString().trim() == routineText,
       );
+
+      if (!exists) {
+        await routinesRepository.createRoutine(
+          text: routineText,
+          area: 'recovery',
+          frequency: 'daily',
+        );
+      }
     }
 
     final preferences = ReminderPreferences.defaults().copyWith(
