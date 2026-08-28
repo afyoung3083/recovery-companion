@@ -6,6 +6,14 @@ import 'chat_screen.dart';
 import 'daily_checkin_screen.dart';
 import 'fellowship_screen.dart';
 import 'journal_screen.dart';
+import 'local_data_ownership_repository.dart';
+import 'local_daily_checkin_repository.dart';
+import 'local_fellowship_repository.dart';
+import 'local_journal_repository.dart';
+import 'local_monthly_review_repository.dart';
+import 'local_profile_repository.dart';
+import 'local_step_work_repository.dart';
+import 'local_weekly_review_repository.dart';
 import 'monthly_review_screen.dart';
 import 'offline_read_service.dart';
 import 'profile_screen.dart';
@@ -19,12 +27,28 @@ class MoreScreen extends StatelessWidget {
   const MoreScreen({
     required this.apiClient,
     this.offlineReadService,
+    this.localDataOwnershipRepository,
+    this.localDailyCheckInRepository,
+    this.localFellowshipRepository,
+    this.localJournalRepository,
+    this.localMonthlyReviewRepository,
+    this.localProfileRepository,
+    this.localStepWorkRepository,
+    this.localWeeklyReviewRepository,
     this.reminderScheduler,
     super.key,
   });
 
   final ApiClient apiClient;
   final OfflineReadService? offlineReadService;
+  final LocalDataOwnershipRepository? localDataOwnershipRepository;
+  final LocalDailyCheckInRepository? localDailyCheckInRepository;
+  final LocalFellowshipRepository? localFellowshipRepository;
+  final LocalJournalRepository? localJournalRepository;
+  final LocalMonthlyReviewRepository? localMonthlyReviewRepository;
+  final LocalProfileRepository? localProfileRepository;
+  final LocalStepWorkRepository? localStepWorkRepository;
+  final LocalWeeklyReviewRepository? localWeeklyReviewRepository;
   final ReminderSchedulingService? reminderScheduler;
 
   void _open(
@@ -68,6 +92,7 @@ class MoreScreen extends StatelessWidget {
                   child: DailyCheckInScreen(
                     apiClient: apiClient,
                     offlineReadService: offlineReadService,
+                    localRepository: localDailyCheckInRepository,
                   ),
                 );
               },
@@ -83,6 +108,7 @@ class MoreScreen extends StatelessWidget {
                   child: JournalScreen(
                     apiClient: apiClient,
                     offlineReadService: offlineReadService,
+                    localRepository: localJournalRepository,
                   ),
                 );
               },
@@ -107,7 +133,10 @@ class MoreScreen extends StatelessWidget {
                 _open(
                   context,
                   title: 'Fellowship',
-                  child: FellowshipScreen(apiClient: apiClient),
+                  child: FellowshipScreen(
+                    apiClient: apiClient,
+                    localRepository: localFellowshipRepository,
+                  ),
                 );
               },
             ),
@@ -143,7 +172,10 @@ class MoreScreen extends StatelessWidget {
                 _open(
                   context,
                   title: 'Step Work',
-                  child: StepWorkScreen(apiClient: apiClient),
+                  child: StepWorkScreen(
+                    apiClient: apiClient,
+                    localRepository: localStepWorkRepository,
+                  ),
                 );
               },
             ),
@@ -155,7 +187,10 @@ class MoreScreen extends StatelessWidget {
                 _open(
                   context,
                   title: 'Weekly Review',
-                  child: WeeklyReviewScreen(apiClient: apiClient),
+                  child: WeeklyReviewScreen(
+                    apiClient: apiClient,
+                    localRepository: localWeeklyReviewRepository,
+                  ),
                 );
               },
             ),
@@ -167,7 +202,10 @@ class MoreScreen extends StatelessWidget {
                 _open(
                   context,
                   title: 'Monthly Review',
-                  child: MonthlyReviewScreen(apiClient: apiClient),
+                  child: MonthlyReviewScreen(
+                    apiClient: apiClient,
+                    localRepository: localMonthlyReviewRepository,
+                  ),
                 );
               },
             ),
@@ -191,6 +229,7 @@ class MoreScreen extends StatelessWidget {
                   child: ProfileScreen(
                     apiClient: apiClient,
                     offlineReadService: offlineReadService,
+                    localRepository: localProfileRepository,
                   ),
                 );
               },
@@ -218,6 +257,7 @@ class MoreScreen extends StatelessWidget {
                   child: SettingsPrivacyScreen(
                     apiClient: apiClient,
                     offlineReadService: offlineReadService,
+                    localRepository: localDataOwnershipRepository,
                   ),
                 );
               },

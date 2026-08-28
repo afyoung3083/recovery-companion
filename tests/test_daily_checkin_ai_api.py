@@ -174,3 +174,50 @@ def test_checkin_ai_does_not_expose_ai_errors(
     }
 
     assert "sk-do-not-expose" not in response.text
+
+
+
+@patch("app.api.analyze_checkin_trends")
+@patch("app.api.get_recent_checkins")
+def test_checkin_ai_accepts_explicit_local_summary(
+    mock_get_recent_checkins,
+    mock_analyze_checkin_trends,
+):
+    mock_analyze_checkin_trends.return_value = (
+        "Local summary reflection."
+    )
+
+    response = client.post(
+        "/daily-checkin/ai-reflection",
+        headers=auth_headers(),
+        json={
+            "summary": "LOCAL DEVICE SUMMARY",
+            "checkin_count": 4,
+        },
+    )
+
+    assert response.status_code == 200
+
+    assert response.json() == {
+        "checkin_count": 4,
+        "reflection": "Local summary reflection.",
+    }
+
+    mock_get_recent_checkins.assert_not_called()
+
+    mock_analyze_checkin_trends.assert_called_once_with(
+        "LOCAL DEVICE SUMMARY"
+    )
+
+
+def test_checkin_ai_rejects_invalid_local_count():
+    response = client.post(
+        "/daily-checkin/ai-reflection",
+        headers=auth_headers(),
+        json={
+            "summary": "LOCAL DEVICE SUMMARY",
+            "checkin_count": 8,
+        },
+    )
+
+    assert response.status_code == 400

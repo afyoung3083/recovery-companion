@@ -6,6 +6,19 @@ import 'daily_checkin_screen.dart';
 import 'dashboard_screen.dart';
 import 'goals_screen.dart';
 import 'insights_screen.dart';
+import 'local_data_ownership_repository.dart';
+import 'local_daily_checkin_repository.dart';
+import 'local_dashboard_repository.dart';
+import 'local_fellowship_repository.dart';
+import 'local_goals_repository.dart';
+import 'local_insights_repository.dart';
+import 'local_journal_repository.dart';
+import 'local_monthly_review_repository.dart';
+import 'local_profile_repository.dart';
+import 'local_routines_repository.dart';
+import 'local_step_work_repository.dart';
+import 'local_weekly_review_repository.dart';
+import 'local_recovery_store.dart';
 import 'mobile_config.dart';
 import 'more_screen.dart';
 import 'offline_read_service.dart';
@@ -19,9 +32,7 @@ void main() {
 }
 
 class RecoveryCompanionApp extends StatelessWidget {
-  const RecoveryCompanionApp({
-    super.key,
-  });
+  const RecoveryCompanionApp({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -35,9 +46,7 @@ class RecoveryCompanionApp extends StatelessWidget {
 }
 
 class HomeShell extends StatefulWidget {
-  const HomeShell({
-    super.key,
-  });
+  const HomeShell({super.key});
 
   @override
   State<HomeShell> createState() => _HomeShellState();
@@ -50,27 +59,25 @@ class _HomeShellState extends State<HomeShell> {
   late final OfflineReadService _offlineReadService;
   late final ReminderScheduler _reminderScheduler;
 
+  LocalDataOwnershipRepository? _localDataOwnershipRepository;
+  LocalDailyCheckInRepository? _localDailyCheckInRepository;
+  LocalDashboardRepository? _localDashboardRepository;
+  LocalFellowshipRepository? _localFellowshipRepository;
+  LocalGoalsRepository? _localGoalsRepository;
+  LocalInsightsRepository? _localInsightsRepository;
+  LocalJournalRepository? _localJournalRepository;
+  LocalMonthlyReviewRepository? _localMonthlyReviewRepository;
+  LocalProfileRepository? _localProfileRepository;
+  LocalRoutinesRepository? _localRoutinesRepository;
+  LocalStepWorkRepository? _localStepWorkRepository;
+  LocalWeeklyReviewRepository? _localWeeklyReviewRepository;
+
   static const List<_Destination> _destinations = [
-    _Destination(
-      label: 'Dashboard',
-      icon: Icons.dashboard_outlined,
-    ),
-    _Destination(
-      label: 'Insights',
-      icon: Icons.insights_outlined,
-    ),
-    _Destination(
-      label: 'Goals',
-      icon: Icons.flag_outlined,
-    ),
-    _Destination(
-      label: 'Routines',
-      icon: Icons.repeat_outlined,
-    ),
-    _Destination(
-      label: 'More',
-      icon: Icons.menu,
-    ),
+    _Destination(label: 'Dashboard', icon: Icons.dashboard_outlined),
+    _Destination(label: 'Insights', icon: Icons.insights_outlined),
+    _Destination(label: 'Goals', icon: Icons.flag_outlined),
+    _Destination(label: 'Routines', icon: Icons.repeat_outlined),
+    _Destination(label: 'More', icon: Icons.menu),
   ];
 
   @override
@@ -83,9 +90,7 @@ class _HomeShellState extends State<HomeShell> {
     );
 
     _offlineReadService = OfflineReadService(
-      cache: SecureOfflineCacheStore(
-        storage: FlutterSecureKeyValueStore(),
-      ),
+      cache: SecureOfflineCacheStore(storage: FlutterSecureKeyValueStore()),
     );
 
     _reminderScheduler = ReminderScheduler(
@@ -93,6 +98,35 @@ class _HomeShellState extends State<HomeShell> {
     );
 
     _initializeReminderNavigation();
+    _initializeLocalRecovery();
+  }
+
+  Future<void> _initializeLocalRecovery() async {
+    final store = await LocalRecoveryStore.openDefault();
+
+    if (!mounted) {
+      return;
+    }
+
+    setState(() {
+      _localGoalsRepository = LocalGoalsRepository(store: store);
+      _localInsightsRepository = LocalInsightsRepository(store: store);
+      _localDailyCheckInRepository = LocalDailyCheckInRepository(store: store);
+      _localDataOwnershipRepository = LocalDataOwnershipRepository(
+        store: store,
+      );
+      _localDashboardRepository = LocalDashboardRepository(store: store);
+      _localFellowshipRepository = LocalFellowshipRepository(store: store);
+
+      _localJournalRepository = LocalJournalRepository(store: store);
+      _localMonthlyReviewRepository = LocalMonthlyReviewRepository(
+        store: store,
+      );
+      _localProfileRepository = LocalProfileRepository(store: store);
+      _localRoutinesRepository = LocalRoutinesRepository(store: store);
+      _localStepWorkRepository = LocalStepWorkRepository(store: store);
+      _localWeeklyReviewRepository = LocalWeeklyReviewRepository(store: store);
+    });
   }
 
   Future<void> _initializeReminderNavigation() async {
@@ -102,8 +136,7 @@ class _HomeShellState extends State<HomeShell> {
       return;
     }
 
-    final payload =
-        _reminderScheduler.takeLaunchPayload();
+    final payload = _reminderScheduler.takeLaunchPayload();
 
     if (payload == null) {
       return;
@@ -136,12 +169,14 @@ class _HomeShellState extends State<HomeShell> {
         screen = DailyCheckInScreen(
           apiClient: _apiClient,
           offlineReadService: _offlineReadService,
+          localRepository: _localDailyCheckInRepository,
         );
 
       case ReminderKind.weeklyReview:
         title = 'Weekly Review';
         screen = WeeklyReviewScreen(
           apiClient: _apiClient,
+          localRepository: _localWeeklyReviewRepository,
         );
     }
 
@@ -167,29 +202,47 @@ class _HomeShellState extends State<HomeShell> {
         return DashboardScreen(
           apiClient: _apiClient,
           offlineReadService: _offlineReadService,
+          localRepository: _localDashboardRepository,
+          localDailyCheckInRepository: _localDailyCheckInRepository,
+          localFellowshipRepository: _localFellowshipRepository,
+          localJournalRepository: _localJournalRepository,
+          localProfileRepository: _localProfileRepository,
+          localStepWorkRepository: _localStepWorkRepository,
         );
 
       case 1:
         return InsightsScreen(
           apiClient: _apiClient,
+          offlineReadService: _offlineReadService,
+          localRepository: _localInsightsRepository,
         );
 
       case 2:
         return GoalsScreen(
           apiClient: _apiClient,
           offlineReadService: _offlineReadService,
+          localRepository: _localGoalsRepository,
         );
 
       case 3:
         return RoutinesScreen(
           apiClient: _apiClient,
           offlineReadService: _offlineReadService,
+          localRepository: _localRoutinesRepository,
         );
 
       case 4:
         return MoreScreen(
           apiClient: _apiClient,
           offlineReadService: _offlineReadService,
+          localDataOwnershipRepository: _localDataOwnershipRepository,
+          localDailyCheckInRepository: _localDailyCheckInRepository,
+          localFellowshipRepository: _localFellowshipRepository,
+          localJournalRepository: _localJournalRepository,
+          localMonthlyReviewRepository: _localMonthlyReviewRepository,
+          localProfileRepository: _localProfileRepository,
+          localStepWorkRepository: _localStepWorkRepository,
+          localWeeklyReviewRepository: _localWeeklyReviewRepository,
           reminderScheduler: _reminderScheduler,
         );
 
@@ -204,11 +257,7 @@ class _HomeShellState extends State<HomeShell> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text(
-          'Recovery Companion',
-        ),
-      ),
+      appBar: AppBar(title: const Text('Recovery Companion')),
       body: _buildSelectedScreen(),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _selectedIndex,
@@ -220,9 +269,7 @@ class _HomeShellState extends State<HomeShell> {
         destinations: _destinations
             .map(
               (destination) => NavigationDestination(
-                icon: Icon(
-                  destination.icon,
-                ),
+                icon: Icon(destination.icon),
                 label: destination.label,
               ),
             )
@@ -232,12 +279,8 @@ class _HomeShellState extends State<HomeShell> {
   }
 }
 
-
 class _Destination {
-  const _Destination({
-    required this.label,
-    required this.icon,
-  });
+  const _Destination({required this.label, required this.icon});
 
   final String label;
   final IconData icon;

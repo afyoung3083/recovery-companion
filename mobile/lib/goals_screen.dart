@@ -4,16 +4,19 @@ import 'api_client.dart';
 import 'app_components.dart';
 import 'offline_copy_notice.dart';
 import 'offline_read_service.dart';
+import 'local_goals_repository.dart';
 
 class GoalsScreen extends StatefulWidget {
   const GoalsScreen({
     required this.apiClient,
     this.offlineReadService,
+    this.localRepository,
     super.key,
   });
 
   final ApiClient apiClient;
   final OfflineReadService? offlineReadService;
+  final LocalGoalsRepository? localRepository;
 
   @override
   State<GoalsScreen> createState() => _GoalsScreenState();
@@ -42,19 +45,28 @@ class _GoalsScreenState extends State<GoalsScreen> {
   String? _actionError;
 
   Future<OfflineReadResult> _loadGoals() async {
-    final service = widget.offlineReadService;
+    final localRepository = widget.localRepository;
 
     late final OfflineReadResult result;
 
-    if (service == null) {
-      final data = await widget.apiClient.getGoals();
-
+    if (localRepository != null) {
+      final data = await localRepository.getGoals();
       result = OfflineReadResult(data: data, source: OfflineReadSource.network);
     } else {
-      result = await service.read(
-        cacheKey: OfflineCacheKeys.goals,
-        networkRead: widget.apiClient.getGoals,
-      );
+      final service = widget.offlineReadService;
+
+      if (service == null) {
+        final data = await widget.apiClient.getGoals();
+        result = OfflineReadResult(
+          data: data,
+          source: OfflineReadSource.network,
+        );
+      } else {
+        result = await service.read(
+          cacheKey: OfflineCacheKeys.goals,
+          networkRead: widget.apiClient.getGoals,
+        );
+      }
     }
 
     if (mounted && _showingOfflineCopy != result.isCached) {
@@ -113,11 +125,21 @@ class _GoalsScreenState extends State<GoalsScreen> {
     });
 
     try {
-      await widget.apiClient.createGoal(
-        text: text,
-        area: _area,
-        targetDate: _targetDateController.text.trim(),
-      );
+      final localRepository = widget.localRepository;
+
+      if (localRepository != null) {
+        await localRepository.createGoal(
+          text: text,
+          area: _area,
+          targetDate: _targetDateController.text.trim(),
+        );
+      } else {
+        await widget.apiClient.createGoal(
+          text: text,
+          area: _area,
+          targetDate: _targetDateController.text.trim(),
+        );
+      }
 
       if (!mounted) {
         return;
@@ -162,7 +184,13 @@ class _GoalsScreenState extends State<GoalsScreen> {
     });
 
     try {
-      await widget.apiClient.completeGoal(goalId);
+      final localRepository = widget.localRepository;
+
+      if (localRepository != null) {
+        await localRepository.completeGoal(goalId);
+      } else {
+        await widget.apiClient.completeGoal(goalId);
+      }
 
       if (!mounted) {
         return;
@@ -242,7 +270,9 @@ class _GoalsScreenState extends State<GoalsScreen> {
                       ),
                     )
                     .toList(),
-                onChanged: _saving || _showingOfflineCopy
+                onChanged:
+                    _saving ||
+                        (_showingOfflineCopy && widget.localRepository == null)
                     ? null
                     : (value) {
                         if (value != null) {
@@ -265,7 +295,10 @@ class _GoalsScreenState extends State<GoalsScreen> {
               SizedBox(
                 width: double.infinity,
                 child: FilledButton.icon(
-                  onPressed: _saving || _showingOfflineCopy
+                  onPressed:
+                      _saving ||
+                          (_showingOfflineCopy &&
+                              widget.localRepository == null)
                       ? null
                       : _createGoal,
                   icon: const Icon(Icons.add),
@@ -355,7 +388,10 @@ class _GoalsScreenState extends State<GoalsScreen> {
                       padding: const EdgeInsets.only(bottom: 12),
                       child: _GoalCard(
                         goal: goal,
-                        saving: _saving || readResult.isCached,
+                        saving:
+                            _saving ||
+                            (readResult.isCached &&
+                                widget.localRepository == null),
                         onComplete: _completeGoal,
                       ),
                     ),

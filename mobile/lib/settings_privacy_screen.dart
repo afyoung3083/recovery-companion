@@ -6,16 +6,19 @@ import 'package:flutter/services.dart';
 import 'api_client.dart';
 import 'app_components.dart';
 import 'offline_read_service.dart';
+import 'local_data_ownership_repository.dart';
 
 class SettingsPrivacyScreen extends StatefulWidget {
   const SettingsPrivacyScreen({
     required this.apiClient,
     this.offlineReadService,
+    this.localRepository,
     super.key,
   });
 
   final ApiClient apiClient;
   final OfflineReadService? offlineReadService;
+  final LocalDataOwnershipRepository? localRepository;
 
   @override
   State<SettingsPrivacyScreen> createState() => _SettingsPrivacyScreenState();
@@ -61,7 +64,11 @@ class _SettingsPrivacyScreenState extends State<SettingsPrivacyScreen> {
     });
 
     try {
-      final response = await widget.apiClient.exportRecoveryData();
+      final localRepository = widget.localRepository;
+
+      final response = localRepository != null
+          ? await localRepository.exportRecoveryData()
+          : await widget.apiClient.exportRecoveryData();
 
       final export = Map<String, dynamic>.from(response['export'] as Map);
 
@@ -166,7 +173,13 @@ class _SettingsPrivacyScreenState extends State<SettingsPrivacyScreen> {
     });
 
     try {
-      await widget.apiClient.deleteRecoveryData(confirmation: _deletePhrase);
+      final localRepository = widget.localRepository;
+
+      if (localRepository != null) {
+        await localRepository.deleteRecoveryData(confirmation: _deletePhrase);
+      } else {
+        await widget.apiClient.deleteRecoveryData(confirmation: _deletePhrase);
+      }
 
       try {
         await widget.offlineReadService?.clearCachedData();

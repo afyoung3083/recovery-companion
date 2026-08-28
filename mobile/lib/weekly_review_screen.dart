@@ -2,11 +2,17 @@ import 'package:flutter/material.dart';
 
 import 'api_client.dart';
 import 'app_components.dart';
+import 'local_weekly_review_repository.dart';
 
 class WeeklyReviewScreen extends StatefulWidget {
-  const WeeklyReviewScreen({required this.apiClient, super.key});
+  const WeeklyReviewScreen({
+    required this.apiClient,
+    this.localRepository,
+    super.key,
+  });
 
   final ApiClient apiClient;
+  final LocalWeeklyReviewRepository? localRepository;
 
   @override
   State<WeeklyReviewScreen> createState() => _WeeklyReviewScreenState();
@@ -26,9 +32,15 @@ class _WeeklyReviewScreenState extends State<WeeklyReviewScreen> {
   void initState() {
     super.initState();
 
-    _currentFuture = widget.apiClient.getCurrentWeeklyReview();
-    _historyFuture = widget.apiClient.getWeeklyReviewHistory();
-    _comparisonFuture = widget.apiClient.getWeeklyReviewComparison();
+    _currentFuture = widget.localRepository != null
+        ? widget.localRepository!.getCurrentReview()
+        : widget.apiClient.getCurrentWeeklyReview();
+    _historyFuture = widget.localRepository != null
+        ? widget.localRepository!.getHistory()
+        : widget.apiClient.getWeeklyReviewHistory();
+    _comparisonFuture = widget.localRepository != null
+        ? widget.localRepository!.getComparison()
+        : widget.apiClient.getWeeklyReviewComparison();
   }
 
   void _reloadAll({bool clearReflection = false}) {
@@ -39,20 +51,32 @@ class _WeeklyReviewScreenState extends State<WeeklyReviewScreen> {
         _reflection = null;
       }
 
-      _currentFuture = widget.apiClient.getCurrentWeeklyReview();
+      _currentFuture = widget.localRepository != null
+          ? widget.localRepository!.getCurrentReview()
+          : widget.apiClient.getCurrentWeeklyReview();
 
-      _historyFuture = widget.apiClient.getWeeklyReviewHistory();
+      _historyFuture = widget.localRepository != null
+          ? widget.localRepository!.getHistory()
+          : widget.apiClient.getWeeklyReviewHistory();
 
-      _comparisonFuture = widget.apiClient.getWeeklyReviewComparison();
+      _comparisonFuture = widget.localRepository != null
+          ? widget.localRepository!.getComparison()
+          : widget.apiClient.getWeeklyReviewComparison();
     });
   }
 
   Future<void> _refresh() async {
-    final current = widget.apiClient.getCurrentWeeklyReview();
+    final current = widget.localRepository != null
+        ? widget.localRepository!.getCurrentReview()
+        : widget.apiClient.getCurrentWeeklyReview();
 
-    final history = widget.apiClient.getWeeklyReviewHistory();
+    final history = widget.localRepository != null
+        ? widget.localRepository!.getHistory()
+        : widget.apiClient.getWeeklyReviewHistory();
 
-    final comparison = widget.apiClient.getWeeklyReviewComparison();
+    final comparison = widget.localRepository != null
+        ? widget.localRepository!.getComparison()
+        : widget.apiClient.getWeeklyReviewComparison();
 
     setState(() {
       _error = null;
@@ -76,7 +100,13 @@ class _WeeklyReviewScreenState extends State<WeeklyReviewScreen> {
     });
 
     try {
-      await widget.apiClient.saveWeeklyReviewSnapshot();
+      final localRepository = widget.localRepository;
+
+      if (localRepository != null) {
+        await localRepository.saveSnapshot();
+      } else {
+        await widget.apiClient.saveWeeklyReviewSnapshot();
+      }
 
       if (!mounted) {
         return;
@@ -111,7 +141,25 @@ class _WeeklyReviewScreenState extends State<WeeklyReviewScreen> {
     });
 
     try {
-      final response = await widget.apiClient.getWeeklyReviewAiReflection();
+      final localRepository = widget.localRepository;
+
+      late final Map<String, dynamic> response;
+
+      if (localRepository != null) {
+        final payload = await localRepository.buildAiReflectionPayload();
+
+        final summary = (payload['summary'] ?? '').toString().trim();
+
+        if (summary.isEmpty) {
+          throw StateError('No local Weekly Review summary is available.');
+        }
+
+        response = await widget.apiClient.getWeeklyReviewAiReflection(
+          summary: summary,
+        );
+      } else {
+        response = await widget.apiClient.getWeeklyReviewAiReflection();
+      }
 
       if (!mounted) {
         return;
@@ -240,7 +288,8 @@ class _WeeklyReviewScreenState extends State<WeeklyReviewScreen> {
                     SizedBox(width: 12),
                     Expanded(
                       child: Text(
-                        'AI reflection only runs when you explicitly request it.',
+                        'AI reflection only runs when you explicitly request it. '
+                        'Only the locally constructed Weekly Review summary is sent.',
                       ),
                     ),
                   ],

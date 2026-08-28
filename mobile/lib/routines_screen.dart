@@ -4,16 +4,19 @@ import 'api_client.dart';
 import 'app_components.dart';
 import 'offline_copy_notice.dart';
 import 'offline_read_service.dart';
+import 'local_routines_repository.dart';
 
 class RoutinesScreen extends StatefulWidget {
   const RoutinesScreen({
     required this.apiClient,
     this.offlineReadService,
+    this.localRepository,
     super.key,
   });
 
   final ApiClient apiClient;
   final OfflineReadService? offlineReadService;
+  final LocalRoutinesRepository? localRepository;
 
   @override
   State<RoutinesScreen> createState() => _RoutinesScreenState();
@@ -53,19 +56,30 @@ class _RoutinesScreenState extends State<RoutinesScreen> {
   String? _actionError;
 
   Future<OfflineReadResult> _loadRoutines() async {
-    final service = widget.offlineReadService;
+    final localRepository = widget.localRepository;
 
     late final OfflineReadResult result;
 
-    if (service == null) {
-      final data = await widget.apiClient.getRoutines();
+    if (localRepository != null) {
+      final data = await localRepository.getRoutines();
 
       result = OfflineReadResult(data: data, source: OfflineReadSource.network);
     } else {
-      result = await service.read(
-        cacheKey: OfflineCacheKeys.routines,
-        networkRead: widget.apiClient.getRoutines,
-      );
+      final service = widget.offlineReadService;
+
+      if (service == null) {
+        final data = await widget.apiClient.getRoutines();
+
+        result = OfflineReadResult(
+          data: data,
+          source: OfflineReadSource.network,
+        );
+      } else {
+        result = await service.read(
+          cacheKey: OfflineCacheKeys.routines,
+          networkRead: widget.apiClient.getRoutines,
+        );
+      }
     }
 
     if (mounted && _showingOfflineCopy != result.isCached) {
@@ -123,12 +137,23 @@ class _RoutinesScreenState extends State<RoutinesScreen> {
     });
 
     try {
-      await widget.apiClient.createRoutine(
-        text: text,
-        area: _area,
-        frequency: _frequency,
-        dayOfWeek: _frequency == 'weekly' ? _dayOfWeek : '',
-      );
+      final localRepository = widget.localRepository;
+
+      if (localRepository != null) {
+        await localRepository.createRoutine(
+          text: text,
+          area: _area,
+          frequency: _frequency,
+          dayOfWeek: _frequency == 'weekly' ? _dayOfWeek : '',
+        );
+      } else {
+        await widget.apiClient.createRoutine(
+          text: text,
+          area: _area,
+          frequency: _frequency,
+          dayOfWeek: _frequency == 'weekly' ? _dayOfWeek : '',
+        );
+      }
 
       if (!mounted) {
         return;
@@ -177,10 +202,19 @@ class _RoutinesScreenState extends State<RoutinesScreen> {
     });
 
     try {
-      await widget.apiClient.setRoutineActive(
-        routineId: routineId,
-        active: active,
-      );
+      final localRepository = widget.localRepository;
+
+      if (localRepository != null) {
+        await localRepository.setRoutineActive(
+          routineId: routineId,
+          active: active,
+        );
+      } else {
+        await widget.apiClient.setRoutineActive(
+          routineId: routineId,
+          active: active,
+        );
+      }
 
       if (!mounted) {
         return;
@@ -253,7 +287,9 @@ class _RoutinesScreenState extends State<RoutinesScreen> {
                       ),
                     )
                     .toList(),
-                onChanged: _saving || _showingOfflineCopy
+                onChanged:
+                    _saving ||
+                        (_showingOfflineCopy && widget.localRepository == null)
                     ? null
                     : (value) {
                         if (value != null) {
@@ -271,7 +307,9 @@ class _RoutinesScreenState extends State<RoutinesScreen> {
                   DropdownMenuItem(value: 'daily', child: Text('Daily')),
                   DropdownMenuItem(value: 'weekly', child: Text('Weekly')),
                 ],
-                onChanged: _saving || _showingOfflineCopy
+                onChanged:
+                    _saving ||
+                        (_showingOfflineCopy && widget.localRepository == null)
                     ? null
                     : (value) {
                         if (value != null) {
@@ -294,7 +332,10 @@ class _RoutinesScreenState extends State<RoutinesScreen> {
                         ),
                       )
                       .toList(),
-                  onChanged: _saving || _showingOfflineCopy
+                  onChanged:
+                      _saving ||
+                          (_showingOfflineCopy &&
+                              widget.localRepository == null)
                       ? null
                       : (value) {
                           if (value != null) {
@@ -309,7 +350,10 @@ class _RoutinesScreenState extends State<RoutinesScreen> {
               SizedBox(
                 width: double.infinity,
                 child: FilledButton.icon(
-                  onPressed: _saving || _showingOfflineCopy
+                  onPressed:
+                      _saving ||
+                          (_showingOfflineCopy &&
+                              widget.localRepository == null)
                       ? null
                       : _createRoutine,
                   icon: const Icon(Icons.add),
@@ -399,7 +443,10 @@ class _RoutinesScreenState extends State<RoutinesScreen> {
                       padding: const EdgeInsets.only(bottom: 12),
                       child: _RoutineCard(
                         routine: routine,
-                        saving: _saving || readResult.isCached,
+                        saving:
+                            _saving ||
+                            (readResult.isCached &&
+                                widget.localRepository == null),
                         onSetActive: _setActive,
                       ),
                     ),

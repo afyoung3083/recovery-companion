@@ -106,6 +106,23 @@ class DailyCheckInRequest(BaseModel):
     note: str = ""
 
 
+class AiReflectionSummaryRequest(BaseModel):
+    summary: str
+    checkin_count: int = 0
+
+
+class RecoveryInsightsAiRequest(BaseModel):
+    summary: str
+
+
+class WeeklyReviewAiRequest(BaseModel):
+    summary: str
+
+
+class MonthlyReviewAiRequest(BaseModel):
+    summary: str
+
+
 class JournalEntryRequest(BaseModel):
     text: str
     tags: list[str] = []
@@ -269,16 +286,34 @@ def recovery_insights() -> dict[str, object]:
         Depends(require_api_token)
     ],
 )
-def recovery_insights_ai_reflection() -> dict[str, str]:
+def recovery_insights_ai_reflection(
+    request: RecoveryInsightsAiRequest | None = None,
+) -> dict[str, str]:
     """
     Generate an optional AI reflection on Recovery Insights.
 
-    The deterministic Recovery Insights summary is built locally.
-    Only that summary is sent to the AI, and the reflection is not
-    persisted automatically.
+    Local-first clients may provide the deterministic summary they
+    constructed from authoritative on-device recovery data.
+
+    Older clients may omit the request body, preserving the original
+    server-side summary behavior.
+
+    Only the supplied deterministic summary is sent to the AI.
     """
 
-    insights_text = build_recovery_insights()
+    if request is not None:
+        insights_text = request.summary.strip()
+
+        if not insights_text:
+            raise HTTPException(
+                status_code=400,
+                detail=(
+                    "Recovery Insights summary cannot be empty."
+                ),
+            )
+
+    else:
+        insights_text = build_recovery_insights()
 
     try:
         reflection = analyze_recovery_insights(
@@ -692,39 +727,70 @@ def update_today_checkin(
         Depends(require_api_token)
     ],
 )
-def daily_checkin_ai_reflection() -> dict[str, object]:
+def daily_checkin_ai_reflection(
+    request: AiReflectionSummaryRequest | None = None,
+) -> dict[str, object]:
     """
-    Analyze the seven most recent saved Daily Recovery Check-Ins.
+    Analyze recent Daily Recovery Check-In information.
 
-    The deterministic history and trend summary is constructed
-    locally. Only that summary is sent to the AI, and the
-    reflection is not persisted automatically.
+    Local-first clients may explicitly provide the deterministic
+    summary they just constructed from authoritative on-device data.
+    Older clients may omit the body; in that case the API preserves
+    the original behavior and builds the summary from server data.
+
+    Only the summary is sent to the AI. The reflection is not
+    persisted automatically.
     """
 
-    checkins = get_recent_checkins(
-        limit=7
-    )
+    if request is not None:
+        checkin_text = request.summary.strip()
 
-    if not checkins:
-        raise HTTPException(
-            status_code=404,
-            detail=(
-                "No recent check-ins available to analyze."
-            ),
+        if not checkin_text:
+            raise HTTPException(
+                status_code=400,
+                detail="Check-in summary cannot be empty.",
+            )
+
+        if (
+            request.checkin_count < 1
+            or request.checkin_count > 7
+        ):
+            raise HTTPException(
+                status_code=400,
+                detail=(
+                    "Check-in count must be between 1 and 7."
+                ),
+            )
+
+        checkin_count = request.checkin_count
+
+    else:
+        checkins = get_recent_checkins(
+            limit=7
         )
 
-    history_text = format_checkin_history(
-        checkins
-    )
+        if not checkins:
+            raise HTTPException(
+                status_code=404,
+                detail=(
+                    "No recent check-ins available to analyze."
+                ),
+            )
 
-    trends_text = format_checkin_trends(
-        checkins
-    )
+        history_text = format_checkin_history(
+            checkins
+        )
 
-    checkin_text = (
-        f"{history_text}\n\n"
-        f"{trends_text}"
-    )
+        trends_text = format_checkin_trends(
+            checkins
+        )
+
+        checkin_text = (
+            f"{history_text}\n\n"
+            f"{trends_text}"
+        )
+
+        checkin_count = len(checkins)
 
     try:
         reflection = analyze_checkin_trends(
@@ -739,9 +805,13 @@ def daily_checkin_ai_reflection() -> dict[str, object]:
         ) from error
 
     return {
-        "checkin_count": len(checkins),
+        "checkin_count": checkin_count,
         "reflection": reflection,
     }
+
+
+class JournalAiReflectionRequest(BaseModel):
+    text: str
 
 
 # ============================================================
@@ -794,43 +864,61 @@ def create_journal_entry(
 )
 def journal_ai_reflection(
     entry_id: int,
+    request: JournalAiReflectionRequest | None = None,
 ) -> dict[str, object]:
     """
     Analyze one explicitly selected journal entry.
 
-    Only the selected entry text is sent to the AI.
-    The analysis is not persisted automatically.
+    Local-first clients supply the exact selected entry text.
+    Older clients may omit the body; in that case the API preserves
+    the original server-side journal-ID lookup behavior.
+
+    The reflection is not persisted automatically.
     """
 
-    entries = load_entries()
+    if request is not None:
+        entry_text = request.text.strip()
 
-    selected_entry = next(
-        (
-            entry
-            for entry in entries
-            if entry.get("id") == entry_id
-        ),
-        None,
-    )
+        if not entry_text:
+            raise HTTPException(
+                status_code=400,
+                detail=(
+                    "Journal entry has no text to analyze."
+                ),
+            )
 
-    if selected_entry is None:
-        raise HTTPException(
-            status_code=404,
-            detail="Journal entry not found.",
+    else:
+        entries = load_entries()
+
+        selected_entry = next(
+            (
+                entry
+                for entry in entries
+                if entry.get("id") == entry_id
+            ),
+            None,
         )
 
-    entry_text = str(
-        selected_entry.get(
-            "text",
-            "",
-        )
-    ).strip()
+        if selected_entry is None:
+            raise HTTPException(
+                status_code=404,
+                detail="Journal entry not found.",
+            )
 
-    if not entry_text:
-        raise HTTPException(
-            status_code=400,
-            detail="Journal entry has no text to analyze.",
-        )
+        entry_text = str(
+            selected_entry.get(
+                "text",
+                "",
+            )
+        ).strip()
+
+        if not entry_text:
+            raise HTTPException(
+                status_code=400,
+                detail=(
+                    "Journal entry has no text to analyze."
+                ),
+            )
 
     try:
         reflection = analyze_journal_entry(
@@ -1226,22 +1314,47 @@ def get_monthly_review_comparison() -> dict[str, str]:
         Depends(require_api_token)
     ],
 )
-def create_weekly_review_ai_reflection() -> dict[str, str]:
+def weekly_review_ai_reflection(
+    request: WeeklyReviewAiRequest | None = None,
+) -> dict[str, str]:
     """
-    Generate an AI reflection for the current Weekly Recovery Review.
+    Generate an optional AI reflection on a Weekly Recovery Review.
 
-    Calling this endpoint represents an explicit user request to share
-    the deterministic weekly summary with the AI analysis layer.
+    Local-first clients may explicitly provide the deterministic
+    review constructed from authoritative on-device recovery data.
+
+    Older clients may omit the request body, preserving the original
+    server-side review behavior.
     """
 
-    review = build_weekly_review()
+    if request is not None:
+        review_text = request.summary.strip()
 
-    reflection = analyze_weekly_review(
-        review
-    )
+        if not review_text:
+            raise HTTPException(
+                status_code=400,
+                detail=(
+                    "Weekly Review summary cannot be empty."
+                ),
+            )
+
+    else:
+        review_text = build_weekly_review()
+
+    try:
+        reflection = analyze_weekly_review(
+            review_text
+        )
+    except Exception as error:
+        raise HTTPException(
+            status_code=502,
+            detail=(
+                "Unable to generate Weekly Review reflection."
+            ),
+        ) from error
 
     return {
-        "review": review,
+        "review": review_text,
         "reflection": reflection,
     }
 
@@ -1252,19 +1365,43 @@ def create_weekly_review_ai_reflection() -> dict[str, str]:
         Depends(require_api_token)
     ],
 )
-def create_monthly_review_ai_reflection() -> dict[str, str]:
+def create_monthly_review_ai_reflection(
+    request: MonthlyReviewAiRequest | None = None,
+) -> dict[str, str]:
     """
     Generate an AI reflection for the current Monthly Recovery Review.
 
-    Calling this endpoint represents an explicit user request to share
-    the deterministic monthly summary with the AI analysis layer.
+    Local-first clients may explicitly supply the deterministic
+    monthly summary built from authoritative on-device recovery data.
+
+    Older clients may omit the request body and preserve the original
+    server-side Monthly Review behavior.
     """
 
-    review = build_monthly_review()
+    if request is not None:
+        review = request.summary.strip()
 
-    reflection = analyze_monthly_review(
-        review
-    )
+        if not review:
+            raise HTTPException(
+                status_code=400,
+                detail=(
+                    "Monthly Review summary cannot be empty."
+                ),
+            )
+    else:
+        review = build_monthly_review()
+
+    try:
+        reflection = analyze_monthly_review(
+            review
+        )
+    except Exception as error:
+        raise HTTPException(
+            status_code=502,
+            detail=(
+                "Unable to generate Monthly Review reflection."
+            ),
+        ) from error
 
     return {
         "review": review,

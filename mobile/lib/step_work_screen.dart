@@ -2,11 +2,17 @@ import 'package:flutter/material.dart';
 
 import 'api_client.dart';
 import 'app_components.dart';
+import 'local_step_work_repository.dart';
 
 class StepWorkScreen extends StatefulWidget {
-  const StepWorkScreen({required this.apiClient, super.key});
+  const StepWorkScreen({
+    required this.apiClient,
+    this.localRepository,
+    super.key,
+  });
 
   final ApiClient apiClient;
+  final LocalStepWorkRepository? localRepository;
 
   @override
   State<StepWorkScreen> createState() => _StepWorkScreenState();
@@ -23,7 +29,9 @@ class _StepWorkScreenState extends State<StepWorkScreen> {
   @override
   void initState() {
     super.initState();
-    _stepWorkFuture = widget.apiClient.getStepWork();
+    _stepWorkFuture = widget.localRepository != null
+        ? widget.localRepository!.getStepWork()
+        : widget.apiClient.getStepWork();
   }
 
   @override
@@ -35,12 +43,16 @@ class _StepWorkScreenState extends State<StepWorkScreen> {
   void _loadStepWork() {
     setState(() {
       _error = null;
-      _stepWorkFuture = widget.apiClient.getStepWork();
+      _stepWorkFuture = widget.localRepository != null
+          ? widget.localRepository!.getStepWork()
+          : widget.apiClient.getStepWork();
     });
   }
 
   Future<void> _refresh() async {
-    final future = widget.apiClient.getStepWork();
+    final future = widget.localRepository != null
+        ? widget.localRepository!.getStepWork()
+        : widget.apiClient.getStepWork();
 
     setState(() {
       _error = null;
@@ -57,7 +69,13 @@ class _StepWorkScreenState extends State<StepWorkScreen> {
     });
 
     try {
-      await widget.apiClient.setCurrentStep(stepNumber);
+      final localRepository = widget.localRepository;
+
+      if (localRepository != null) {
+        await localRepository.setCurrentStep(stepNumber);
+      } else {
+        await widget.apiClient.setCurrentStep(stepNumber);
+      }
 
       if (!mounted) {
         return;
@@ -97,7 +115,13 @@ class _StepWorkScreenState extends State<StepWorkScreen> {
     });
 
     try {
-      await widget.apiClient.createStepAssignment(text);
+      final localRepository = widget.localRepository;
+
+      if (localRepository != null) {
+        await localRepository.createAssignment(text);
+      } else {
+        await widget.apiClient.createStepAssignment(text);
+      }
 
       if (!mounted) {
         return;
@@ -134,7 +158,13 @@ class _StepWorkScreenState extends State<StepWorkScreen> {
     });
 
     try {
-      await widget.apiClient.completeStepAssignment(assignmentId);
+      final localRepository = widget.localRepository;
+
+      if (localRepository != null) {
+        await localRepository.completeAssignment(assignmentId);
+      } else {
+        await widget.apiClient.completeStepAssignment(assignmentId);
+      }
 
       if (!mounted) {
         return;
