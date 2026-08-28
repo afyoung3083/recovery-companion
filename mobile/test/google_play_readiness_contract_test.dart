@@ -13,7 +13,13 @@ void main() {
 
     expect(checklist, contains('Health apps declaration'));
 
-    expect(checklist, contains('public privacy-policy URL'));
+    expect(
+      checklist,
+      contains(
+        'https://afyoung3083.github.io/'
+        'recovery-companion/privacy/',
+      ),
+    );
 
     expect(checklist, contains('app-release.aab'));
   });
@@ -29,7 +35,7 @@ void main() {
     expect(health, contains('not an emergency or crisis-response service'));
   });
 
-  test('data safety draft does not falsely claim zero collection', () {
+  test('data safety draft uses evidence-backed conservative answers', () {
     final dataSafety = File('../docs/google-play-data-safety-draft.md')
         .readAsStringSync();
 
@@ -37,8 +43,39 @@ void main() {
 
     expect(dataSafety, contains('Other user-generated content'));
 
-    expect(dataSafety, contains('DO NOT ASSUME'));
+    expect(dataSafety, contains('Collected: **Yes**'));
 
-    expect(dataSafety, contains('Do not guess'));
+    expect(dataSafety, contains('Required or optional: **Optional**'));
+
+    expect(dataSafety, contains('Purpose: **App functionality**'));
+
+    expect(
+      dataSafety,
+      contains('Ephemeral processing: **No / do not select at this time**'),
+    );
+
+    expect(dataSafety, contains('**PENDING VERIFICATION**'));
+  });
+
+  test('data safety evidence does not claim unverified ZDR', () {
+    final evidence = File('../docs/google-play-data-safety-evidence.md')
+        .readAsStringSync();
+
+    expect(evidence, contains('store=False'));
+
+    expect(
+      evidence,
+      contains('MUST NOT be interpreted as proof of Zero Data Retention'),
+    );
+
+    expect(
+      evidence,
+      contains('Do not classify Recovery Companion AI processing as ephemeral'),
+    );
+
+    expect(
+      evidence,
+      contains('Sharing: pending provider/service-provider verification'),
+    );
   });
 }

@@ -1,104 +1,78 @@
-# Google Play Data Safety ? Draft
+# Google Play Data Safety ? Working Declaration
 
-This is a working declaration aid, not a completed legal or Play
-Console submission.
+This document is a working aid for the Google Play Data Safety form.
 
-## Architecture facts
+The evidence supporting these answers is maintained in:
 
-Recovery Companion is local-first.
+`docs/google-play-data-safety-evidence.md`
 
-Core recovery records are stored locally and are not automatically sent
-off-device merely because a user creates or views them.
-
-Some explicitly requested online features do transmit information:
-
-- Recovery Companion chat
-- AI Journal reflection
-- AI Daily Recovery reflection
-- AI Recovery Insights reflection
-- AI Weekly Review reflection
-- AI Monthly Review reflection
-
-Google Play defines data sent off-device as collection, including data
-processed ephemerally.
-
-## Likely data categories to evaluate
+## Current provisional answers
 
 ### Health info
 
-Recovery and addiction-related information may constitute Health info.
+Recovery Companion may transmit addiction/recovery information when the
+user explicitly requests an AI reflection or uses companion chat.
 
-**Likely collection:** Yes, when a user explicitly invokes an online
-AI/chat feature containing recovery information.
-
-**Required or optional:** Optional. The local-first app can be used
-without requesting AI reflection.
-
-**Purpose:** App functionality.
+- Collected: **Yes**
+- Required or optional: **Optional**
+- Purpose: **App functionality**
+- Ephemeral processing: **No / do not select at this time**
 
 ### Other user-generated content
 
-Journal text, check-in text, review summaries, and chat messages can
-qualify as Other user-generated content.
+Journal text, check-in text, review summaries, Step Work explicitly
+submitted to AI, and chat messages may be transmitted for optional
+online functionality.
 
-**Likely collection:** Yes, when explicitly transmitted for AI/chat
-functionality.
+- Collected: **Yes**
+- Required or optional: **Optional**
+- Purpose: **App functionality**
+- Ephemeral processing: **No / do not select at this time**
 
-**Required or optional:** Optional.
+## Why ephemeral is not selected
 
-**Purpose:** App functionality.
+The backend uses the OpenAI Responses API with `store=False`.
 
-## Ephemeral processing ? DO NOT ASSUME
+That setting is useful, but it is not proof that the provider performs
+Zero Data Retention.
 
-Google Play permits an ephemeral-processing designation only when the
-off-device data is retained in memory no longer than necessary to
-service the real-time request.
+Current provider policy may permit API inputs and outputs to be retained
+for a limited abuse-monitoring period.
 
-Before submission, verify:
+Do not mark these categories ephemeral unless production provider
+configuration is later verified to satisfy Google's definition.
 
-- Recovery Companion backend logging behavior
-- AI-provider retention behavior
-- infrastructure request/access logs
-- error/telemetry logging
-- whether prompts or responses are persisted anywhere off-device
+## Sharing
 
-Do not mark processing as ephemeral until those facts are verified.
+**PENDING VERIFICATION**
 
-## Sharing ? VERIFY BEFORE ANSWERING
+Do not answer this based solely on the fact that an external provider
+processes an API request.
 
-Google Play has specific exceptions for service providers and certain
-user-initiated transfers.
+The final Play answer depends on Google's service-provider rules and the
+production contractual/provider relationship.
 
-Before answering whether data is shared, verify:
+## Model training
 
-- identity and role of every external AI/cloud provider
-- applicable data-processing terms
-- whether any provider uses data for its own purposes
-- whether any provider qualifies as a service provider under Play's
-  definition
+OpenAI API data is not used for model training by default unless the API
+customer explicitly opts in.
 
-Do not guess.
+Verify that the production project remains opted out before Play
+submission.
 
-## Other categories
+## Remaining production checks
 
-Review the final app and SDK inventory for:
+Before submitting Data Safety:
 
-- Diagnostics
-- Crash logs
-- Device or other IDs
-- Approximate location inferred from network information
-- App interactions
-- Personal information
+- verify production API hostname and HTTPS
+- verify release configuration uses that HTTPS endpoint
+- review backend request logging
+- review cloud/reverse-proxy logging
+- review monitoring/error telemetry
+- verify OpenAI project data-sharing configuration
+- verify whether Zero Data Retention applies
+- determine final service-provider/sharing treatment
+- review every production SDK/provider that receives user information
 
-Do not declare a category merely because it exists in Google's form;
-declare it only when the released app or its SDKs actually collect it.
-
-## Security statements to verify
-
-Before submission confirm:
-
-- transmitted user data uses HTTPS/TLS
-- authoritative local recovery data is encrypted
-- Android application backup remains disabled
-- users can delete Recovery Companion-owned recovery data
-- Data safety answers match the public privacy policy
+The Play declaration and published privacy policy must agree with the
+verified production behavior.
