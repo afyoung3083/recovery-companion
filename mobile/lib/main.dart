@@ -12,6 +12,7 @@ import 'local_goals_repository.dart';
 import 'local_journal_repository.dart';
 import 'local_profile_repository.dart';
 import 'local_routines_repository.dart';
+import 'local_step_work_repository.dart';
 import 'local_recovery_store.dart';
 import 'mobile_config.dart';
 import 'more_screen.dart';
@@ -59,6 +60,7 @@ class _HomeShellState extends State<HomeShell> {
   LocalJournalRepository? _localJournalRepository;
   LocalProfileRepository? _localProfileRepository;
   LocalRoutinesRepository? _localRoutinesRepository;
+  LocalStepWorkRepository? _localStepWorkRepository;
 
   static const List<_Destination> _destinations = [
     _Destination(label: 'Dashboard', icon: Icons.dashboard_outlined),
@@ -104,6 +106,7 @@ class _HomeShellState extends State<HomeShell> {
       _localJournalRepository = LocalJournalRepository(store: store);
       _localProfileRepository = LocalProfileRepository(store: store);
       _localRoutinesRepository = LocalRoutinesRepository(store: store);
+      _localStepWorkRepository = LocalStepWorkRepository(store: store);
     });
   }
 
@@ -204,6 +207,7 @@ class _HomeShellState extends State<HomeShell> {
           localFellowshipRepository: _localFellowshipRepository,
           localJournalRepository: _localJournalRepository,
           localProfileRepository: _localProfileRepository,
+          localStepWorkRepository: _localStepWorkRepository,
           reminderScheduler: _reminderScheduler,
         );
 
