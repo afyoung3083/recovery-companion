@@ -238,7 +238,22 @@ class _JournalScreenState extends State<JournalScreen> {
     });
 
     try {
-      final response = await widget.apiClient.analyzeJournalEntry(entryId);
+      final localRepository = widget.localRepository;
+
+      late final Map<String, dynamic> response;
+
+      if (localRepository != null) {
+        final selected = await localRepository.getEntryForAiReflection(entryId);
+
+        final entryText = (selected['text'] ?? '').toString().trim();
+
+        response = await widget.apiClient.analyzeJournalEntry(
+          entryId,
+          entryText: entryText,
+        );
+      } else {
+        response = await widget.apiClient.analyzeJournalEntry(entryId);
+      }
 
       if (!mounted) {
         return;

@@ -46,6 +46,27 @@ class LocalJournalRepository {
     return {'entries': matches};
   }
 
+  Future<Map<String, dynamic>> getEntryForAiReflection(int entryId) async {
+    final entries = await _readEntries();
+
+    final entry = entries.cast<Map<String, dynamic>?>().firstWhere(
+      (item) => item?['id'] == entryId,
+      orElse: () => null,
+    );
+
+    if (entry == null) {
+      throw StateError('Selected local journal entry was not found.');
+    }
+
+    final text = (entry['text'] ?? '').toString().trim();
+
+    if (text.isEmpty) {
+      throw StateError('Selected local journal entry has no text.');
+    }
+
+    return {'entry_id': entryId, 'text': text};
+  }
+
   Future<Map<String, dynamic>> createEntry({
     required String text,
     required List<String> tags,

@@ -810,6 +810,10 @@ def daily_checkin_ai_reflection(
     }
 
 
+class JournalAiReflectionRequest(BaseModel):
+    text: str
+
+
 # ============================================================
 # Journal
 # ============================================================
@@ -860,43 +864,61 @@ def create_journal_entry(
 )
 def journal_ai_reflection(
     entry_id: int,
+    request: JournalAiReflectionRequest | None = None,
 ) -> dict[str, object]:
     """
     Analyze one explicitly selected journal entry.
 
-    Only the selected entry text is sent to the AI.
-    The analysis is not persisted automatically.
+    Local-first clients supply the exact selected entry text.
+    Older clients may omit the body; in that case the API preserves
+    the original server-side journal-ID lookup behavior.
+
+    The reflection is not persisted automatically.
     """
 
-    entries = load_entries()
+    if request is not None:
+        entry_text = request.text.strip()
 
-    selected_entry = next(
-        (
-            entry
-            for entry in entries
-            if entry.get("id") == entry_id
-        ),
-        None,
-    )
+        if not entry_text:
+            raise HTTPException(
+                status_code=400,
+                detail=(
+                    "Journal entry has no text to analyze."
+                ),
+            )
 
-    if selected_entry is None:
-        raise HTTPException(
-            status_code=404,
-            detail="Journal entry not found.",
+    else:
+        entries = load_entries()
+
+        selected_entry = next(
+            (
+                entry
+                for entry in entries
+                if entry.get("id") == entry_id
+            ),
+            None,
         )
 
-    entry_text = str(
-        selected_entry.get(
-            "text",
-            "",
-        )
-    ).strip()
+        if selected_entry is None:
+            raise HTTPException(
+                status_code=404,
+                detail="Journal entry not found.",
+            )
 
-    if not entry_text:
-        raise HTTPException(
-            status_code=400,
-            detail="Journal entry has no text to analyze.",
-        )
+        entry_text = str(
+            selected_entry.get(
+                "text",
+                "",
+            )
+        ).strip()
+
+        if not entry_text:
+            raise HTTPException(
+                status_code=400,
+                detail=(
+                    "Journal entry has no text to analyze."
+                ),
+            )
 
     try:
         reflection = analyze_journal_entry(

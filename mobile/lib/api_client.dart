@@ -263,10 +263,18 @@ class ApiClient {
     return _handleJsonResponse(response);
   }
 
-  Future<Map<String, dynamic>> analyzeJournalEntry(int entryId) async {
+  Future<Map<String, dynamic>> analyzeJournalEntry(
+    int entryId, {
+    String? entryText,
+  }) async {
+    final hasLocalText = entryText != null && entryText.trim().isNotEmpty;
+
     final response = await _httpClient.post(
       Uri.parse('$baseUrl/journal/$entryId/ai-reflection'),
-      headers: authenticatedHeaders,
+      headers: hasLocalText
+          ? {...authenticatedHeaders, 'Content-Type': 'application/json'}
+          : authenticatedHeaders,
+      body: hasLocalText ? jsonEncode({'text': entryText.trim()}) : null,
     );
 
     return _handleJsonResponse(response);
