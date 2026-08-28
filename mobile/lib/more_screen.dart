@@ -9,6 +9,7 @@ import 'journal_screen.dart';
 import 'local_daily_checkin_repository.dart';
 import 'local_fellowship_repository.dart';
 import 'local_journal_repository.dart';
+import 'local_monthly_review_repository.dart';
 import 'local_profile_repository.dart';
 import 'local_step_work_repository.dart';
 import 'local_weekly_review_repository.dart';
@@ -28,6 +29,7 @@ class MoreScreen extends StatelessWidget {
     this.localDailyCheckInRepository,
     this.localFellowshipRepository,
     this.localJournalRepository,
+    this.localMonthlyReviewRepository,
     this.localProfileRepository,
     this.localStepWorkRepository,
     this.localWeeklyReviewRepository,
@@ -40,6 +42,7 @@ class MoreScreen extends StatelessWidget {
   final LocalDailyCheckInRepository? localDailyCheckInRepository;
   final LocalFellowshipRepository? localFellowshipRepository;
   final LocalJournalRepository? localJournalRepository;
+  final LocalMonthlyReviewRepository? localMonthlyReviewRepository;
   final LocalProfileRepository? localProfileRepository;
   final LocalStepWorkRepository? localStepWorkRepository;
   final LocalWeeklyReviewRepository? localWeeklyReviewRepository;
@@ -196,7 +199,10 @@ class MoreScreen extends StatelessWidget {
                 _open(
                   context,
                   title: 'Monthly Review',
-                  child: MonthlyReviewScreen(apiClient: apiClient),
+                  child: MonthlyReviewScreen(
+                    apiClient: apiClient,
+                    localRepository: localMonthlyReviewRepository,
+                  ),
                 );
               },
             ),

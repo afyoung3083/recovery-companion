@@ -10,6 +10,7 @@ import 'local_daily_checkin_repository.dart';
 import 'local_fellowship_repository.dart';
 import 'local_goals_repository.dart';
 import 'local_journal_repository.dart';
+import 'local_monthly_review_repository.dart';
 import 'local_profile_repository.dart';
 import 'local_routines_repository.dart';
 import 'local_step_work_repository.dart';
@@ -59,6 +60,7 @@ class _HomeShellState extends State<HomeShell> {
   LocalFellowshipRepository? _localFellowshipRepository;
   LocalGoalsRepository? _localGoalsRepository;
   LocalJournalRepository? _localJournalRepository;
+  LocalMonthlyReviewRepository? _localMonthlyReviewRepository;
   LocalProfileRepository? _localProfileRepository;
   LocalRoutinesRepository? _localRoutinesRepository;
   LocalStepWorkRepository? _localStepWorkRepository;
@@ -106,6 +108,9 @@ class _HomeShellState extends State<HomeShell> {
       _localFellowshipRepository = LocalFellowshipRepository(store: store);
 
       _localJournalRepository = LocalJournalRepository(store: store);
+      _localMonthlyReviewRepository = LocalMonthlyReviewRepository(
+        store: store,
+      );
       _localProfileRepository = LocalProfileRepository(store: store);
       _localRoutinesRepository = LocalRoutinesRepository(store: store);
       _localStepWorkRepository = LocalStepWorkRepository(store: store);
@@ -212,6 +217,7 @@ class _HomeShellState extends State<HomeShell> {
           localDailyCheckInRepository: _localDailyCheckInRepository,
           localFellowshipRepository: _localFellowshipRepository,
           localJournalRepository: _localJournalRepository,
+          localMonthlyReviewRepository: _localMonthlyReviewRepository,
           localProfileRepository: _localProfileRepository,
           localStepWorkRepository: _localStepWorkRepository,
           localWeeklyReviewRepository: _localWeeklyReviewRepository,

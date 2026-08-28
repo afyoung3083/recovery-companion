@@ -2,11 +2,17 @@ import 'package:flutter/material.dart';
 
 import 'api_client.dart';
 import 'app_components.dart';
+import 'local_monthly_review_repository.dart';
 
 class MonthlyReviewScreen extends StatefulWidget {
-  const MonthlyReviewScreen({required this.apiClient, super.key});
+  const MonthlyReviewScreen({
+    required this.apiClient,
+    this.localRepository,
+    super.key,
+  });
 
   final ApiClient apiClient;
+  final LocalMonthlyReviewRepository? localRepository;
 
   @override
   State<MonthlyReviewScreen> createState() => _MonthlyReviewScreenState();
@@ -26,9 +32,15 @@ class _MonthlyReviewScreenState extends State<MonthlyReviewScreen> {
   void initState() {
     super.initState();
 
-    _currentFuture = widget.apiClient.getCurrentMonthlyReview();
-    _historyFuture = widget.apiClient.getMonthlyReviewHistory();
-    _comparisonFuture = widget.apiClient.getMonthlyReviewComparison();
+    _currentFuture = widget.localRepository != null
+        ? widget.localRepository!.getCurrentReview()
+        : widget.apiClient.getCurrentMonthlyReview();
+    _historyFuture = widget.localRepository != null
+        ? widget.localRepository!.getHistory()
+        : widget.apiClient.getMonthlyReviewHistory();
+    _comparisonFuture = widget.localRepository != null
+        ? widget.localRepository!.getComparison()
+        : widget.apiClient.getMonthlyReviewComparison();
   }
 
   void _reloadAll({bool clearReflection = false}) {
@@ -39,20 +51,32 @@ class _MonthlyReviewScreenState extends State<MonthlyReviewScreen> {
         _reflection = null;
       }
 
-      _currentFuture = widget.apiClient.getCurrentMonthlyReview();
+      _currentFuture = widget.localRepository != null
+          ? widget.localRepository!.getCurrentReview()
+          : widget.apiClient.getCurrentMonthlyReview();
 
-      _historyFuture = widget.apiClient.getMonthlyReviewHistory();
+      _historyFuture = widget.localRepository != null
+          ? widget.localRepository!.getHistory()
+          : widget.apiClient.getMonthlyReviewHistory();
 
-      _comparisonFuture = widget.apiClient.getMonthlyReviewComparison();
+      _comparisonFuture = widget.localRepository != null
+          ? widget.localRepository!.getComparison()
+          : widget.apiClient.getMonthlyReviewComparison();
     });
   }
 
   Future<void> _refresh() async {
-    final current = widget.apiClient.getCurrentMonthlyReview();
+    final current = widget.localRepository != null
+        ? widget.localRepository!.getCurrentReview()
+        : widget.apiClient.getCurrentMonthlyReview();
 
-    final history = widget.apiClient.getMonthlyReviewHistory();
+    final history = widget.localRepository != null
+        ? widget.localRepository!.getHistory()
+        : widget.apiClient.getMonthlyReviewHistory();
 
-    final comparison = widget.apiClient.getMonthlyReviewComparison();
+    final comparison = widget.localRepository != null
+        ? widget.localRepository!.getComparison()
+        : widget.apiClient.getMonthlyReviewComparison();
 
     setState(() {
       _error = null;
@@ -75,7 +99,13 @@ class _MonthlyReviewScreenState extends State<MonthlyReviewScreen> {
     });
 
     try {
-      await widget.apiClient.saveMonthlyReviewSnapshot();
+      final localRepository = widget.localRepository;
+
+      if (localRepository != null) {
+        await localRepository.saveSnapshot();
+      } else {
+        await widget.apiClient.saveMonthlyReviewSnapshot();
+      }
 
       if (!mounted) {
         return;
@@ -251,7 +281,9 @@ class _MonthlyReviewScreenState extends State<MonthlyReviewScreen> {
                   width: double.infinity,
                   child: OutlinedButton.icon(
                     key: const ValueKey('monthly-review-ai-button'),
-                    onPressed: busy ? null : _generateAiReflection,
+                    onPressed: busy || widget.localRepository != null
+                        ? null
+                        : _generateAiReflection,
                     icon: _reflecting
                         ? const SizedBox(
                             width: 18,
@@ -260,7 +292,11 @@ class _MonthlyReviewScreenState extends State<MonthlyReviewScreen> {
                           )
                         : const Icon(Icons.psychology_alt_outlined),
                     label: Text(
-                      _reflecting ? 'Reflecting...' : 'Reflect with AI',
+                      widget.localRepository != null
+                          ? 'AI Reflection Requires Sync'
+                          : _reflecting
+                          ? 'Reflecting...'
+                          : 'Reflect with AI',
                     ),
                   ),
                 ),
