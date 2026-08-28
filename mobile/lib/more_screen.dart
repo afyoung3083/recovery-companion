@@ -8,6 +8,7 @@ import 'fellowship_screen.dart';
 import 'journal_screen.dart';
 import 'local_daily_checkin_repository.dart';
 import 'local_journal_repository.dart';
+import 'local_profile_repository.dart';
 import 'monthly_review_screen.dart';
 import 'offline_read_service.dart';
 import 'profile_screen.dart';
@@ -23,6 +24,7 @@ class MoreScreen extends StatelessWidget {
     this.offlineReadService,
     this.localDailyCheckInRepository,
     this.localJournalRepository,
+    this.localProfileRepository,
     this.reminderScheduler,
     super.key,
   });
@@ -31,6 +33,7 @@ class MoreScreen extends StatelessWidget {
   final OfflineReadService? offlineReadService;
   final LocalDailyCheckInRepository? localDailyCheckInRepository;
   final LocalJournalRepository? localJournalRepository;
+  final LocalProfileRepository? localProfileRepository;
   final ReminderSchedulingService? reminderScheduler;
 
   void _open(
@@ -199,6 +202,7 @@ class MoreScreen extends StatelessWidget {
                   child: ProfileScreen(
                     apiClient: apiClient,
                     offlineReadService: offlineReadService,
+                    localRepository: localProfileRepository,
                   ),
                 );
               },

@@ -4,16 +4,19 @@ import 'api_client.dart';
 import 'app_components.dart';
 import 'offline_copy_notice.dart';
 import 'offline_read_service.dart';
+import 'local_profile_repository.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({
     required this.apiClient,
     this.offlineReadService,
+    this.localRepository,
     super.key,
   });
 
   final ApiClient apiClient;
   final OfflineReadService? offlineReadService;
+  final LocalProfileRepository? localRepository;
 
   @override
   State<ProfileScreen> createState() {
@@ -36,15 +39,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<OfflineReadResult> _loadProfile() async {
+    final localRepository = widget.localRepository;
+
+    if (localRepository != null) {
+      final data = await localRepository.getProfile();
+
+      return OfflineReadResult(data: data, source: OfflineReadSource.network);
+    }
+
     final service = widget.offlineReadService;
 
     if (service == null) {
       final data = await widget.apiClient.getProfile();
 
-      return OfflineReadResult(
-        data: data,
-        source: OfflineReadSource.network,
-      );
+      return OfflineReadResult(data: data, source: OfflineReadSource.network);
     }
 
     return service.read(
@@ -88,21 +96,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final service = widget.offlineReadService;
 
     if (service == null) {
-      return OfflineReadResult(
-        data: result,
-        source: OfflineReadSource.network,
-      );
+      return OfflineReadResult(data: result, source: OfflineReadSource.network);
     }
 
-    return service.read(
-      cacheKey: _cacheKey,
-      networkRead: () async => result,
-    );
+    return service.read(cacheKey: _cacheKey, networkRead: () async => result);
   }
 
-  Future<void> _chooseSobrietyDate(
-    String? currentDate,
-  ) async {
+  Future<void> _chooseSobrietyDate(String? currentDate) async {
     final today = DateTime.now();
 
     final selectedDate = await showDatePicker(
@@ -122,21 +122,24 @@ class _ProfileScreenState extends State<ProfileScreen> {
     });
 
     try {
-      final result =
-          await widget.apiClient.updateSobrietyDate(
-        _formatDate(selectedDate),
-      );
+      final sobrietyDate = _formatDate(selectedDate);
 
-      final readResult =
-          await _cacheUpdatedProfile(result);
+      final localRepository = widget.localRepository;
+
+      final result = localRepository != null
+          ? await localRepository.updateSobrietyDate(sobrietyDate)
+          : await widget.apiClient.updateSobrietyDate(sobrietyDate);
+
+      final readResult = localRepository != null
+          ? OfflineReadResult(data: result, source: OfflineReadSource.network)
+          : await _cacheUpdatedProfile(result);
 
       if (!mounted) {
         return;
       }
 
       setState(() {
-        _profileFuture =
-            Future.value(readResult);
+        _profileFuture = Future.value(readResult);
       });
     } catch (_) {
       if (!mounted) {
@@ -162,21 +165,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return FutureBuilder<OfflineReadResult>(
       future: _profileFuture,
       builder: (context, snapshot) {
-        if (snapshot.connectionState ==
-            ConnectionState.waiting) {
-          return const Center(
-            child: CircularProgressIndicator(),
-          );
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
         }
 
         if (snapshot.hasError) {
           return ListView(
-            padding: const EdgeInsets.fromLTRB(
-              20,
-              20,
-              20,
-              32,
-            ),
+            padding: const EdgeInsets.fromLTRB(20, 20, 20, 32),
             children: [
               const AppPageHeader(
                 title: 'Your Profile',
@@ -202,32 +197,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
         final data = readResult.data;
         final rawProfile = data['profile'];
 
-        final profile =
-            rawProfile is Map<String, dynamic>
-                ? rawProfile
-                : const <String, dynamic>{};
+        final profile = rawProfile is Map<String, dynamic>
+            ? rawProfile
+            : const <String, dynamic>{};
 
-        final rawSobrietyDate =
-            profile['sobriety_date'];
+        final rawSobrietyDate = profile['sobriety_date'];
 
-        final sobrietyDate =
-            rawSobrietyDate?.toString();
+        final sobrietyDate = rawSobrietyDate?.toString();
 
-        final hasSobrietyDate =
-            sobrietyDate != null &&
-            sobrietyDate.isNotEmpty;
+        final hasSobrietyDate = sobrietyDate != null && sobrietyDate.isNotEmpty;
 
-        final displayDate = hasSobrietyDate
-            ? sobrietyDate
-            : 'Not set';
+        final displayDate = hasSobrietyDate ? sobrietyDate : 'Not set';
 
         return ListView(
-          padding: const EdgeInsets.fromLTRB(
-            20,
-            20,
-            20,
-            32,
-          ),
+          padding: const EdgeInsets.fromLTRB(20, 20, 20, 32),
           children: [
             const AppPageHeader(
               title: 'Your Profile',
@@ -241,9 +224,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
               OfflineCopyNotice(
                 cachedAt: readResult.cachedAt,
                 onRetry: _refresh,
-                detail:
-                    'Changing your sobriety date '
-                    'still requires a connection.',
+                detail: widget.localRepository == null
+                    ? 'Changing your sobriety date still requires a connection.'
+                    : 'Your sobriety date is saved securely on this device.',
               ),
               const SizedBox(height: 20),
             ],
@@ -256,20 +239,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
 
             Container(
-              key: const ValueKey(
-                'profile-sobriety-card',
-              ),
+              key: const ValueKey('profile-sobriety-card'),
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: Theme.of(context)
-                    .colorScheme
-                    .primaryContainer,
-                borderRadius:
-                    BorderRadius.circular(20),
+                color: Theme.of(context).colorScheme.primaryContainer,
+                borderRadius: BorderRadius.circular(20),
               ),
               child: Column(
-                crossAxisAlignment:
-                    CrossAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
                     children: [
@@ -277,61 +254,38 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         width: 46,
                         height: 46,
                         decoration: BoxDecoration(
-                          color: Theme.of(context)
-                              .colorScheme
-                              .surface,
-                          borderRadius:
-                              BorderRadius.circular(
-                            14,
-                          ),
+                          color: Theme.of(context).colorScheme.surface,
+                          borderRadius: BorderRadius.circular(14),
                         ),
                         child: Icon(
                           Icons.wb_sunny_outlined,
-                          color: Theme.of(context)
-                              .colorScheme
-                              .primary,
+                          color: Theme.of(context).colorScheme.primary,
                         ),
                       ),
                       const SizedBox(width: 14),
                       Expanded(
                         child: Column(
-                          crossAxisAlignment:
-                              CrossAxisAlignment.start,
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
                               'Sobriety Date',
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .labelLarge
+                              style: Theme.of(context).textTheme.labelLarge
                                   ?.copyWith(
-                                    color:
-                                        Theme.of(
-                                          context,
-                                        )
-                                            .colorScheme
-                                            .onPrimaryContainer,
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .onPrimaryContainer,
                                   ),
                             ),
-                            const SizedBox(
-                              height: 4,
-                            ),
+                            const SizedBox(height: 4),
                             Text(
                               displayDate,
-                              key: const ValueKey(
-                                'profile-sobriety-date',
-                              ),
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .headlineSmall
+                              key: const ValueKey('profile-sobriety-date'),
+                              style: Theme.of(context).textTheme.headlineSmall
                                   ?.copyWith(
-                                    fontWeight:
-                                        FontWeight.w700,
-                                    color:
-                                        Theme.of(
-                                          context,
-                                        )
-                                            .colorScheme
-                                            .onPrimaryContainer,
+                                    fontWeight: FontWeight.w700,
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .onPrimaryContainer,
                                   ),
                             ),
                           ],
@@ -345,20 +299,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   Text(
                     hasSobrietyDate
                         ? 'Recovery Companion uses '
-                          'this date to calculate '
-                          'sobriety time across your '
-                          'dashboard and recovery views.'
+                              'this date to calculate '
+                              'sobriety time across your '
+                              'dashboard and recovery views.'
                         : 'Set your sobriety date '
-                          'when you are ready. You can '
-                          'change it later.',
-                    style: Theme.of(context)
-                        .textTheme
-                        .bodyMedium
-                        ?.copyWith(
-                          color: Theme.of(context)
-                              .colorScheme
-                              .onPrimaryContainer,
-                        ),
+                              'when you are ready. You can '
+                              'change it later.',
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: Theme.of(context).colorScheme.onPrimaryContainer,
+                    ),
                   ),
 
                   const SizedBox(height: 18),
@@ -366,31 +315,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   SizedBox(
                     width: double.infinity,
                     child: FilledButton.icon(
-                      key: const ValueKey(
-                        'profile-change-sobriety-date',
-                      ),
+                      key: const ValueKey('profile-change-sobriety-date'),
                       onPressed:
                           _saving ||
-                              readResult.isCached
+                              (readResult.isCached &&
+                                  widget.localRepository == null)
                           ? null
                           : () {
-                              _chooseSobrietyDate(
-                                sobrietyDate,
-                              );
+                              _chooseSobrietyDate(sobrietyDate);
                             },
                       icon: _saving
                           ? const SizedBox(
                               width: 18,
                               height: 18,
-                              child:
-                                  CircularProgressIndicator(
-                                strokeWidth: 2,
-                              ),
+                              child: CircularProgressIndicator(strokeWidth: 2),
                             )
-                          : const Icon(
-                              Icons
-                                  .calendar_today_outlined,
-                            ),
+                          : const Icon(Icons.calendar_today_outlined),
                       label: Text(
                         _saving
                             ? 'Saving...'
@@ -415,14 +355,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
             const SizedBox(height: 28),
 
-            const AppSectionTitle(
-              title: 'About your profile',
-            ),
+            const AppSectionTitle(title: 'About your profile'),
 
             const AppSectionCard(
               child: Row(
-                crossAxisAlignment:
-                    CrossAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Icon(Icons.info_outline),
                   SizedBox(width: 12),

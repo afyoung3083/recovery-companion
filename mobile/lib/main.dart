@@ -8,6 +8,7 @@ import 'goals_screen.dart';
 import 'insights_screen.dart';
 import 'local_daily_checkin_repository.dart';
 import 'local_journal_repository.dart';
+import 'local_profile_repository.dart';
 import 'local_recovery_store.dart';
 import 'mobile_config.dart';
 import 'more_screen.dart';
@@ -51,6 +52,7 @@ class _HomeShellState extends State<HomeShell> {
 
   LocalDailyCheckInRepository? _localDailyCheckInRepository;
   LocalJournalRepository? _localJournalRepository;
+  LocalProfileRepository? _localProfileRepository;
 
   static const List<_Destination> _destinations = [
     _Destination(label: 'Dashboard', icon: Icons.dashboard_outlined),
@@ -92,6 +94,7 @@ class _HomeShellState extends State<HomeShell> {
       _localDailyCheckInRepository = LocalDailyCheckInRepository(store: store);
 
       _localJournalRepository = LocalJournalRepository(store: store);
+      _localProfileRepository = LocalProfileRepository(store: store);
     });
   }
 
@@ -188,6 +191,7 @@ class _HomeShellState extends State<HomeShell> {
           offlineReadService: _offlineReadService,
           localDailyCheckInRepository: _localDailyCheckInRepository,
           localJournalRepository: _localJournalRepository,
+          localProfileRepository: _localProfileRepository,
           reminderScheduler: _reminderScheduler,
         );
 
