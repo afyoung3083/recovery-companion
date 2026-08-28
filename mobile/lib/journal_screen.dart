@@ -4,16 +4,19 @@ import 'api_client.dart';
 import 'app_components.dart';
 import 'offline_copy_notice.dart';
 import 'offline_read_service.dart';
+import 'local_journal_repository.dart';
 
 class JournalScreen extends StatefulWidget {
   const JournalScreen({
     required this.apiClient,
     this.offlineReadService,
+    this.localRepository,
     super.key,
   });
 
   final ApiClient apiClient;
   final OfflineReadService? offlineReadService;
+  final LocalJournalRepository? localRepository;
 
   @override
   State<JournalScreen> createState() => _JournalScreenState();
@@ -36,19 +39,30 @@ class _JournalScreenState extends State<JournalScreen> {
   String? _error;
 
   Future<OfflineReadResult> _loadJournalEntries() async {
-    final service = widget.offlineReadService;
+    final localRepository = widget.localRepository;
 
     late final OfflineReadResult result;
 
-    if (service == null) {
-      final data = await widget.apiClient.getJournalEntries();
+    if (localRepository != null) {
+      final data = await localRepository.getEntries();
 
       result = OfflineReadResult(data: data, source: OfflineReadSource.network);
     } else {
-      result = await service.read(
-        cacheKey: OfflineCacheKeys.journal,
-        networkRead: widget.apiClient.getJournalEntries,
-      );
+      final service = widget.offlineReadService;
+
+      if (service == null) {
+        final data = await widget.apiClient.getJournalEntries();
+
+        result = OfflineReadResult(
+          data: data,
+          source: OfflineReadSource.network,
+        );
+      } else {
+        result = await service.read(
+          cacheKey: OfflineCacheKeys.journal,
+          networkRead: widget.apiClient.getJournalEntries,
+        );
+      }
     }
 
     if (mounted && _showingOfflineCopy != result.isCached) {
@@ -61,7 +75,11 @@ class _JournalScreenState extends State<JournalScreen> {
   }
 
   Future<OfflineReadResult> _searchJournal(String query) async {
-    final data = await widget.apiClient.searchJournal(query);
+    final localRepository = widget.localRepository;
+
+    final data = localRepository != null
+        ? await localRepository.search(query)
+        : await widget.apiClient.searchJournal(query);
 
     _showingOfflineCopy = false;
 
@@ -143,7 +161,13 @@ class _JournalScreenState extends State<JournalScreen> {
     });
 
     try {
-      await widget.apiClient.createJournalEntry(text: text, tags: tags);
+      final localRepository = widget.localRepository;
+
+      if (localRepository != null) {
+        await localRepository.createEntry(text: text, tags: tags);
+      } else {
+        await widget.apiClient.createJournalEntry(text: text, tags: tags);
+      }
 
       if (!mounted) {
         return;
@@ -457,7 +481,9 @@ class _JournalScreenState extends State<JournalScreen> {
                               ? _reflection
                               : null,
                           canAnalyze:
-                              !readResult.isCached && _analyzingEntryId == null,
+                              widget.localRepository == null &&
+                              !readResult.isCached &&
+                              _analyzingEntryId == null,
                           onAnalyze: (entryId) {
                             _analyzeEntry(entryId: entryId);
                           },

@@ -7,6 +7,7 @@ import 'dashboard_screen.dart';
 import 'goals_screen.dart';
 import 'insights_screen.dart';
 import 'local_daily_checkin_repository.dart';
+import 'local_journal_repository.dart';
 import 'local_recovery_store.dart';
 import 'mobile_config.dart';
 import 'more_screen.dart';
@@ -49,6 +50,7 @@ class _HomeShellState extends State<HomeShell> {
   late final ReminderScheduler _reminderScheduler;
 
   LocalDailyCheckInRepository? _localDailyCheckInRepository;
+  LocalJournalRepository? _localJournalRepository;
 
   static const List<_Destination> _destinations = [
     _Destination(label: 'Dashboard', icon: Icons.dashboard_outlined),
@@ -88,6 +90,8 @@ class _HomeShellState extends State<HomeShell> {
 
     setState(() {
       _localDailyCheckInRepository = LocalDailyCheckInRepository(store: store);
+
+      _localJournalRepository = LocalJournalRepository(store: store);
     });
   }
 
@@ -183,6 +187,7 @@ class _HomeShellState extends State<HomeShell> {
           apiClient: _apiClient,
           offlineReadService: _offlineReadService,
           localDailyCheckInRepository: _localDailyCheckInRepository,
+          localJournalRepository: _localJournalRepository,
           reminderScheduler: _reminderScheduler,
         );
 
