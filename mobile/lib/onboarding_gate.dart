@@ -1,13 +1,21 @@
 import 'package:flutter/material.dart';
 
+import 'initial_setup_screen.dart';
+import 'initial_setup_service.dart';
 import 'onboarding_screen.dart';
 import 'onboarding_store.dart';
 
 class OnboardingGate extends StatefulWidget {
-  const OnboardingGate({required this.child, this.store, super.key});
+  const OnboardingGate({
+    required this.child,
+    this.store,
+    this.initialSetupService,
+    super.key,
+  });
 
   final Widget child;
   final OnboardingStore? store;
+  final InitialSetupService? initialSetupService;
 
   @override
   State<OnboardingGate> createState() => _OnboardingGateState();
@@ -17,6 +25,7 @@ class _OnboardingGateState extends State<OnboardingGate> {
   late final OnboardingStore _store;
 
   bool? _complete;
+  bool _showInitialSetup = false;
   Object? _error;
 
   @override
@@ -49,7 +58,39 @@ class _OnboardingGateState extends State<OnboardingGate> {
     }
   }
 
-  Future<void> _completeOnboarding() async {
+  Future<void> _openInitialSetup() async {
+    if (!mounted) {
+      return;
+    }
+
+    setState(() {
+      _showInitialSetup = true;
+    });
+  }
+
+  Future<void> _finishSetup(InitialSetupDraft draft) async {
+    try {
+      final service =
+          widget.initialSetupService ?? await InitialSetupService.openDefault();
+
+      await service.apply(draft);
+      await _markComplete();
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _error = error;
+      });
+    }
+  }
+
+  Future<void> _skipSetup() async {
+    await _markComplete();
+  }
+
+  Future<void> _markComplete() async {
     await _store.markComplete();
 
     if (!mounted) {
@@ -58,6 +99,7 @@ class _OnboardingGateState extends State<OnboardingGate> {
 
     setState(() {
       _complete = true;
+      _showInitialSetup = false;
     });
   }
 
@@ -96,6 +138,10 @@ class _OnboardingGateState extends State<OnboardingGate> {
       return widget.child;
     }
 
-    return OnboardingScreen(onComplete: _completeOnboarding);
+    if (_showInitialSetup) {
+      return InitialSetupScreen(onFinish: _finishSetup, onSkip: _skipSetup);
+    }
+
+    return OnboardingScreen(onComplete: _openInitialSetup);
   }
 }
