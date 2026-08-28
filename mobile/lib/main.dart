@@ -6,6 +6,7 @@ import 'daily_checkin_screen.dart';
 import 'dashboard_screen.dart';
 import 'goals_screen.dart';
 import 'insights_screen.dart';
+import 'local_data_ownership_repository.dart';
 import 'local_daily_checkin_repository.dart';
 import 'local_dashboard_repository.dart';
 import 'local_fellowship_repository.dart';
@@ -58,6 +59,7 @@ class _HomeShellState extends State<HomeShell> {
   late final OfflineReadService _offlineReadService;
   late final ReminderScheduler _reminderScheduler;
 
+  LocalDataOwnershipRepository? _localDataOwnershipRepository;
   LocalDailyCheckInRepository? _localDailyCheckInRepository;
   LocalDashboardRepository? _localDashboardRepository;
   LocalFellowshipRepository? _localFellowshipRepository;
@@ -110,6 +112,9 @@ class _HomeShellState extends State<HomeShell> {
       _localGoalsRepository = LocalGoalsRepository(store: store);
       _localInsightsRepository = LocalInsightsRepository(store: store);
       _localDailyCheckInRepository = LocalDailyCheckInRepository(store: store);
+      _localDataOwnershipRepository = LocalDataOwnershipRepository(
+        store: store,
+      );
       _localDashboardRepository = LocalDashboardRepository(store: store);
       _localFellowshipRepository = LocalFellowshipRepository(store: store);
 
@@ -230,6 +235,7 @@ class _HomeShellState extends State<HomeShell> {
         return MoreScreen(
           apiClient: _apiClient,
           offlineReadService: _offlineReadService,
+          localDataOwnershipRepository: _localDataOwnershipRepository,
           localDailyCheckInRepository: _localDailyCheckInRepository,
           localFellowshipRepository: _localFellowshipRepository,
           localJournalRepository: _localJournalRepository,

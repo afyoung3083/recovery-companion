@@ -6,6 +6,7 @@ import 'chat_screen.dart';
 import 'daily_checkin_screen.dart';
 import 'fellowship_screen.dart';
 import 'journal_screen.dart';
+import 'local_data_ownership_repository.dart';
 import 'local_daily_checkin_repository.dart';
 import 'local_fellowship_repository.dart';
 import 'local_journal_repository.dart';
@@ -26,6 +27,7 @@ class MoreScreen extends StatelessWidget {
   const MoreScreen({
     required this.apiClient,
     this.offlineReadService,
+    this.localDataOwnershipRepository,
     this.localDailyCheckInRepository,
     this.localFellowshipRepository,
     this.localJournalRepository,
@@ -39,6 +41,7 @@ class MoreScreen extends StatelessWidget {
 
   final ApiClient apiClient;
   final OfflineReadService? offlineReadService;
+  final LocalDataOwnershipRepository? localDataOwnershipRepository;
   final LocalDailyCheckInRepository? localDailyCheckInRepository;
   final LocalFellowshipRepository? localFellowshipRepository;
   final LocalJournalRepository? localJournalRepository;
@@ -254,6 +257,7 @@ class MoreScreen extends StatelessWidget {
                   child: SettingsPrivacyScreen(
                     apiClient: apiClient,
                     offlineReadService: offlineReadService,
+                    localRepository: localDataOwnershipRepository,
                   ),
                 );
               },
