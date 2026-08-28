@@ -106,6 +106,11 @@ class DailyCheckInRequest(BaseModel):
     note: str = ""
 
 
+class AiReflectionSummaryRequest(BaseModel):
+    summary: str
+    checkin_count: int = 0
+
+
 class JournalEntryRequest(BaseModel):
     text: str
     tags: list[str] = []
@@ -692,39 +697,70 @@ def update_today_checkin(
         Depends(require_api_token)
     ],
 )
-def daily_checkin_ai_reflection() -> dict[str, object]:
+def daily_checkin_ai_reflection(
+    request: AiReflectionSummaryRequest | None = None,
+) -> dict[str, object]:
     """
-    Analyze the seven most recent saved Daily Recovery Check-Ins.
+    Analyze recent Daily Recovery Check-In information.
 
-    The deterministic history and trend summary is constructed
-    locally. Only that summary is sent to the AI, and the
-    reflection is not persisted automatically.
+    Local-first clients may explicitly provide the deterministic
+    summary they just constructed from authoritative on-device data.
+    Older clients may omit the body; in that case the API preserves
+    the original behavior and builds the summary from server data.
+
+    Only the summary is sent to the AI. The reflection is not
+    persisted automatically.
     """
 
-    checkins = get_recent_checkins(
-        limit=7
-    )
+    if request is not None:
+        checkin_text = request.summary.strip()
 
-    if not checkins:
-        raise HTTPException(
-            status_code=404,
-            detail=(
-                "No recent check-ins available to analyze."
-            ),
+        if not checkin_text:
+            raise HTTPException(
+                status_code=400,
+                detail="Check-in summary cannot be empty.",
+            )
+
+        if (
+            request.checkin_count < 1
+            or request.checkin_count > 7
+        ):
+            raise HTTPException(
+                status_code=400,
+                detail=(
+                    "Check-in count must be between 1 and 7."
+                ),
+            )
+
+        checkin_count = request.checkin_count
+
+    else:
+        checkins = get_recent_checkins(
+            limit=7
         )
 
-    history_text = format_checkin_history(
-        checkins
-    )
+        if not checkins:
+            raise HTTPException(
+                status_code=404,
+                detail=(
+                    "No recent check-ins available to analyze."
+                ),
+            )
 
-    trends_text = format_checkin_trends(
-        checkins
-    )
+        history_text = format_checkin_history(
+            checkins
+        )
 
-    checkin_text = (
-        f"{history_text}\n\n"
-        f"{trends_text}"
-    )
+        trends_text = format_checkin_trends(
+            checkins
+        )
+
+        checkin_text = (
+            f"{history_text}\n\n"
+            f"{trends_text}"
+        )
+
+        checkin_count = len(checkins)
 
     try:
         reflection = analyze_checkin_trends(
@@ -739,7 +775,7 @@ def daily_checkin_ai_reflection() -> dict[str, object]:
         ) from error
 
     return {
-        "checkin_count": len(checkins),
+        "checkin_count": checkin_count,
         "reflection": reflection,
     }
 

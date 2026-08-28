@@ -18,10 +18,7 @@ class ApiClient {
   // ============================================================
 
   Future<Map<String, dynamic>> getHealth() async {
-    return _getJson(
-      '/health',
-      authenticated: false,
-    );
+    return _getJson('/health', authenticated: false);
   }
 
   // ============================================================
@@ -29,91 +26,54 @@ class ApiClient {
   // ============================================================
 
   Future<Map<String, dynamic>> getDashboard() async {
-    return _getJson(
-      '/dashboard',
-      authenticated: true,
-    );
+    return _getJson('/dashboard', authenticated: true);
   }
 
   Future<Map<String, dynamic>> getProfile() async {
-    return _getJson(
-      '/profile',
-      authenticated: true,
-    );
+    return _getJson('/profile', authenticated: true);
   }
 
-  Future<Map<String, dynamic>> updateSobrietyDate(
-    String sobrietyDate,
-  ) async {
+  Future<Map<String, dynamic>> updateSobrietyDate(String sobrietyDate) async {
     final response = await _httpClient.put(
-      Uri.parse(
-        '$baseUrl/profile/sobriety-date',
-      ),
-      headers: {
-        ...authenticatedHeaders,
-        'Content-Type': 'application/json',
-      },
-      body: jsonEncode({
-        'sobriety_date': sobrietyDate,
-      }),
+      Uri.parse('$baseUrl/profile/sobriety-date'),
+      headers: {...authenticatedHeaders, 'Content-Type': 'application/json'},
+      body: jsonEncode({'sobriety_date': sobrietyDate}),
     );
 
-    return _handleJsonResponse(
-      response,
-    );
+    return _handleJsonResponse(response);
   }
 
   Future<Map<String, dynamic>> getRecoveryInsights() async {
-    return _getJson(
-      '/recovery-insights',
-      authenticated: true,
-    );
+    return _getJson('/recovery-insights', authenticated: true);
   }
 
   Future<Map<String, dynamic>> getRecoveryInsightsAiReflection() async {
     final response = await _httpClient.post(
-      Uri.parse(
-        '$baseUrl/recovery-insights/ai-reflection',
-      ),
+      Uri.parse('$baseUrl/recovery-insights/ai-reflection'),
       headers: authenticatedHeaders,
     );
 
-    return _handleJsonResponse(
-      response,
-    );
+    return _handleJsonResponse(response);
   }
-
 
   // ============================================================
   // Data Ownership
   // ============================================================
 
   Future<Map<String, dynamic>> exportRecoveryData() async {
-    return _getJson(
-      '/data-ownership/export',
-      authenticated: true,
-    );
+    return _getJson('/data-ownership/export', authenticated: true);
   }
 
   Future<Map<String, dynamic>> deleteRecoveryData({
     required String confirmation,
   }) async {
     final response = await _httpClient.delete(
-      Uri.parse(
-        '$baseUrl/data-ownership',
-      ),
-      headers: {
-        ...authenticatedHeaders,
-        'Content-Type': 'application/json',
-      },
-      body: jsonEncode({
-        'confirmation': confirmation,
-      }),
+      Uri.parse('$baseUrl/data-ownership'),
+      headers: {...authenticatedHeaders, 'Content-Type': 'application/json'},
+      body: jsonEncode({'confirmation': confirmation}),
     );
 
-    return _handleJsonResponse(
-      response,
-    );
+    return _handleJsonResponse(response);
   }
 
   // ============================================================
@@ -124,21 +84,12 @@ class ApiClient {
     required List<Map<String, String>> conversation,
   }) async {
     final response = await _httpClient.post(
-      Uri.parse(
-        '$baseUrl/chat',
-      ),
-      headers: {
-        ...authenticatedHeaders,
-        'Content-Type': 'application/json',
-      },
-      body: jsonEncode({
-        'conversation': conversation,
-      }),
+      Uri.parse('$baseUrl/chat'),
+      headers: {...authenticatedHeaders, 'Content-Type': 'application/json'},
+      body: jsonEncode({'conversation': conversation}),
     );
 
-    return _handleJsonResponse(
-      response,
-    );
+    return _handleJsonResponse(response);
   }
 
   // ============================================================
@@ -146,10 +97,7 @@ class ApiClient {
   // ============================================================
 
   Future<Map<String, dynamic>> getGoals() async {
-    return _getJson(
-      '/goals',
-      authenticated: true,
-    );
+    return _getJson('/goals', authenticated: true);
   }
 
   Future<Map<String, dynamic>> createGoal({
@@ -158,53 +106,30 @@ class ApiClient {
     String targetDate = '',
   }) async {
     final response = await _httpClient.post(
-      Uri.parse(
-        '$baseUrl/goals',
-      ),
-      headers: {
-        ...authenticatedHeaders,
-        'Content-Type': 'application/json',
-      },
-      body: jsonEncode({
-        'text': text,
-        'area': area,
-        'target_date': targetDate,
-      }),
+      Uri.parse('$baseUrl/goals'),
+      headers: {...authenticatedHeaders, 'Content-Type': 'application/json'},
+      body: jsonEncode({'text': text, 'area': area, 'target_date': targetDate}),
     );
 
-    return _handleJsonResponse(
-      response,
-    );
+    return _handleJsonResponse(response);
   }
 
-  Future<Map<String, dynamic>> completeGoal(
-    int goalId,
-  ) async {
+  Future<Map<String, dynamic>> completeGoal(int goalId) async {
     final response = await _httpClient.put(
-      Uri.parse(
-        '$baseUrl/goals/$goalId/complete',
-      ),
+      Uri.parse('$baseUrl/goals/$goalId/complete'),
       headers: authenticatedHeaders,
     );
 
-    return _handleJsonResponse(
-      response,
-    );
+    return _handleJsonResponse(response);
   }
 
-  Future<Map<String, dynamic>> reactivateGoal(
-    int goalId,
-  ) async {
+  Future<Map<String, dynamic>> reactivateGoal(int goalId) async {
     final response = await _httpClient.put(
-      Uri.parse(
-        '$baseUrl/goals/$goalId/reactivate',
-      ),
+      Uri.parse('$baseUrl/goals/$goalId/reactivate'),
       headers: authenticatedHeaders,
     );
 
-    return _handleJsonResponse(
-      response,
-    );
+    return _handleJsonResponse(response);
   }
 
   // ============================================================
@@ -212,10 +137,7 @@ class ApiClient {
   // ============================================================
 
   Future<Map<String, dynamic>> getRoutines() async {
-    return _getJson(
-      '/routines',
-      authenticated: true,
-    );
+    return _getJson('/routines', authenticated: true);
   }
 
   Future<Map<String, dynamic>> createRoutine({
@@ -225,13 +147,8 @@ class ApiClient {
     String dayOfWeek = '',
   }) async {
     final response = await _httpClient.post(
-      Uri.parse(
-        '$baseUrl/routines',
-      ),
-      headers: {
-        ...authenticatedHeaders,
-        'Content-Type': 'application/json',
-      },
+      Uri.parse('$baseUrl/routines'),
+      headers: {...authenticatedHeaders, 'Content-Type': 'application/json'},
       body: jsonEncode({
         'text': text,
         'area': area,
@@ -240,9 +157,7 @@ class ApiClient {
       }),
     );
 
-    return _handleJsonResponse(
-      response,
-    );
+    return _handleJsonResponse(response);
   }
 
   Future<Map<String, dynamic>> setRoutineActive({
@@ -250,21 +165,12 @@ class ApiClient {
     required bool active,
   }) async {
     final response = await _httpClient.put(
-      Uri.parse(
-        '$baseUrl/routines/$routineId/active',
-      ),
-      headers: {
-        ...authenticatedHeaders,
-        'Content-Type': 'application/json',
-      },
-      body: jsonEncode({
-        'active': active,
-      }),
+      Uri.parse('$baseUrl/routines/$routineId/active'),
+      headers: {...authenticatedHeaders, 'Content-Type': 'application/json'},
+      body: jsonEncode({'active': active}),
     );
 
-    return _handleJsonResponse(
-      response,
-    );
+    return _handleJsonResponse(response);
   }
 
   // ============================================================
@@ -272,10 +178,7 @@ class ApiClient {
   // ============================================================
 
   Future<Map<String, dynamic>> getTodayCheckin() async {
-    return _getJson(
-      '/daily-checkin/today',
-      authenticated: true,
-    );
+    return _getJson('/daily-checkin/today', authenticated: true);
   }
 
   Future<Map<String, dynamic>> saveTodayCheckin({
@@ -288,13 +191,8 @@ class ApiClient {
     required String note,
   }) async {
     final response = await _httpClient.put(
-      Uri.parse(
-        '$baseUrl/daily-checkin/today',
-      ),
-      headers: {
-        ...authenticatedHeaders,
-        'Content-Type': 'application/json',
-      },
+      Uri.parse('$baseUrl/daily-checkin/today'),
+      headers: {...authenticatedHeaders, 'Content-Type': 'application/json'},
       body: jsonEncode({
         'prayer_meditation': prayerMeditation,
         'recovery_contact': recoveryContact,
@@ -306,22 +204,29 @@ class ApiClient {
       }),
     );
 
-    return _handleJsonResponse(
-      response,
-    );
+    return _handleJsonResponse(response);
   }
 
-  Future<Map<String, dynamic>> analyzeRecentCheckins() async {
+  Future<Map<String, dynamic>> analyzeRecentCheckins({
+    String? summary,
+    int? checkinCount,
+  }) async {
+    final hasLocalSummary = summary != null && summary.trim().isNotEmpty;
+
     final response = await _httpClient.post(
-      Uri.parse(
-        '$baseUrl/daily-checkin/ai-reflection',
-      ),
-      headers: authenticatedHeaders,
+      Uri.parse('$baseUrl/daily-checkin/ai-reflection'),
+      headers: hasLocalSummary
+          ? {...authenticatedHeaders, 'Content-Type': 'application/json'}
+          : authenticatedHeaders,
+      body: hasLocalSummary
+          ? jsonEncode({
+              'summary': summary.trim(),
+              'checkin_count': checkinCount ?? 0,
+            })
+          : null,
     );
 
-    return _handleJsonResponse(
-      response,
-    );
+    return _handleJsonResponse(response);
   }
 
   // ============================================================
@@ -329,23 +234,13 @@ class ApiClient {
   // ============================================================
 
   Future<Map<String, dynamic>> getJournalEntries() async {
-    return _getJson(
-      '/journal',
-      authenticated: true,
-    );
+    return _getJson('/journal', authenticated: true);
   }
 
-  Future<Map<String, dynamic>> searchJournal(
-    String query,
-  ) async {
-    final encodedQuery = Uri.encodeQueryComponent(
-      query,
-    );
+  Future<Map<String, dynamic>> searchJournal(String query) async {
+    final encodedQuery = Uri.encodeQueryComponent(query);
 
-    return _getJson(
-      '/journal/search?q=$encodedQuery',
-      authenticated: true,
-    );
+    return _getJson('/journal/search?q=$encodedQuery', authenticated: true);
   }
 
   Future<Map<String, dynamic>> createJournalEntry({
@@ -353,37 +248,21 @@ class ApiClient {
     required List<String> tags,
   }) async {
     final response = await _httpClient.post(
-      Uri.parse(
-        '$baseUrl/journal',
-      ),
-      headers: {
-        ...authenticatedHeaders,
-        'Content-Type': 'application/json',
-      },
-      body: jsonEncode({
-        'text': text,
-        'tags': tags,
-      }),
+      Uri.parse('$baseUrl/journal'),
+      headers: {...authenticatedHeaders, 'Content-Type': 'application/json'},
+      body: jsonEncode({'text': text, 'tags': tags}),
     );
 
-    return _handleJsonResponse(
-      response,
-    );
+    return _handleJsonResponse(response);
   }
 
-  Future<Map<String, dynamic>> analyzeJournalEntry(
-    int entryId,
-  ) async {
+  Future<Map<String, dynamic>> analyzeJournalEntry(int entryId) async {
     final response = await _httpClient.post(
-      Uri.parse(
-        '$baseUrl/journal/$entryId/ai-reflection',
-      ),
+      Uri.parse('$baseUrl/journal/$entryId/ai-reflection'),
       headers: authenticatedHeaders,
     );
 
-    return _handleJsonResponse(
-      response,
-    );
+    return _handleJsonResponse(response);
   }
 
   // ============================================================
@@ -391,57 +270,30 @@ class ApiClient {
   // ============================================================
 
   Future<Map<String, dynamic>> getStepWork() async {
-    return _getJson(
-      '/step-work',
-      authenticated: true,
-    );
+    return _getJson('/step-work', authenticated: true);
   }
 
-  Future<Map<String, dynamic>> setCurrentStep(
-    int stepNumber,
-  ) async {
+  Future<Map<String, dynamic>> setCurrentStep(int stepNumber) async {
     final response = await _httpClient.put(
-      Uri.parse(
-        '$baseUrl/step-work/current-step',
-      ),
-      headers: {
-        ...authenticatedHeaders,
-        'Content-Type': 'application/json',
-      },
-      body: jsonEncode({
-        'step_number': stepNumber,
-      }),
+      Uri.parse('$baseUrl/step-work/current-step'),
+      headers: {...authenticatedHeaders, 'Content-Type': 'application/json'},
+      body: jsonEncode({'step_number': stepNumber}),
     );
 
-    return _handleJsonResponse(
-      response,
-    );
+    return _handleJsonResponse(response);
   }
 
-  Future<Map<String, dynamic>> createStepAssignment(
-    String text,
-  ) async {
+  Future<Map<String, dynamic>> createStepAssignment(String text) async {
     final response = await _httpClient.post(
-      Uri.parse(
-        '$baseUrl/step-work/assignments',
-      ),
-      headers: {
-        ...authenticatedHeaders,
-        'Content-Type': 'application/json',
-      },
-      body: jsonEncode({
-        'text': text,
-      }),
+      Uri.parse('$baseUrl/step-work/assignments'),
+      headers: {...authenticatedHeaders, 'Content-Type': 'application/json'},
+      body: jsonEncode({'text': text}),
     );
 
-    return _handleJsonResponse(
-      response,
-    );
+    return _handleJsonResponse(response);
   }
 
-  Future<Map<String, dynamic>> completeStepAssignment(
-    int assignmentId,
-  ) async {
+  Future<Map<String, dynamic>> completeStepAssignment(int assignmentId) async {
     final response = await _httpClient.put(
       Uri.parse(
         '$baseUrl/step-work/assignments/'
@@ -450,9 +302,7 @@ class ApiClient {
       headers: authenticatedHeaders,
     );
 
-    return _handleJsonResponse(
-      response,
-    );
+    return _handleJsonResponse(response);
   }
 
   // ============================================================
@@ -460,10 +310,7 @@ class ApiClient {
   // ============================================================
 
   Future<Map<String, dynamic>> getFellowshipContacts() async {
-    return _getJson(
-      '/fellowship',
-      authenticated: true,
-    );
+    return _getJson('/fellowship', authenticated: true);
   }
 
   Future<Map<String, dynamic>> getRecommendedFellowshipContacts({
@@ -482,13 +329,8 @@ class ApiClient {
     String notes = '',
   }) async {
     final response = await _httpClient.post(
-      Uri.parse(
-        '$baseUrl/fellowship',
-      ),
-      headers: {
-        ...authenticatedHeaders,
-        'Content-Type': 'application/json',
-      },
+      Uri.parse('$baseUrl/fellowship'),
+      headers: {...authenticatedHeaders, 'Content-Type': 'application/json'},
       body: jsonEncode({
         'handle': handle,
         'contact_type': contactType,
@@ -497,9 +339,7 @@ class ApiClient {
       }),
     );
 
-    return _handleJsonResponse(
-      response,
-    );
+    return _handleJsonResponse(response);
   }
 
   Future<Map<String, dynamic>> updateFellowshipContact({
@@ -510,13 +350,8 @@ class ApiClient {
     String notes = '',
   }) async {
     final response = await _httpClient.put(
-      Uri.parse(
-        '$baseUrl/fellowship/$contactId',
-      ),
-      headers: {
-        ...authenticatedHeaders,
-        'Content-Type': 'application/json',
-      },
+      Uri.parse('$baseUrl/fellowship/$contactId'),
+      headers: {...authenticatedHeaders, 'Content-Type': 'application/json'},
       body: jsonEncode({
         'handle': handle,
         'contact_type': contactType,
@@ -525,30 +360,20 @@ class ApiClient {
       }),
     );
 
-    return _handleJsonResponse(
-      response,
-    );
+    return _handleJsonResponse(response);
   }
+
   Future<Map<String, dynamic>> setFellowshipContactActive({
     required int contactId,
     required bool active,
   }) async {
     final response = await _httpClient.put(
-      Uri.parse(
-        '$baseUrl/fellowship/$contactId/active',
-      ),
-      headers: {
-        ...authenticatedHeaders,
-        'Content-Type': 'application/json',
-      },
-      body: jsonEncode({
-        'active': active,
-      }),
+      Uri.parse('$baseUrl/fellowship/$contactId/active'),
+      headers: {...authenticatedHeaders, 'Content-Type': 'application/json'},
+      body: jsonEncode({'active': active}),
     );
 
-    return _handleJsonResponse(
-      response,
-    );
+    return _handleJsonResponse(response);
   }
 
   // ============================================================
@@ -556,103 +381,68 @@ class ApiClient {
   // ============================================================
 
   Future<Map<String, dynamic>> getCurrentWeeklyReview() async {
-    return _getJson(
-      '/weekly-review/current',
-      authenticated: true,
-    );
+    return _getJson('/weekly-review/current', authenticated: true);
   }
 
   Future<Map<String, dynamic>> saveWeeklyReviewSnapshot() async {
     final response = await _httpClient.post(
-      Uri.parse(
-        '$baseUrl/weekly-review/snapshot',
-      ),
+      Uri.parse('$baseUrl/weekly-review/snapshot'),
       headers: authenticatedHeaders,
     );
 
-    return _handleJsonResponse(
-      response,
-    );
+    return _handleJsonResponse(response);
   }
 
   Future<Map<String, dynamic>> getWeeklyReviewHistory() async {
-    return _getJson(
-      '/weekly-review/history',
-      authenticated: true,
-    );
+    return _getJson('/weekly-review/history', authenticated: true);
   }
 
   Future<Map<String, dynamic>> getWeeklyReviewComparison() async {
-    return _getJson(
-      '/weekly-review/comparison',
-      authenticated: true,
-    );
+    return _getJson('/weekly-review/comparison', authenticated: true);
   }
 
   Future<Map<String, dynamic>> getWeeklyReviewAiReflection() async {
     final response = await _httpClient.post(
-      Uri.parse(
-        '$baseUrl/weekly-review/ai-reflection',
-      ),
+      Uri.parse('$baseUrl/weekly-review/ai-reflection'),
       headers: authenticatedHeaders,
     );
 
-    return _handleJsonResponse(
-      response,
-    );
-  }  
-  
+    return _handleJsonResponse(response);
+  }
 
   // ============================================================
   // Monthly Review
   // ============================================================
 
   Future<Map<String, dynamic>> getCurrentMonthlyReview() async {
-    return _getJson(
-      '/monthly-review/current',
-      authenticated: true,
-    );
+    return _getJson('/monthly-review/current', authenticated: true);
   }
 
   Future<Map<String, dynamic>> saveMonthlyReviewSnapshot() async {
     final response = await _httpClient.post(
-      Uri.parse(
-        '$baseUrl/monthly-review/snapshot',
-      ),
+      Uri.parse('$baseUrl/monthly-review/snapshot'),
       headers: authenticatedHeaders,
     );
 
-    return _handleJsonResponse(
-      response,
-    );
+    return _handleJsonResponse(response);
   }
 
   Future<Map<String, dynamic>> getMonthlyReviewHistory() async {
-    return _getJson(
-      '/monthly-review/history',
-      authenticated: true,
-    );
+    return _getJson('/monthly-review/history', authenticated: true);
   }
 
   Future<Map<String, dynamic>> getMonthlyReviewComparison() async {
-    return _getJson(
-      '/monthly-review/comparison',
-      authenticated: true,
-    );
+    return _getJson('/monthly-review/comparison', authenticated: true);
   }
 
   Future<Map<String, dynamic>> getMonthlyReviewAiReflection() async {
     final response = await _httpClient.post(
-      Uri.parse(
-        '$baseUrl/monthly-review/ai-reflection',
-      ),
+      Uri.parse('$baseUrl/monthly-review/ai-reflection'),
       headers: authenticatedHeaders,
     );
 
-    return _handleJsonResponse(
-      response,
-    );
-  }  
+    return _handleJsonResponse(response);
+  }
 
   // ============================================================
   // Authentication
@@ -663,9 +453,7 @@ class ApiClient {
       return const {};
     }
 
-    return {
-      'Authorization': 'Bearer $apiToken',
-    };
+    return {'Authorization': 'Bearer $apiToken'};
   }
 
   // ============================================================
@@ -677,22 +465,14 @@ class ApiClient {
     required bool authenticated,
   }) async {
     final response = await _httpClient.get(
-      Uri.parse(
-        '$baseUrl$path',
-      ),
-      headers: authenticated
-          ? authenticatedHeaders
-          : const {},
+      Uri.parse('$baseUrl$path'),
+      headers: authenticated ? authenticatedHeaders : const {},
     );
 
-    return _handleJsonResponse(
-      response,
-    );
+    return _handleJsonResponse(response);
   }
 
-  Map<String, dynamic> _handleJsonResponse(
-    http.Response response,
-  ) {
+  Map<String, dynamic> _handleJsonResponse(http.Response response) {
     if (response.statusCode != 200) {
       throw ApiException(
         'API request failed.',
@@ -700,22 +480,14 @@ class ApiClient {
       );
     }
 
-    return _decodeJsonObject(
-      response.body,
-    );
+    return _decodeJsonObject(response.body);
   }
 
-  Map<String, dynamic> _decodeJsonObject(
-    String body,
-  ) {
-    final decoded = jsonDecode(
-      body,
-    );
+  Map<String, dynamic> _decodeJsonObject(String body) {
+    final decoded = jsonDecode(body);
 
     if (decoded is! Map<String, dynamic>) {
-      throw const ApiException(
-        'API returned an unexpected response.',
-      );
+      throw const ApiException('API returned an unexpected response.');
     }
 
     return decoded;
@@ -727,10 +499,7 @@ class ApiClient {
 }
 
 class ApiException implements Exception {
-  const ApiException(
-    this.message, {
-    this.statusCode,
-  });
+  const ApiException(this.message, {this.statusCode});
 
   final String message;
   final int? statusCode;

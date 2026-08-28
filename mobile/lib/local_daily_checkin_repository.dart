@@ -65,6 +65,92 @@ class LocalDailyCheckInRepository {
     return {'checkin': checkin};
   }
 
+  Future<Map<String, dynamic>> buildAiReflectionPayload() async {
+    final document = await store.read();
+    final data = Map<String, dynamic>.from(document['data'] as Map);
+
+    final rawCheckins = data['daily_checkins'];
+
+    if (rawCheckins is! Map) {
+      return {'summary': '', 'checkin_count': 0};
+    }
+
+    final checkins = rawCheckins.entries
+        .where((entry) => entry.value is Map)
+        .map(
+          (entry) => {
+            'date': entry.key.toString(),
+            ...Map<String, dynamic>.from(entry.value as Map),
+          },
+        )
+        .toList();
+
+    checkins.sort(
+      (a, b) =>
+          (b['date'] ?? '').toString().compareTo((a['date'] ?? '').toString()),
+    );
+
+    final recent = checkins.take(7).toList();
+
+    if (recent.isEmpty) {
+      return {'summary': '', 'checkin_count': 0};
+    }
+
+    const fields = <String, String>{
+      'prayer_meditation': 'Prayer / meditation',
+      'recovery_contact': 'Recovery contact',
+      'meeting': 'Meeting',
+      'step_work': 'Step work',
+      'journal': 'Journal',
+      'service': 'Service',
+    };
+
+    final historyLines = <String>[];
+
+    for (final checkin in recent) {
+      final completed = fields.keys
+          .where((field) => checkin[field] == true)
+          .length;
+
+      historyLines.add(
+        '${checkin['date']}: '
+        '$completed/${fields.length} completed',
+      );
+
+      final note = (checkin['note'] ?? '').toString().trim();
+
+      if (note.isNotEmpty) {
+        historyLines.add('  Note: $note');
+      }
+    }
+
+    final totals = <String, int>{for (final field in fields.keys) field: 0};
+
+    for (final checkin in recent) {
+      for (final field in fields.keys) {
+        if (checkin[field] == true) {
+          totals[field] = totals[field]! + 1;
+        }
+      }
+    }
+
+    final trendLines = <String>['Across ${recent.length} recent check-ins:'];
+
+    for (final entry in fields.entries) {
+      trendLines.add(
+        '${entry.value}: '
+        '${totals[entry.key]}/${recent.length}',
+      );
+    }
+
+    return {
+      'summary':
+          '${historyLines.join('\n')}\n\n'
+          '${trendLines.join('\n')}',
+      'checkin_count': recent.length,
+    };
+  }
+
   String _dateKey(DateTime value) {
     final local = value.toLocal();
 

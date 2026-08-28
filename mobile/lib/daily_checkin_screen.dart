@@ -233,7 +233,30 @@ class _DailyCheckInScreenState extends State<DailyCheckInScreen> {
     });
 
     try {
-      final result = await widget.apiClient.analyzeRecentCheckins();
+      final localRepository = widget.localRepository;
+
+      late final Map<String, dynamic> result;
+
+      if (localRepository != null) {
+        final payload = await localRepository.buildAiReflectionPayload();
+
+        final summary = (payload['summary'] ?? '').toString().trim();
+
+        final checkinCount = payload['checkin_count'] is int
+            ? payload['checkin_count'] as int
+            : 0;
+
+        if (summary.isEmpty || checkinCount == 0) {
+          throw StateError('No recent local check-ins are available.');
+        }
+
+        result = await widget.apiClient.analyzeRecentCheckins(
+          summary: summary,
+          checkinCount: checkinCount,
+        );
+      } else {
+        result = await widget.apiClient.analyzeRecentCheckins();
+      }
 
       if (!mounted) {
         return;
