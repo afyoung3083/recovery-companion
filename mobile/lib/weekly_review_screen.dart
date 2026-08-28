@@ -141,7 +141,25 @@ class _WeeklyReviewScreenState extends State<WeeklyReviewScreen> {
     });
 
     try {
-      final response = await widget.apiClient.getWeeklyReviewAiReflection();
+      final localRepository = widget.localRepository;
+
+      late final Map<String, dynamic> response;
+
+      if (localRepository != null) {
+        final payload = await localRepository.buildAiReflectionPayload();
+
+        final summary = (payload['summary'] ?? '').toString().trim();
+
+        if (summary.isEmpty) {
+          throw StateError('No local Weekly Review summary is available.');
+        }
+
+        response = await widget.apiClient.getWeeklyReviewAiReflection(
+          summary: summary,
+        );
+      } else {
+        response = await widget.apiClient.getWeeklyReviewAiReflection();
+      }
 
       if (!mounted) {
         return;
@@ -270,7 +288,8 @@ class _WeeklyReviewScreenState extends State<WeeklyReviewScreen> {
                     SizedBox(width: 12),
                     Expanded(
                       child: Text(
-                        'AI reflection only runs when you explicitly request it.',
+                        'AI reflection only runs when you explicitly request it. '
+                        'Only the locally constructed Weekly Review summary is sent.',
                       ),
                     ),
                   ],
@@ -280,9 +299,7 @@ class _WeeklyReviewScreenState extends State<WeeklyReviewScreen> {
                   width: double.infinity,
                   child: OutlinedButton.icon(
                     key: const ValueKey('weekly-review-ai-button'),
-                    onPressed: busy || widget.localRepository != null
-                        ? null
-                        : _generateAiReflection,
+                    onPressed: busy ? null : _generateAiReflection,
                     icon: _reflecting
                         ? const SizedBox(
                             width: 18,
@@ -291,11 +308,7 @@ class _WeeklyReviewScreenState extends State<WeeklyReviewScreen> {
                           )
                         : const Icon(Icons.psychology_alt_outlined),
                     label: Text(
-                      widget.localRepository != null
-                          ? 'AI Reflection Requires Sync'
-                          : _reflecting
-                          ? 'Reflecting...'
-                          : 'Reflect with AI',
+                      _reflecting ? 'Reflecting...' : 'Reflect with AI',
                     ),
                   ),
                 ),

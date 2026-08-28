@@ -20,6 +20,14 @@ class LocalWeeklyReviewRepository {
     return {'review': review, 'snapshot': snapshot};
   }
 
+  Future<Map<String, dynamic>> buildAiReflectionPayload() async {
+    final current = await getCurrentReview();
+
+    final summary = (current['review'] ?? '').toString().trim();
+
+    return {'summary': summary};
+  }
+
   Future<Map<String, dynamic>> saveSnapshot() async {
     final document = await store.read();
     final data = Map<String, dynamic>.from(document['data'] as Map);

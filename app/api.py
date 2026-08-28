@@ -115,6 +115,10 @@ class RecoveryInsightsAiRequest(BaseModel):
     summary: str
 
 
+class WeeklyReviewAiRequest(BaseModel):
+    summary: str
+
+
 class JournalEntryRequest(BaseModel):
     text: str
     tags: list[str] = []
@@ -1284,22 +1288,47 @@ def get_monthly_review_comparison() -> dict[str, str]:
         Depends(require_api_token)
     ],
 )
-def create_weekly_review_ai_reflection() -> dict[str, str]:
+def weekly_review_ai_reflection(
+    request: WeeklyReviewAiRequest | None = None,
+) -> dict[str, str]:
     """
-    Generate an AI reflection for the current Weekly Recovery Review.
+    Generate an optional AI reflection on a Weekly Recovery Review.
 
-    Calling this endpoint represents an explicit user request to share
-    the deterministic weekly summary with the AI analysis layer.
+    Local-first clients may explicitly provide the deterministic
+    review constructed from authoritative on-device recovery data.
+
+    Older clients may omit the request body, preserving the original
+    server-side review behavior.
     """
 
-    review = build_weekly_review()
+    if request is not None:
+        review_text = request.summary.strip()
 
-    reflection = analyze_weekly_review(
-        review
-    )
+        if not review_text:
+            raise HTTPException(
+                status_code=400,
+                detail=(
+                    "Weekly Review summary cannot be empty."
+                ),
+            )
+
+    else:
+        review_text = build_weekly_review()
+
+    try:
+        reflection = analyze_weekly_review(
+            review_text
+        )
+    except Exception as error:
+        raise HTTPException(
+            status_code=502,
+            detail=(
+                "Unable to generate Weekly Review reflection."
+            ),
+        ) from error
 
     return {
-        "review": review,
+        "review": review_text,
         "reflection": reflection,
     }
 
