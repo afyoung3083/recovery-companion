@@ -3,11 +3,17 @@ import 'package:flutter/material.dart';
 import 'api_client.dart';
 import 'app_components.dart';
 import 'contact_profile_screen.dart';
+import 'local_fellowship_repository.dart';
 
 class FellowshipScreen extends StatefulWidget {
-  const FellowshipScreen({required this.apiClient, super.key});
+  const FellowshipScreen({
+    required this.apiClient,
+    this.localRepository,
+    super.key,
+  });
 
   final ApiClient apiClient;
+  final LocalFellowshipRepository? localRepository;
 
   @override
   State<FellowshipScreen> createState() => _FellowshipScreenState();
@@ -58,16 +64,28 @@ class _FellowshipScreenState extends State<FellowshipScreen> {
     setState(() {
       _error = null;
 
-      _contactsFuture = widget.apiClient.getFellowshipContacts();
+      final localRepository = widget.localRepository;
 
-      _recommendedFuture = widget.apiClient.getRecommendedFellowshipContacts();
+      _contactsFuture = localRepository != null
+          ? localRepository.getContacts()
+          : widget.apiClient.getFellowshipContacts();
+
+      _recommendedFuture = localRepository != null
+          ? localRepository.getRecommendedContacts()
+          : widget.apiClient.getRecommendedFellowshipContacts();
     });
   }
 
   Future<void> _refresh() async {
-    final contacts = widget.apiClient.getFellowshipContacts();
+    final localRepository = widget.localRepository;
 
-    final recommended = widget.apiClient.getRecommendedFellowshipContacts();
+    final contacts = localRepository != null
+        ? localRepository.getContacts()
+        : widget.apiClient.getFellowshipContacts();
+
+    final recommended = localRepository != null
+        ? localRepository.getRecommendedContacts()
+        : widget.apiClient.getRecommendedFellowshipContacts();
 
     setState(() {
       _error = null;
@@ -81,8 +99,11 @@ class _FellowshipScreenState extends State<FellowshipScreen> {
   Future<void> _openContact(Map<String, dynamic> contact) async {
     await Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (_) =>
-            ContactProfileScreen(apiClient: widget.apiClient, contact: contact),
+        builder: (_) => ContactProfileScreen(
+          apiClient: widget.apiClient,
+          contact: contact,
+          localRepository: widget.localRepository,
+        ),
       ),
     );
 
@@ -107,12 +128,23 @@ class _FellowshipScreenState extends State<FellowshipScreen> {
     });
 
     try {
-      await widget.apiClient.createFellowshipContact(
-        handle: handle,
-        contactType: _contactType,
-        contactMethod: _contactMethodController.text.trim(),
-        notes: _notesController.text.trim(),
-      );
+      final localRepository = widget.localRepository;
+
+      if (localRepository != null) {
+        await localRepository.createContact(
+          handle: handle,
+          contactType: _contactType,
+          contactMethod: _contactMethodController.text.trim(),
+          notes: _notesController.text.trim(),
+        );
+      } else {
+        await widget.apiClient.createFellowshipContact(
+          handle: handle,
+          contactType: _contactType,
+          contactMethod: _contactMethodController.text.trim(),
+          notes: _notesController.text.trim(),
+        );
+      }
 
       if (!mounted) {
         return;

@@ -2,16 +2,19 @@ import 'package:flutter/material.dart';
 
 import 'api_client.dart';
 import 'app_components.dart';
+import 'local_fellowship_repository.dart';
 
 class ContactProfileScreen extends StatefulWidget {
   const ContactProfileScreen({
     required this.apiClient,
     required this.contact,
+    this.localRepository,
     super.key,
   });
 
   final ApiClient apiClient;
   final Map<String, dynamic> contact;
+  final LocalFellowshipRepository? localRepository;
 
   @override
   State<ContactProfileScreen> createState() => _ContactProfileScreenState();
@@ -100,19 +103,38 @@ class _ContactProfileScreenState extends State<ContactProfileScreen> {
     });
 
     try {
-      await widget.apiClient.updateFellowshipContact(
-        contactId: contactId,
-        handle: handle,
-        contactType: _contactType,
-        contactMethod: _contactMethodController.text.trim(),
-        notes: _notesController.text.trim(),
-      );
+      final localRepository = widget.localRepository;
 
-      if (_active != _originalActive) {
-        await widget.apiClient.setFellowshipContactActive(
+      if (localRepository != null) {
+        await localRepository.updateContact(
           contactId: contactId,
-          active: _active,
+          handle: handle,
+          contactType: _contactType,
+          contactMethod: _contactMethodController.text.trim(),
+          notes: _notesController.text.trim(),
         );
+
+        if (_active != _originalActive) {
+          await localRepository.setContactActive(
+            contactId: contactId,
+            active: _active,
+          );
+        }
+      } else {
+        await widget.apiClient.updateFellowshipContact(
+          contactId: contactId,
+          handle: handle,
+          contactType: _contactType,
+          contactMethod: _contactMethodController.text.trim(),
+          notes: _notesController.text.trim(),
+        );
+
+        if (_active != _originalActive) {
+          await widget.apiClient.setFellowshipContactActive(
+            contactId: contactId,
+            active: _active,
+          );
+        }
       }
 
       if (!mounted) {
