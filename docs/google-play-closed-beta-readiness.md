@@ -25,17 +25,20 @@ Before publishing to a closed-testing track, complete Play Console
 - Health apps declaration
 - Any additional declarations Play Console identifies for this app
 
-## Privacy-policy blocker
+## Privacy policy
 
 Recovery Companion contains in-app Privacy & Health Information.
 
-Google Play also requires a privacy policy at an active, publicly
-accessible URL.
+The production public privacy-policy URL is:
 
-**BLOCKER:** A public privacy-policy URL must be created and entered
-into Play Console before closed-beta submission.
+`https://afyoung3083.github.io/recovery-companion/privacy/`
 
-Do not invent a URL or submit a placeholder.
+The policy source is maintained in:
+
+`docs/privacy/index.md`
+
+Before entering the URL into Play Console, verify that the published
+GitHub Pages URL loads successfully without authentication.
 
 ## Health apps declaration
 

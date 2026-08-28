@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import 'app_components.dart';
+import 'mobile_config.dart';
 
 class PrivacyHealthInfoScreen extends StatelessWidget {
   const PrivacyHealthInfoScreen({super.key});
@@ -15,6 +17,30 @@ class PrivacyHealthInfoScreen extends StatelessWidget {
           subtitle: 'How Recovery Companion handles your recovery information and the limits of this app.',
           icon: Icons.health_and_safety_outlined,
         ),
+
+        const AppSectionTitle(
+          title: 'Published privacy policy',
+          subtitle:
+              'Read the current public Recovery Companion privacy policy.',
+        ),
+
+        AppSectionCard(
+          child: SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              key: const ValueKey('open-public-privacy-policy'),
+              onPressed: () async {
+                final uri = Uri.parse(MobileConfig.privacyPolicyUrl);
+
+                await launchUrl(uri, mode: LaunchMode.externalApplication);
+              },
+              icon: const Icon(Icons.open_in_new),
+              label: const Text('Open Public Privacy Policy'),
+            ),
+          ),
+        ),
+
+        const SizedBox(height: 28),
 
         const AppSectionTitle(
           title: 'Purpose',
