@@ -47,10 +47,17 @@ class ApiClient {
     return _getJson('/recovery-insights', authenticated: true);
   }
 
-  Future<Map<String, dynamic>> getRecoveryInsightsAiReflection() async {
+  Future<Map<String, dynamic>> getRecoveryInsightsAiReflection({
+    String? summary,
+  }) async {
+    final hasLocalSummary = summary != null && summary.trim().isNotEmpty;
+
     final response = await _httpClient.post(
       Uri.parse('$baseUrl/recovery-insights/ai-reflection'),
-      headers: authenticatedHeaders,
+      headers: hasLocalSummary
+          ? {...authenticatedHeaders, 'Content-Type': 'application/json'}
+          : authenticatedHeaders,
+      body: hasLocalSummary ? jsonEncode({'summary': summary.trim()}) : null,
     );
 
     return _handleJsonResponse(response);

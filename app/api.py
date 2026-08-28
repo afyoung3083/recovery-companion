@@ -111,6 +111,10 @@ class AiReflectionSummaryRequest(BaseModel):
     checkin_count: int = 0
 
 
+class RecoveryInsightsAiRequest(BaseModel):
+    summary: str
+
+
 class JournalEntryRequest(BaseModel):
     text: str
     tags: list[str] = []
@@ -274,16 +278,34 @@ def recovery_insights() -> dict[str, object]:
         Depends(require_api_token)
     ],
 )
-def recovery_insights_ai_reflection() -> dict[str, str]:
+def recovery_insights_ai_reflection(
+    request: RecoveryInsightsAiRequest | None = None,
+) -> dict[str, str]:
     """
     Generate an optional AI reflection on Recovery Insights.
 
-    The deterministic Recovery Insights summary is built locally.
-    Only that summary is sent to the AI, and the reflection is not
-    persisted automatically.
+    Local-first clients may provide the deterministic summary they
+    constructed from authoritative on-device recovery data.
+
+    Older clients may omit the request body, preserving the original
+    server-side summary behavior.
+
+    Only the supplied deterministic summary is sent to the AI.
     """
 
-    insights_text = build_recovery_insights()
+    if request is not None:
+        insights_text = request.summary.strip()
+
+        if not insights_text:
+            raise HTTPException(
+                status_code=400,
+                detail=(
+                    "Recovery Insights summary cannot be empty."
+                ),
+            )
+
+    else:
+        insights_text = build_recovery_insights()
 
     try:
         reflection = analyze_recovery_insights(

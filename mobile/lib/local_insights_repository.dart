@@ -75,6 +75,93 @@ class LocalInsightsRepository {
     };
   }
 
+  Future<Map<String, dynamic>> buildAiReflectionPayload() async {
+    final result = await getInsights();
+
+    final rawInsights = result['recovery_insights_data'];
+
+    if (rawInsights is! Map) {
+      return {'summary': ''};
+    }
+
+    final insights = Map<String, dynamic>.from(rawInsights);
+
+    final sobrietyDays = insights['sobriety_days'];
+
+    final sobrietyText = sobrietyDays is int ? '$sobrietyDays days' : 'not set';
+
+    final currentStep = insights['current_step'] ?? 1;
+
+    final openAssignments = insights['open_step_assignments'] ?? 0;
+
+    final activeGoals = insights['active_recovery_goals'] ?? 0;
+
+    final checkinDays = insights['checkin_days_available'] ?? 0;
+
+    final checkinWindow = insights['checkin_window_days'] ?? 7;
+
+    final lines = <String>[
+      'Recovery Insights',
+      '',
+      'Sobriety: $sobrietyText',
+      'Current Step: $currentStep',
+      'Open Step assignments: $openAssignments',
+      'Active recovery goals: $activeGoals',
+      'Recent check-in days: '
+          '$checkinDays of $checkinWindow',
+    ];
+
+    final weeklyRaw = insights['latest_weekly_snapshot'];
+
+    if (weeklyRaw is Map) {
+      final weekly = Map<String, dynamic>.from(weeklyRaw);
+
+      lines.add('');
+      lines.add('Latest weekly snapshot:');
+      lines.add(
+        'Period: '
+        '${weekly['week_start'] ?? ''} '
+        'through ${weekly['week_end'] ?? ''}',
+      );
+      lines.add(
+        'Check-in days: '
+        '${weekly['checkin_days'] ?? 0}',
+      );
+      lines.add(
+        'Journal entries: '
+        '${weekly['journal_entries'] ?? 0}',
+      );
+    }
+
+    final monthlyRaw = insights['latest_monthly_snapshot'];
+
+    if (monthlyRaw is Map) {
+      final monthly = Map<String, dynamic>.from(monthlyRaw);
+
+      lines.add('');
+      lines.add('Latest monthly snapshot:');
+      lines.add(
+        'Period: '
+        '${monthly['period_start'] ?? ''} '
+        'through ${monthly['period_end'] ?? ''}',
+      );
+      lines.add(
+        'Weekly reviews included: '
+        '${monthly['weekly_reviews_included'] ?? 0}',
+      );
+      lines.add(
+        'Check-in days: '
+        '${monthly['checkin_days'] ?? 0}',
+      );
+      lines.add(
+        'Journal entries: '
+        '${monthly['journal_entries'] ?? 0}',
+      );
+    }
+
+    return {'summary': lines.join('\n')};
+  }
+
   int _recentCheckinDays(Map<String, dynamic> data) {
     final rawCheckins = data['daily_checkins'];
 

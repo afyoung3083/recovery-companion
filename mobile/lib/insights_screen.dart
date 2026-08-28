@@ -127,7 +127,25 @@ class _InsightsScreenState extends State<InsightsScreen> {
     });
 
     try {
-      final result = await widget.apiClient.getRecoveryInsightsAiReflection();
+      final localRepository = widget.localRepository;
+
+      late final Map<String, dynamic> result;
+
+      if (localRepository != null) {
+        final payload = await localRepository.buildAiReflectionPayload();
+
+        final summary = (payload['summary'] ?? '').toString().trim();
+
+        if (summary.isEmpty) {
+          throw StateError('No local Recovery Insights summary is available.');
+        }
+
+        result = await widget.apiClient.getRecoveryInsightsAiReflection(
+          summary: summary,
+        );
+      } else {
+        result = await widget.apiClient.getRecoveryInsightsAiReflection();
+      }
 
       if (!mounted) {
         return;
@@ -403,13 +421,10 @@ class _InsightsScreenState extends State<InsightsScreen> {
                         const SizedBox(width: 12),
                         Expanded(
                           child: Text(
-                            widget.localRepository != null
-                                ? 'Your Insights summary stays on this device. '
-                                      'AI reflection will be enabled after the '
-                                      'explicit local-summary sharing path is added.'
-                                : 'Only the Recovery Insights summary is sent '
-                                      'after you confirm. Raw journal entries and '
-                                      'check-in notes are not included.',
+                            'Only the locally constructed Recovery '
+                            'Insights summary is sent after you confirm. '
+                            'Raw journal entries and check-in notes are '
+                            'not included.',
                           ),
                         ),
                       ],
@@ -419,10 +434,7 @@ class _InsightsScreenState extends State<InsightsScreen> {
                       width: double.infinity,
                       child: OutlinedButton.icon(
                         key: const ValueKey('recovery-insights-ai'),
-                        onPressed:
-                            _analyzing ||
-                                readResult.isCached ||
-                                widget.localRepository != null
+                        onPressed: _analyzing || readResult.isCached
                             ? null
                             : _analyzeRecoveryInsights,
                         icon: _analyzing
@@ -435,9 +447,7 @@ class _InsightsScreenState extends State<InsightsScreen> {
                               )
                             : const Icon(Icons.auto_awesome_outlined),
                         label: Text(
-                          widget.localRepository != null
-                              ? 'AI Reflection Requires Sync'
-                              : _analyzing
+                          _analyzing
                               ? 'Generating Reflection...'
                               : 'Reflect on Recovery Insights',
                         ),

@@ -101,3 +101,52 @@ def test_recovery_insights_ai_does_not_expose_ai_errors(
     }
 
     assert "sk-do-not-expose" not in response.text
+
+
+
+@patch("app.api.analyze_recovery_insights")
+@patch("app.api.build_recovery_insights")
+def test_recovery_insights_ai_accepts_explicit_local_summary(
+    mock_build_recovery_insights,
+    mock_analyze_recovery_insights,
+):
+    mock_analyze_recovery_insights.return_value = (
+        "Reflection from local summary."
+    )
+
+    response = client.post(
+        "/recovery-insights/ai-reflection",
+        headers=auth_headers(),
+        json={
+            "summary": "LOCAL RECOVERY INSIGHTS SUMMARY",
+        },
+    )
+
+    assert response.status_code == 200
+
+    assert response.json() == {
+        "reflection": "Reflection from local summary.",
+    }
+
+    mock_build_recovery_insights.assert_not_called()
+
+    mock_analyze_recovery_insights.assert_called_once_with(
+        "LOCAL RECOVERY INSIGHTS SUMMARY"
+    )
+
+
+@patch("app.api.analyze_recovery_insights")
+def test_recovery_insights_ai_rejects_empty_local_summary(
+    mock_analyze_recovery_insights,
+):
+    response = client.post(
+        "/recovery-insights/ai-reflection",
+        headers=auth_headers(),
+        json={
+            "summary": "   ",
+        },
+    )
+
+    assert response.status_code == 400
+
+    mock_analyze_recovery_insights.assert_not_called()
