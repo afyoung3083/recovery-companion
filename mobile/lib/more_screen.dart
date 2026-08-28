@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'api_client.dart';
 import 'app_components.dart';
 import 'beta_feedback_screen.dart';
+import 'beta_tester_guide_screen.dart';
 import 'chat_screen.dart';
 import 'daily_checkin_screen.dart';
 import 'fellowship_screen.dart';
@@ -298,6 +299,18 @@ class MoreScreen extends StatelessWidget {
                   context,
                   title: 'Reminders',
                   child: RemindersScreen(scheduler: reminderScheduler),
+                );
+              },
+            ),
+            _ToolTile(
+              icon: Icons.science_outlined,
+              title: 'Closed Beta Tester Guide',
+              subtitle: 'What to test, privacy guidance, and how to send useful feedback.',
+              onTap: () {
+                _open(
+                  context,
+                  title: 'Closed Beta Tester Guide',
+                  child: const BetaTesterGuideScreen(),
                 );
               },
             ),
