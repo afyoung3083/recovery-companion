@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 
 import 'api_client.dart';
 import 'app_components.dart';
+import 'beta_feedback_screen.dart';
 import 'chat_screen.dart';
 import 'daily_checkin_screen.dart';
 import 'fellowship_screen.dart';
+import 'first_use_guidance.dart';
 import 'journal_screen.dart';
 import 'local_data_ownership_repository.dart';
 import 'local_daily_checkin_repository.dart';
@@ -73,6 +75,59 @@ class MoreScreen extends StatelessWidget {
           subtitle: 'Recovery tools, connection, reviews, and your profile.',
           icon: Icons.apps_outlined,
         ),
+
+        FirstUseGuidanceCard(
+          key: const ValueKey('more-new-user-guidance'),
+          title: 'New here?',
+          message:
+              'A simple starting rhythm is enough: check in today, '
+              'stay connected with real people, and add reminders only '
+              'if they help you follow through.',
+          actions: [
+            FirstUseGuidanceAction(
+              label: 'Check in',
+              icon: Icons.check_circle_outline,
+              onTap: () {
+                _open(
+                  context,
+                  title: 'Daily Recovery',
+                  child: DailyCheckInScreen(
+                    apiClient: apiClient,
+                    offlineReadService: offlineReadService,
+                    localRepository: localDailyCheckInRepository,
+                  ),
+                );
+              },
+            ),
+            FirstUseGuidanceAction(
+              label: 'Fellowship',
+              icon: Icons.groups_outlined,
+              onTap: () {
+                _open(
+                  context,
+                  title: 'Fellowship',
+                  child: FellowshipScreen(
+                    apiClient: apiClient,
+                    localRepository: localFellowshipRepository,
+                  ),
+                );
+              },
+            ),
+            FirstUseGuidanceAction(
+              label: 'Reminders',
+              icon: Icons.notifications_outlined,
+              onTap: () {
+                _open(
+                  context,
+                  title: 'Reminders',
+                  child: RemindersScreen(scheduler: reminderScheduler),
+                );
+              },
+            ),
+          ],
+        ),
+
+        const SizedBox(height: 28),
 
         const AppSectionTitle(
           title: 'Today',
@@ -243,6 +298,19 @@ class MoreScreen extends StatelessWidget {
                   context,
                   title: 'Reminders',
                   child: RemindersScreen(scheduler: reminderScheduler),
+                );
+              },
+            ),
+            _ToolTile(
+              icon: Icons.bug_report_outlined,
+              title: 'Beta Feedback & Support',
+              subtitle:
+                  'Report a problem, suggestion, or confusing experience.',
+              onTap: () {
+                _open(
+                  context,
+                  title: 'Beta Feedback & Support',
+                  child: const BetaFeedbackScreen(),
                 );
               },
             ),

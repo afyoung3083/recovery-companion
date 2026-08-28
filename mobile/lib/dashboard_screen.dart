@@ -6,6 +6,7 @@ import 'offline_copy_notice.dart';
 import 'offline_read_service.dart';
 import 'contact_profile_screen.dart';
 import 'daily_checkin_screen.dart';
+import 'first_use_guidance.dart';
 import 'journal_screen.dart';
 import 'local_daily_checkin_repository.dart';
 import 'local_dashboard_repository.dart';
@@ -241,6 +242,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
         final contacts = _asMapList(dashboard['recommended_contacts']);
 
+        final showFirstUseGuidance =
+            sobrietyDate.isEmpty &&
+            !checkinSaved &&
+            assignments.isEmpty &&
+            (latestJournal == null || latestJournal.isEmpty) &&
+            contacts.isEmpty;
+
         return RefreshIndicator(
           onRefresh: _refreshAsync,
           child: ListView(
@@ -256,6 +264,63 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 OfflineCopyNotice(
                   cachedAt: readResult.cachedAt,
                   onRetry: _refresh,
+                ),
+                const SizedBox(height: 16),
+              ],
+
+              if (showFirstUseGuidance) ...[
+                FirstUseGuidanceCard(
+                  key: const ValueKey('dashboard-first-use-guidance'),
+                  title: 'Start here',
+                  message:
+                      'You do not need to set up everything today. '
+                      'A Daily Recovery check-in is a good first step, '
+                      'and you can add a journal entry or sobriety date '
+                      'whenever they are useful.',
+                  actions: [
+                    FirstUseGuidanceAction(
+                      label: 'Daily Recovery',
+                      icon: Icons.check_circle_outline,
+                      onTap: () {
+                        _openScreen(
+                          title: 'Daily Recovery',
+                          screen: DailyCheckInScreen(
+                            apiClient: widget.apiClient,
+                            offlineReadService: widget.offlineReadService,
+                            localRepository: widget.localDailyCheckInRepository,
+                          ),
+                        );
+                      },
+                    ),
+                    FirstUseGuidanceAction(
+                      label: 'Journal',
+                      icon: Icons.menu_book_outlined,
+                      onTap: () {
+                        _openScreen(
+                          title: 'Journal',
+                          screen: JournalScreen(
+                            apiClient: widget.apiClient,
+                            offlineReadService: widget.offlineReadService,
+                            localRepository: widget.localJournalRepository,
+                          ),
+                        );
+                      },
+                    ),
+                    FirstUseGuidanceAction(
+                      label: 'Sobriety date',
+                      icon: Icons.calendar_today_outlined,
+                      onTap: () {
+                        _openScreen(
+                          title: 'Profile',
+                          screen: ProfileScreen(
+                            apiClient: widget.apiClient,
+                            offlineReadService: widget.offlineReadService,
+                            localRepository: widget.localProfileRepository,
+                          ),
+                        );
+                      },
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 16),
               ],

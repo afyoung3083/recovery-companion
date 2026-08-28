@@ -7,18 +7,21 @@ import 'api_client.dart';
 import 'app_components.dart';
 import 'offline_read_service.dart';
 import 'local_data_ownership_repository.dart';
+import 'onboarding_store.dart';
 
 class SettingsPrivacyScreen extends StatefulWidget {
   const SettingsPrivacyScreen({
     required this.apiClient,
     this.offlineReadService,
     this.localRepository,
+    this.onboardingStore,
     super.key,
   });
 
   final ApiClient apiClient;
   final OfflineReadService? offlineReadService;
   final LocalDataOwnershipRepository? localRepository;
+  final OnboardingStore? onboardingStore;
 
   @override
   State<SettingsPrivacyScreen> createState() => _SettingsPrivacyScreenState();
@@ -54,6 +57,63 @@ class _SettingsPrivacyScreenState extends State<SettingsPrivacyScreen> {
 
   void _refreshDeleteState() {
     setState(() {});
+  }
+
+  Future<void> _replayOnboarding() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Replay onboarding?'),
+          content: const Text(
+            'This restarts the introduction and '
+            'optional setup guide. Your existing '
+            'recovery records will not be deleted.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop(false);
+              },
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              key: const ValueKey('confirm-replay-onboarding'),
+              onPressed: () {
+                Navigator.of(context).pop(true);
+              },
+              child: const Text('Replay onboarding'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirmed != true || !mounted) {
+      return;
+    }
+
+    try {
+      final store = widget.onboardingStore ?? OnboardingStore();
+
+      await store.reset();
+
+      if (!mounted) {
+        return;
+      }
+
+      Navigator.of(context).popUntil((route) => route.isFirst);
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _errorMessage =
+            'Unable to restart onboarding. '
+            'Your recovery data was not changed.';
+      });
+    }
   }
 
   Future<void> _prepareExport() async {
@@ -404,6 +464,38 @@ class _SettingsPrivacyScreenState extends State<SettingsPrivacyScreen> {
                     'AI is designed to support, not replace, '
                     'your sponsor, fellowship, therapist, '
                     'clergy, or other trusted people.',
+              ),
+            ],
+          ),
+        ),
+
+        const SizedBox(height: 28),
+
+        const AppSectionTitle(
+          title: 'Onboarding & setup',
+          subtitle: 'Review the introduction or revisit optional setup.',
+        ),
+
+        AppSectionCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const _InfoRow(
+                icon: Icons.replay_outlined,
+                title: 'Replay onboarding',
+                text:
+                    'Restart the introduction and optional setup guide. '
+                    'Your existing recovery records remain intact.',
+              ),
+              const SizedBox(height: 18),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  key: const ValueKey('replay-onboarding'),
+                  onPressed: _replayOnboarding,
+                  icon: const Icon(Icons.replay),
+                  label: const Text('Replay Onboarding'),
+                ),
               ),
             ],
           ),

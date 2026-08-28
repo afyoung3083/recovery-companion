@@ -22,6 +22,8 @@ import 'local_recovery_store.dart';
 import 'mobile_config.dart';
 import 'more_screen.dart';
 import 'offline_read_service.dart';
+import 'onboarding_gate.dart';
+import 'onboarding_store.dart';
 import 'reminder_scheduler.dart';
 import 'routines_screen.dart';
 import 'secure_offline_cache_store.dart';
@@ -32,7 +34,9 @@ void main() {
 }
 
 class RecoveryCompanionApp extends StatelessWidget {
-  const RecoveryCompanionApp({super.key});
+  const RecoveryCompanionApp({this.onboardingStore, super.key});
+
+  final OnboardingStore? onboardingStore;
 
   @override
   Widget build(BuildContext context) {
@@ -40,7 +44,7 @@ class RecoveryCompanionApp extends StatelessWidget {
       title: 'Recovery Companion',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light(),
-      home: const HomeShell(),
+      home: OnboardingGate(store: onboardingStore, child: const HomeShell()),
     );
   }
 }

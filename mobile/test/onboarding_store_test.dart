@@ -1,6 +1,4 @@
 import 'package:flutter_test/flutter_test.dart';
-
-import 'package:mobile/main.dart';
 import 'package:mobile/onboarding_store.dart';
 import 'package:mobile/secure_offline_cache_store.dart';
 
@@ -29,23 +27,26 @@ class MemorySecureKeyValueStore implements SecureKeyValueStore {
 }
 
 void main() {
-  testWidgets('Recovery Companion opens first-run onboarding', (tester) async {
-    final onboardingStore = OnboardingStore(
-      storage: MemorySecureKeyValueStore(),
-    );
+  test('onboarding starts incomplete and can be completed', () async {
+    final storage = MemorySecureKeyValueStore();
 
-    await tester.pumpWidget(
-      RecoveryCompanionApp(onboardingStore: onboardingStore),
-    );
+    final store = OnboardingStore(storage: storage);
 
-    await tester.pumpAndSettle();
+    expect(await store.isComplete(), isFalse);
 
-    expect(find.text('Recovery support for real life'), findsOneWidget);
+    await store.markComplete();
 
-    expect(find.text('Continue'), findsOneWidget);
+    expect(await store.isComplete(), isTrue);
+  });
 
-    expect(find.text('1 of 4'), findsOneWidget);
+  test('onboarding can be reset independently', () async {
+    final storage = MemorySecureKeyValueStore();
 
-    expect(find.text('Dashboard'), findsNothing);
+    final store = OnboardingStore(storage: storage);
+
+    await store.markComplete();
+    await store.reset();
+
+    expect(await store.isComplete(), isFalse);
   });
 }
