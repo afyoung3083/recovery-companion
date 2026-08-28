@@ -10,6 +10,23 @@ if (keystorePropertiesFile.exists()) {
     )
 }
 
+val releaseBuildRequested =
+    gradle.startParameter.taskNames.any { taskName ->
+        taskName.contains(
+            "Release",
+            ignoreCase = true,
+        )
+    }
+
+if (
+    releaseBuildRequested &&
+    !keystorePropertiesFile.exists()
+) {
+    throw GradleException(
+        "Release signing requires android/key.properties."
+    )
+}
+
 plugins {
     id("com.android.application")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
@@ -59,14 +76,10 @@ android {
 
     buildTypes {
         release {
-            if (!keystorePropertiesFile.exists()) {
-                throw GradleException(
-                    "Release signing requires android/key.properties."
-                )
+            if (keystorePropertiesFile.exists()) {
+                signingConfig =
+                    signingConfigs.getByName("release")
             }
-
-            signingConfig =
-                signingConfigs.getByName("release")
         }
     }
 }
