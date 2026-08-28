@@ -11,6 +11,7 @@ import 'local_fellowship_repository.dart';
 import 'local_journal_repository.dart';
 import 'local_profile_repository.dart';
 import 'local_step_work_repository.dart';
+import 'local_weekly_review_repository.dart';
 import 'monthly_review_screen.dart';
 import 'offline_read_service.dart';
 import 'profile_screen.dart';
@@ -29,6 +30,7 @@ class MoreScreen extends StatelessWidget {
     this.localJournalRepository,
     this.localProfileRepository,
     this.localStepWorkRepository,
+    this.localWeeklyReviewRepository,
     this.reminderScheduler,
     super.key,
   });
@@ -40,6 +42,7 @@ class MoreScreen extends StatelessWidget {
   final LocalJournalRepository? localJournalRepository;
   final LocalProfileRepository? localProfileRepository;
   final LocalStepWorkRepository? localStepWorkRepository;
+  final LocalWeeklyReviewRepository? localWeeklyReviewRepository;
   final ReminderSchedulingService? reminderScheduler;
 
   void _open(
@@ -178,7 +181,10 @@ class MoreScreen extends StatelessWidget {
                 _open(
                   context,
                   title: 'Weekly Review',
-                  child: WeeklyReviewScreen(apiClient: apiClient),
+                  child: WeeklyReviewScreen(
+                    apiClient: apiClient,
+                    localRepository: localWeeklyReviewRepository,
+                  ),
                 );
               },
             ),

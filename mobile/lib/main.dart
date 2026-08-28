@@ -13,6 +13,7 @@ import 'local_journal_repository.dart';
 import 'local_profile_repository.dart';
 import 'local_routines_repository.dart';
 import 'local_step_work_repository.dart';
+import 'local_weekly_review_repository.dart';
 import 'local_recovery_store.dart';
 import 'mobile_config.dart';
 import 'more_screen.dart';
@@ -61,6 +62,7 @@ class _HomeShellState extends State<HomeShell> {
   LocalProfileRepository? _localProfileRepository;
   LocalRoutinesRepository? _localRoutinesRepository;
   LocalStepWorkRepository? _localStepWorkRepository;
+  LocalWeeklyReviewRepository? _localWeeklyReviewRepository;
 
   static const List<_Destination> _destinations = [
     _Destination(label: 'Dashboard', icon: Icons.dashboard_outlined),
@@ -107,6 +109,7 @@ class _HomeShellState extends State<HomeShell> {
       _localProfileRepository = LocalProfileRepository(store: store);
       _localRoutinesRepository = LocalRoutinesRepository(store: store);
       _localStepWorkRepository = LocalStepWorkRepository(store: store);
+      _localWeeklyReviewRepository = LocalWeeklyReviewRepository(store: store);
     });
   }
 
@@ -155,7 +158,10 @@ class _HomeShellState extends State<HomeShell> {
 
       case ReminderKind.weeklyReview:
         title = 'Weekly Review';
-        screen = WeeklyReviewScreen(apiClient: _apiClient);
+        screen = WeeklyReviewScreen(
+          apiClient: _apiClient,
+          localRepository: _localWeeklyReviewRepository,
+        );
     }
 
     Navigator.of(context).push(
@@ -208,6 +214,7 @@ class _HomeShellState extends State<HomeShell> {
           localJournalRepository: _localJournalRepository,
           localProfileRepository: _localProfileRepository,
           localStepWorkRepository: _localStepWorkRepository,
+          localWeeklyReviewRepository: _localWeeklyReviewRepository,
           reminderScheduler: _reminderScheduler,
         );
 

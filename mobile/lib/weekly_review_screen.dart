@@ -2,11 +2,17 @@ import 'package:flutter/material.dart';
 
 import 'api_client.dart';
 import 'app_components.dart';
+import 'local_weekly_review_repository.dart';
 
 class WeeklyReviewScreen extends StatefulWidget {
-  const WeeklyReviewScreen({required this.apiClient, super.key});
+  const WeeklyReviewScreen({
+    required this.apiClient,
+    this.localRepository,
+    super.key,
+  });
 
   final ApiClient apiClient;
+  final LocalWeeklyReviewRepository? localRepository;
 
   @override
   State<WeeklyReviewScreen> createState() => _WeeklyReviewScreenState();
@@ -26,9 +32,15 @@ class _WeeklyReviewScreenState extends State<WeeklyReviewScreen> {
   void initState() {
     super.initState();
 
-    _currentFuture = widget.apiClient.getCurrentWeeklyReview();
-    _historyFuture = widget.apiClient.getWeeklyReviewHistory();
-    _comparisonFuture = widget.apiClient.getWeeklyReviewComparison();
+    _currentFuture = widget.localRepository != null
+        ? widget.localRepository!.getCurrentReview()
+        : widget.apiClient.getCurrentWeeklyReview();
+    _historyFuture = widget.localRepository != null
+        ? widget.localRepository!.getHistory()
+        : widget.apiClient.getWeeklyReviewHistory();
+    _comparisonFuture = widget.localRepository != null
+        ? widget.localRepository!.getComparison()
+        : widget.apiClient.getWeeklyReviewComparison();
   }
 
   void _reloadAll({bool clearReflection = false}) {
@@ -39,20 +51,32 @@ class _WeeklyReviewScreenState extends State<WeeklyReviewScreen> {
         _reflection = null;
       }
 
-      _currentFuture = widget.apiClient.getCurrentWeeklyReview();
+      _currentFuture = widget.localRepository != null
+          ? widget.localRepository!.getCurrentReview()
+          : widget.apiClient.getCurrentWeeklyReview();
 
-      _historyFuture = widget.apiClient.getWeeklyReviewHistory();
+      _historyFuture = widget.localRepository != null
+          ? widget.localRepository!.getHistory()
+          : widget.apiClient.getWeeklyReviewHistory();
 
-      _comparisonFuture = widget.apiClient.getWeeklyReviewComparison();
+      _comparisonFuture = widget.localRepository != null
+          ? widget.localRepository!.getComparison()
+          : widget.apiClient.getWeeklyReviewComparison();
     });
   }
 
   Future<void> _refresh() async {
-    final current = widget.apiClient.getCurrentWeeklyReview();
+    final current = widget.localRepository != null
+        ? widget.localRepository!.getCurrentReview()
+        : widget.apiClient.getCurrentWeeklyReview();
 
-    final history = widget.apiClient.getWeeklyReviewHistory();
+    final history = widget.localRepository != null
+        ? widget.localRepository!.getHistory()
+        : widget.apiClient.getWeeklyReviewHistory();
 
-    final comparison = widget.apiClient.getWeeklyReviewComparison();
+    final comparison = widget.localRepository != null
+        ? widget.localRepository!.getComparison()
+        : widget.apiClient.getWeeklyReviewComparison();
 
     setState(() {
       _error = null;
@@ -76,7 +100,13 @@ class _WeeklyReviewScreenState extends State<WeeklyReviewScreen> {
     });
 
     try {
-      await widget.apiClient.saveWeeklyReviewSnapshot();
+      final localRepository = widget.localRepository;
+
+      if (localRepository != null) {
+        await localRepository.saveSnapshot();
+      } else {
+        await widget.apiClient.saveWeeklyReviewSnapshot();
+      }
 
       if (!mounted) {
         return;
@@ -250,7 +280,9 @@ class _WeeklyReviewScreenState extends State<WeeklyReviewScreen> {
                   width: double.infinity,
                   child: OutlinedButton.icon(
                     key: const ValueKey('weekly-review-ai-button'),
-                    onPressed: busy ? null : _generateAiReflection,
+                    onPressed: busy || widget.localRepository != null
+                        ? null
+                        : _generateAiReflection,
                     icon: _reflecting
                         ? const SizedBox(
                             width: 18,
@@ -259,7 +291,11 @@ class _WeeklyReviewScreenState extends State<WeeklyReviewScreen> {
                           )
                         : const Icon(Icons.psychology_alt_outlined),
                     label: Text(
-                      _reflecting ? 'Reflecting...' : 'Reflect with AI',
+                      widget.localRepository != null
+                          ? 'AI Reflection Requires Sync'
+                          : _reflecting
+                          ? 'Reflecting...'
+                          : 'Reflect with AI',
                     ),
                   ),
                 ),
