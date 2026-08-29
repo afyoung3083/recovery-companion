@@ -34,7 +34,7 @@ plugins {
 }
 
 android {
-    namespace = "com.recoverycompanion.app"
+    namespace = "com.recoverycompanionlabs.recoverycompanion"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
@@ -46,7 +46,7 @@ android {
 
     defaultConfig {
         multiDexEnabled = true
-        applicationId = "com.recoverycompanion.app"
+        applicationId = "com.recoverycompanionlabs.recoverycompanion"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = maxOf(flutter.minSdkVersion, 23)

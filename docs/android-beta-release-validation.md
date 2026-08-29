@@ -4,7 +4,7 @@ This procedure validates the signed Android beta artifact before release.
 
 ## Production Android identity
 
-- Application ID: `com.recoverycompanion.app`
+- Application ID: `com.recoverycompanionlabs.recoverycompanion`
 - Application label: `Recovery Companion`
 - Source version: `1.21.0+6`
 - Upload-key alias: `recovery-companion-upload`
@@ -16,7 +16,7 @@ number.
 
 Verify:
 
-- package is `com.recoverycompanion.app`
+- package is `com.recoverycompanionlabs.recoverycompanion`
 - version name is `1.21.0`
 - version code is `6`
 - the app launches successfully in release mode

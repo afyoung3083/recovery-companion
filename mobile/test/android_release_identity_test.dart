@@ -11,7 +11,7 @@ void main() {
 
     final activity = File(
       'android/app/src/main/kotlin/'
-      'com/recoverycompanion/app/'
+      'com/recoverycompanionlabs/recoverycompanion/'
       'MainActivity.kt',
     );
 
@@ -19,7 +19,7 @@ void main() {
       gradle,
       contains(
         'namespace = '
-        '"com.recoverycompanion.app"',
+        '"com.recoverycompanionlabs.recoverycompanion"',
       ),
     );
 
@@ -27,7 +27,7 @@ void main() {
       gradle,
       contains(
         'applicationId = '
-        '"com.recoverycompanion.app"',
+        '"com.recoverycompanionlabs.recoverycompanion"',
       ),
     );
 
@@ -47,7 +47,7 @@ void main() {
       activity.readAsStringSync(),
       contains(
         'package '
-        'com.recoverycompanion.app',
+        'com.recoverycompanionlabs.recoverycompanion',
       ),
     );
   });

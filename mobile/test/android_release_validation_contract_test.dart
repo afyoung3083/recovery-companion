@@ -9,7 +9,10 @@ void main() {
     final manifest = File('android/app/src/main/AndroidManifest.xml')
         .readAsStringSync();
 
-    expect(gradle, contains('applicationId = "com.recoverycompanion.app"'));
+    expect(
+      gradle,
+      contains('applicationId = "com.recoverycompanionlabs.recoverycompanion"'),
+    );
 
     expect(manifest, contains('android:label="Recovery Companion"'));
 

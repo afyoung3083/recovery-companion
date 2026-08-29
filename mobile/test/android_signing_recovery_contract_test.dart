@@ -7,7 +7,7 @@ void main() {
     final runbook = File('../docs/android-release-signing-recovery.md')
         .readAsStringSync();
 
-    expect(runbook, contains('com.recoverycompanion.app'));
+    expect(runbook, contains('com.recoverycompanionlabs.recoverycompanion'));
 
     expect(runbook, contains('recovery-companion-upload'));
 

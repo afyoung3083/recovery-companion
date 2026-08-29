@@ -1,4 +1,4 @@
-package com.recoverycompanion.app
+package com.recoverycompanionlabs.recoverycompanion
 
 import io.flutter.embedding.android.FlutterActivity
 
