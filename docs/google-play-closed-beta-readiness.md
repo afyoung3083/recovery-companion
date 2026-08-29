@@ -2,7 +2,7 @@
 
 ## Android artifact
 
-- Application ID: `com.recoverycompanion.app`
+- Application ID: `com.recoverycompanionlabs.recoverycompanion`
 - App name: Recovery Companion
 - Version name: `1.21.0`
 - Version code: `6`

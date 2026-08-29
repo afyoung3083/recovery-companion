@@ -4,7 +4,7 @@ Recovery Companion Android releases use a dedicated upload key.
 
 ## Production identity
 
-- Application ID: `com.recoverycompanion.app`
+- Application ID: `com.recoverycompanionlabs.recoverycompanion`
 - Key alias: `recovery-companion-upload`
 - Keystore filename: `recovery-companion-upload.jks`
 
