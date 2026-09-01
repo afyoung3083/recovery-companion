@@ -102,7 +102,20 @@ class LocalStepWorkRepository {
     return {'assignment': assignment};
   }
 
-  Future<Map<String, dynamic>> completeAssignment(int assignmentId) async {
+  Future<Map<String, dynamic>> updateAssignment({
+    required int assignmentId,
+    required String text,
+  }) async {
+    final cleanText = text.trim();
+
+    if (cleanText.isEmpty) {
+      throw ArgumentError.value(
+        text,
+        'text',
+        'Assignment text cannot be empty.',
+      );
+    }
+
     final document = await store.read();
     final data = Map<String, dynamic>.from(document['data'] as Map);
 
@@ -130,8 +143,8 @@ class LocalStepWorkRepository {
 
     assignments[index] = {
       ...assignments[index],
-      'completed': true,
-      'completed_at': DateTime.now().toUtc().toIso8601String(),
+      'text': cleanText,
+      'updated_at': DateTime.now().toUtc().toIso8601String(),
     };
 
     stepWork['assignments'] = assignments;
@@ -142,5 +155,56 @@ class LocalStepWorkRepository {
     await store.write(data);
 
     return {'assignment': assignments[index]};
+  }
+
+  Future<Map<String, dynamic>> setAssignmentCompleted({
+    required int assignmentId,
+    required bool completed,
+  }) async {
+    final document = await store.read();
+    final data = Map<String, dynamic>.from(document['data'] as Map);
+
+    final raw = data['step_work'];
+    final stepWork = raw is Map
+        ? Map<String, dynamic>.from(raw)
+        : <String, dynamic>{};
+
+    final rawAssignments = stepWork['assignments'];
+
+    final assignments = rawAssignments is List
+        ? rawAssignments
+              .whereType<Map>()
+              .map((item) => Map<String, dynamic>.from(item))
+              .toList()
+        : <Map<String, dynamic>>[];
+
+    final index = assignments.indexWhere(
+      (assignment) => assignment['id'] == assignmentId,
+    );
+
+    if (index < 0) {
+      throw StateError('Assignment $assignmentId was not found.');
+    }
+
+    assignments[index] = {
+      ...assignments[index],
+      'completed': completed,
+      'completed_at': completed
+          ? DateTime.now().toUtc().toIso8601String()
+          : null,
+    };
+
+    stepWork['assignments'] = assignments;
+    stepWork.putIfAbsent('current_step', () => 1);
+
+    data['step_work'] = stepWork;
+
+    await store.write(data);
+
+    return {'assignment': assignments[index]};
+  }
+
+  Future<Map<String, dynamic>> completeAssignment(int assignmentId) {
+    return setAssignmentCompleted(assignmentId: assignmentId, completed: true);
   }
 }

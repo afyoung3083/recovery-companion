@@ -42,7 +42,9 @@ from app.step_work import (
     add_assignment,
     complete_assignment,
     load_step_work,
+    set_assignment_completed,
     set_current_step,
+    update_assignment,
 )
 from app.sync import build_sync_payload
 from app.version import __version__
@@ -134,6 +136,10 @@ class StepNumberRequest(BaseModel):
 
 class StepAssignmentRequest(BaseModel):
     text: str
+
+
+class StepAssignmentCompletedRequest(BaseModel):
+    completed: bool
 
 class FellowshipContactRequest(BaseModel):
     handle: str
@@ -1044,6 +1050,69 @@ def mark_step_assignment_complete(
     return {
         "assignment": assignment,
     }
+
+
+@app.put(
+    "/step-work/assignments/{assignment_id}",
+    dependencies=[
+        Depends(require_api_token)
+    ],
+)
+def update_step_assignment(
+    assignment_id: int,
+    request: StepAssignmentRequest,
+) -> dict[str, object]:
+    """Edit an existing Step Work assignment."""
+
+    try:
+        assignment = update_assignment(
+            assignment_id=assignment_id,
+            text=request.text,
+        )
+    except ValueError as error:
+        raise HTTPException(
+            status_code=400,
+            detail=str(error),
+        ) from error
+
+    if assignment is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Step Work assignment not found.",
+        )
+
+    return {
+        "assignment": assignment,
+    }
+
+
+@app.put(
+    "/step-work/assignments/{assignment_id}/completed",
+    dependencies=[
+        Depends(require_api_token)
+    ],
+)
+def update_step_assignment_completed(
+    assignment_id: int,
+    request: StepAssignmentCompletedRequest,
+) -> dict[str, object]:
+    """Set a Step Work assignment complete or incomplete."""
+
+    assignment = set_assignment_completed(
+        assignment_id=assignment_id,
+        completed=request.completed,
+    )
+
+    if assignment is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Step Work assignment not found.",
+        )
+
+    return {
+        "assignment": assignment,
+    }
+
 
 @app.get(
     "/fellowship",
