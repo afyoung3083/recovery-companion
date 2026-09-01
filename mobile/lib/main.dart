@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'api_client.dart';
 import 'app_theme.dart';
+import 'beta_support_action.dart';
 import 'daily_checkin_screen.dart';
 import 'dashboard_screen.dart';
 import 'goals_screen.dart';
@@ -190,7 +191,10 @@ class _HomeShellState extends State<HomeShell> {
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => Scaffold(
-          appBar: AppBar(title: Text(title)),
+          appBar: AppBar(
+            title: Text(title),
+            actions: const [BetaSupportAction()],
+          ),
           body: screen,
         ),
       ),
@@ -201,7 +205,10 @@ class _HomeShellState extends State<HomeShell> {
     return Navigator.of(context).push<void>(
       MaterialPageRoute<void>(
         builder: (_) => Scaffold(
-          appBar: AppBar(title: Text(title)),
+          appBar: AppBar(
+            title: Text(title),
+            actions: const [BetaSupportAction()],
+          ),
           body: screen,
         ),
       ),
@@ -337,7 +344,10 @@ class _HomeShellState extends State<HomeShell> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Recovery Companion')),
+      appBar: AppBar(
+        title: const Text('Recovery Companion'),
+        actions: const [BetaSupportAction()],
+      ),
       body: _buildSelectedScreen(),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _selectedIndex,

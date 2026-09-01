@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'beta_support_action.dart';
 import 'initial_setup_service.dart';
 
 class InitialSetupScreen extends StatefulWidget {
@@ -152,6 +153,7 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> {
       appBar: AppBar(
         title: const Text('Optional setup'),
         actions: [
+          const BetaSupportAction(),
           TextButton(
             key: const ValueKey('initial-setup-skip'),
             onPressed: _busy ? null : _skip,

@@ -11,12 +11,14 @@ class GoalsScreen extends StatefulWidget {
     required this.apiClient,
     this.offlineReadService,
     this.localRepository,
+    this.now,
     super.key,
   });
 
   final ApiClient apiClient;
   final OfflineReadService? offlineReadService;
   final LocalGoalsRepository? localRepository;
+  final DateTime Function()? now;
 
   @override
   State<GoalsScreen> createState() => _GoalsScreenState();
@@ -107,6 +109,88 @@ class _GoalsScreenState extends State<GoalsScreen> {
     });
 
     await future;
+  }
+
+  bool get _canEditTargetDate {
+    return !_saving && !(_showingOfflineCopy && widget.localRepository == null);
+  }
+
+  DateTime _today() {
+    final current = (widget.now ?? DateTime.now)();
+
+    return DateTime(current.year, current.month, current.day);
+  }
+
+  DateTime _initialTargetDate({
+    required DateTime today,
+    required DateTime lastDate,
+  }) {
+    final parsed = DateTime.tryParse(_targetDateController.text.trim());
+
+    if (parsed == null) {
+      return today;
+    }
+
+    final normalized = DateTime(parsed.year, parsed.month, parsed.day);
+
+    if (normalized.isBefore(today)) {
+      return today;
+    }
+
+    if (normalized.isAfter(lastDate)) {
+      return lastDate;
+    }
+
+    return normalized;
+  }
+
+  String _formatTargetDate(DateTime date) {
+    final year = date.year.toString().padLeft(4, '0');
+
+    final month = date.month.toString().padLeft(2, '0');
+
+    final day = date.day.toString().padLeft(2, '0');
+
+    return '$year-$month-$day';
+  }
+
+  Future<void> _chooseTargetDate() async {
+    if (!_canEditTargetDate) {
+      return;
+    }
+
+    final today = _today();
+
+    final lastDate = DateTime(today.year + 20, 12, 31);
+
+    final selected = await showDatePicker(
+      context: context,
+      initialDate: _initialTargetDate(today: today, lastDate: lastDate),
+      firstDate: today,
+      lastDate: lastDate,
+      helpText: 'Choose goal target date',
+    );
+
+    if (selected == null || !mounted) {
+      return;
+    }
+
+    setState(() {
+      _targetDateController.text = _formatTargetDate(selected);
+
+      _actionError = null;
+    });
+  }
+
+  void _clearTargetDate() {
+    if (!_canEditTargetDate) {
+      return;
+    }
+
+    setState(() {
+      _targetDateController.clear();
+      _actionError = null;
+    });
   }
 
   Future<void> _createGoal() async {
@@ -284,11 +368,38 @@ class _GoalsScreenState extends State<GoalsScreen> {
               ),
               const SizedBox(height: 14),
               TextField(
+                key: const ValueKey('goals-target-date-field'),
                 controller: _targetDateController,
-                decoration: const InputDecoration(
+                readOnly: true,
+                showCursor: false,
+                enabled: _canEditTargetDate,
+                onTap: _canEditTargetDate ? _chooseTargetDate : null,
+                decoration: InputDecoration(
                   labelText: 'Target date',
-                  hintText: 'YYYY-MM-DD (optional)',
-                  prefixIcon: Icon(Icons.event_outlined),
+                  hintText: 'Choose a date (optional)',
+                  prefixIcon: const Icon(Icons.event_outlined),
+                  suffixIcon: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (_targetDateController.text.trim().isNotEmpty)
+                        IconButton(
+                          key: const ValueKey('goals-clear-target-date'),
+                          tooltip: 'Clear target date',
+                          onPressed: _canEditTargetDate
+                              ? _clearTargetDate
+                              : null,
+                          icon: const Icon(Icons.clear),
+                        ),
+                      IconButton(
+                        key: const ValueKey('goals-open-target-date-picker'),
+                        tooltip: 'Choose target date',
+                        onPressed: _canEditTargetDate
+                            ? _chooseTargetDate
+                            : null,
+                        icon: const Icon(Icons.calendar_month_outlined),
+                      ),
+                    ],
+                  ),
                 ),
               ),
               const SizedBox(height: 16),
