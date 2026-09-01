@@ -8,6 +8,8 @@ class MobileConfig {
   static const String privacyPolicyUrl =
       'https://afyoung3083.github.io/recovery-companion/privacy/';
 
+  static const String supportEmail = 'support@recoverycompanionlabs.com';
+
   static const String apiBaseUrl = String.fromEnvironment(
     'RECOVERY_API_BASE_URL',
     defaultValue: 'http://10.0.2.2:8000',

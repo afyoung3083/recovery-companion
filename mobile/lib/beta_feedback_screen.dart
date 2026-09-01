@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import 'app_components.dart';
 import 'mobile_config.dart';
@@ -75,6 +76,19 @@ String buildBetaFeedbackReport({
   ].join('\n');
 }
 
+Uri buildBetaFeedbackEmailUri({required String report}) {
+  return Uri(
+    scheme: 'mailto',
+    path: MobileConfig.supportEmail,
+    queryParameters: {
+      'subject':
+          'Recovery Companion Beta Feedback - '
+          '${MobileConfig.betaBuildLabel}',
+      'body': report,
+    },
+  );
+}
+
 class BetaFeedbackScreen extends StatefulWidget {
   const BetaFeedbackScreen({super.key});
 
@@ -121,6 +135,29 @@ class _BetaFeedbackScreenState extends State<BetaFeedbackScreen> {
           'Beta report copied. Paste it into the '
           'support channel, issue, email, or message '
           'you are using with the beta team.';
+    });
+  }
+
+  Future<void> _sendFeedback() async {
+    final uri = buildBetaFeedbackEmailUri(report: _report);
+
+    final launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
+
+    if (!mounted) {
+      return;
+    }
+
+    setState(() {
+      if (launched) {
+        _statusMessage =
+            'Your email app was opened with the beta report. '
+            'Review the message, then tap Send.';
+      } else {
+        _statusMessage =
+            'Unable to open an email app. '
+            'Use Copy Complete Beta Report and send it to '
+            '${MobileConfig.supportEmail}.';
+      }
     });
   }
 
@@ -295,6 +332,18 @@ class _BetaFeedbackScreenState extends State<BetaFeedbackScreen> {
         SizedBox(
           width: double.infinity,
           child: FilledButton.icon(
+            key: const ValueKey('send-beta-feedback'),
+            onPressed: _sendFeedback,
+            icon: const Icon(Icons.email_outlined),
+            label: const Text('Send Feedback'),
+          ),
+        ),
+
+        const SizedBox(height: 12),
+
+        SizedBox(
+          width: double.infinity,
+          child: OutlinedButton.icon(
             key: const ValueKey('copy-beta-report'),
             onPressed: _copyReport,
             icon: const Icon(Icons.assignment_outlined),
@@ -305,8 +354,11 @@ class _BetaFeedbackScreenState extends State<BetaFeedbackScreen> {
         const SizedBox(height: 12),
 
         Text(
-          'Copying places this report on your '
-          'system clipboard until it is replaced.',
+          'Send Feedback opens your email app with a '
+          'privacy-conscious report addressed to '
+          '${MobileConfig.supportEmail}. '
+          'Review the message before sending. '
+          'Copying remains available as a fallback.',
           textAlign: TextAlign.center,
           style: Theme.of(context).textTheme.bodySmall,
         ),

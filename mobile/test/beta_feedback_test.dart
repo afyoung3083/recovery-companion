@@ -41,6 +41,26 @@ void main() {
     expect(report, contains('safe diagnostics'));
   });
 
+  test('beta feedback email targets support mailbox', () {
+    final uri = buildBetaFeedbackEmailUri(report: 'SAFE BETA REPORT');
+
+    expect(uri.scheme, 'mailto');
+
+    expect(uri.path, MobileConfig.supportEmail);
+
+    expect(
+      uri.queryParameters['subject'],
+      contains('Recovery Companion Beta Feedback'),
+    );
+
+    expect(
+      uri.queryParameters['subject'],
+      contains(MobileConfig.betaBuildLabel),
+    );
+
+    expect(uri.queryParameters['body'], 'SAFE BETA REPORT');
+  });
+
   testWidgets('beta feedback screen exposes feedback and diagnostic controls', (
     tester,
   ) async {
@@ -66,6 +86,18 @@ void main() {
     );
 
     expect(diagnosticsButton, findsOneWidget);
+
+    final sendButton = find.byKey(const ValueKey('send-beta-feedback'));
+
+    await tester.scrollUntilVisible(
+      sendButton,
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
+
+    expect(sendButton, findsOneWidget);
+
+    expect(find.text('Send Feedback'), findsOneWidget);
 
     final reportButton = find.byKey(const ValueKey('copy-beta-report'));
 
