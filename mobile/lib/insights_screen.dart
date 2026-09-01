@@ -6,17 +6,32 @@ import 'offline_copy_notice.dart';
 import 'offline_read_service.dart';
 import 'local_insights_repository.dart';
 
+enum InsightsDestination {
+  profile,
+  stepWork,
+  dailyRecovery,
+  goals,
+  weeklyReview,
+  monthlyReview,
+}
+
+typedef InsightsDestinationCallback = Future<void> Function(
+  InsightsDestination destination,
+);
+
 class InsightsScreen extends StatefulWidget {
   const InsightsScreen({
     required this.apiClient,
     this.offlineReadService,
     this.localRepository,
+    this.onOpenDestination,
     super.key,
   });
 
   final ApiClient apiClient;
   final OfflineReadService? offlineReadService;
   final LocalInsightsRepository? localRepository;
+  final InsightsDestinationCallback? onOpenDestination;
 
   @override
   State<InsightsScreen> createState() => _InsightsScreenState();
@@ -82,6 +97,30 @@ class _InsightsScreenState extends State<InsightsScreen> {
     }
 
     return const <String, dynamic>{};
+  }
+
+  Future<void> _openDestination(InsightsDestination destination) async {
+    final callback = widget.onOpenDestination;
+
+    if (callback == null) {
+      return;
+    }
+
+    await callback(destination);
+
+    if (mounted) {
+      _refresh();
+    }
+  }
+
+  VoidCallback? _destinationAction(InsightsDestination destination) {
+    if (widget.onOpenDestination == null) {
+      return null;
+    }
+
+    return () async {
+      await _openDestination(destination);
+    };
   }
 
   Future<void> _analyzeRecoveryInsights() async {
@@ -285,6 +324,9 @@ class _InsightsScreenState extends State<InsightsScreen> {
                     children: [
                       Expanded(
                         child: _InsightMetric(
+                          cardKey: const ValueKey(
+                            'recovery-insights-sobriety-card',
+                          ),
                           icon: Icons.wb_sunny_outlined,
                           label: 'Sobriety',
                           value: sobrietyDays == null
@@ -293,17 +335,26 @@ class _InsightsScreenState extends State<InsightsScreen> {
                           detail: sobrietyDate.isEmpty
                               ? 'Sobriety date'
                               : 'Since $sobrietyDate',
+                          onTap: _destinationAction(
+                            InsightsDestination.profile,
+                          ),
                         ),
                       ),
                       const SizedBox(width: 12),
                       Expanded(
                         child: _InsightMetric(
+                          cardKey: const ValueKey(
+                            'recovery-insights-step-work-card',
+                          ),
                           icon: Icons.format_list_numbered,
                           label: 'Step Work',
                           value: 'Step $currentStep',
                           detail:
                               '$openAssignments '
                               'open assignments',
+                          onTap: _destinationAction(
+                            InsightsDestination.stepWork,
+                          ),
                         ),
                       ),
                     ],
@@ -314,21 +365,31 @@ class _InsightsScreenState extends State<InsightsScreen> {
                     children: [
                       Expanded(
                         child: _InsightMetric(
+                          cardKey: const ValueKey(
+                            'recovery-insights-checkins-card',
+                          ),
                           icon: Icons.check_circle_outline,
                           label: 'Check-Ins',
                           value:
                               '$checkinDays of '
                               '$checkinWindow',
                           detail: 'recent days available',
+                          onTap: _destinationAction(
+                            InsightsDestination.dailyRecovery,
+                          ),
                         ),
                       ),
                       const SizedBox(width: 12),
                       Expanded(
                         child: _InsightMetric(
+                          cardKey: const ValueKey(
+                            'recovery-insights-goals-card',
+                          ),
                           icon: Icons.flag_outlined,
                           label: 'Goals',
                           value: '$activeGoals active',
                           detail: 'recovery goals',
+                          onTap: _destinationAction(InsightsDestination.goals),
                         ),
                       ),
                     ],
@@ -346,15 +407,22 @@ class _InsightsScreenState extends State<InsightsScreen> {
               ),
 
               if (weekly.isEmpty)
-                const AppStatusMessage(
+                AppStatusMessage(
                   title: 'No weekly review saved yet',
                   message:
                       'A saved weekly review will '
                       'appear here when available.',
                   icon: Icons.calendar_view_week_outlined,
+                  actionLabel: widget.onOpenDestination == null
+                      ? null
+                      : 'Open Weekly Review',
+                  onAction: _destinationAction(
+                    InsightsDestination.weeklyReview,
+                  ),
                 )
               else
                 _ReviewSnapshotCard(
+                  cardKey: const ValueKey('recovery-insights-weekly-card'),
                   icon: Icons.calendar_view_week_outlined,
                   title: 'Latest Weekly Review',
                   period: _weeklyPeriod(weekly),
@@ -364,6 +432,7 @@ class _InsightsScreenState extends State<InsightsScreen> {
                     '${weekly['journal_entries'] ?? 0} '
                         'journal entries',
                   ],
+                  onTap: _destinationAction(InsightsDestination.weeklyReview),
                 ),
 
               const SizedBox(height: 28),
@@ -376,15 +445,22 @@ class _InsightsScreenState extends State<InsightsScreen> {
               ),
 
               if (monthly.isEmpty)
-                const AppStatusMessage(
+                AppStatusMessage(
                   title: 'No monthly review saved yet',
                   message:
                       'A saved monthly review will '
                       'appear here when available.',
                   icon: Icons.calendar_month_outlined,
+                  actionLabel: widget.onOpenDestination == null
+                      ? null
+                      : 'Open Monthly Review',
+                  onAction: _destinationAction(
+                    InsightsDestination.monthlyReview,
+                  ),
                 )
               else
                 _ReviewSnapshotCard(
+                  cardKey: const ValueKey('recovery-insights-monthly-card'),
                   icon: Icons.calendar_month_outlined,
                   title: 'Latest Monthly Review',
                   period: _monthlyPeriod(monthly),
@@ -396,6 +472,7 @@ class _InsightsScreenState extends State<InsightsScreen> {
                     '${monthly['journal_entries'] ?? 0} '
                         'journal entries',
                   ],
+                  onTap: _destinationAction(InsightsDestination.monthlyReview),
                 ),
 
               const SizedBox(height: 28),
@@ -522,40 +599,59 @@ class _InsightsScreenState extends State<InsightsScreen> {
 
 class _InsightMetric extends StatelessWidget {
   const _InsightMetric({
+    required this.cardKey,
     required this.icon,
     required this.label,
     required this.value,
     required this.detail,
+    this.onTap,
   });
 
+  final Key cardKey;
   final IconData icon;
   final String label;
   final String value;
   final String detail;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
-    return AppSectionCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(icon, color: Theme.of(context).colorScheme.primary),
-          const SizedBox(height: 14),
-          Text(
-            label,
-            style: Theme.of(context).textTheme.labelLarge?.copyWith(
-              color: Theme.of(context).colorScheme.onSurfaceVariant,
-            ),
+    return Semantics(
+      button: onTap != null,
+      label: onTap == null ? null : 'Open $label',
+      child: InkWell(
+        key: cardKey,
+        borderRadius: BorderRadius.circular(20),
+        onTap: onTap,
+        child: AppSectionCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(icon, color: Theme.of(context).colorScheme.primary),
+                  const Spacer(),
+                  if (onTap != null) const Icon(Icons.chevron_right, size: 20),
+                ],
+              ),
+              const SizedBox(height: 14),
+              Text(
+                label,
+                style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+              ),
+              const SizedBox(height: 5),
+              Text(
+                value,
+                style: Theme.of(context).textTheme.titleLarge
+                    ?.copyWith(fontWeight: FontWeight.w700),
+              ),
+              const SizedBox(height: 4),
+              Text(detail, style: Theme.of(context).textTheme.bodySmall),
+            ],
           ),
-          const SizedBox(height: 5),
-          Text(
-            value,
-            style: Theme.of(context).textTheme.titleLarge
-                ?.copyWith(fontWeight: FontWeight.w700),
-          ),
-          const SizedBox(height: 4),
-          Text(detail, style: Theme.of(context).textTheme.bodySmall),
-        ],
+        ),
       ),
     );
   }
@@ -563,61 +659,83 @@ class _InsightMetric extends StatelessWidget {
 
 class _ReviewSnapshotCard extends StatelessWidget {
   const _ReviewSnapshotCard({
+    required this.cardKey,
     required this.icon,
     required this.title,
     required this.period,
     required this.metrics,
+    this.onTap,
   });
 
+  final Key cardKey;
   final IconData icon;
   final String title;
   final String period;
   final List<String> metrics;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
-    return AppSectionCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
+    return Semantics(
+      button: onTap != null,
+      label: onTap == null ? null : 'Open $title',
+      child: InkWell(
+        key: cardKey,
+        borderRadius: BorderRadius.circular(20),
+        onTap: onTap,
+        child: AppSectionCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Container(
-                width: 42,
-                height: 42,
-                decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.secondaryContainer,
-                  borderRadius: BorderRadius.circular(13),
-                ),
-                child: Icon(
-                  icon,
-                  color: Theme.of(context).colorScheme.onSecondaryContainer,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: Theme.of(context).textTheme.titleMedium
-                          ?.copyWith(fontWeight: FontWeight.w600),
+              Row(
+                children: [
+                  Container(
+                    width: 42,
+                    height: 42,
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.secondaryContainer,
+                      borderRadius: BorderRadius.circular(13),
                     ),
-                    const SizedBox(height: 3),
-                    Text(period, style: Theme.of(context).textTheme.bodySmall),
+                    child: Icon(
+                      icon,
+                      color: Theme.of(context).colorScheme.onSecondaryContainer,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          title,
+                          style: Theme.of(context).textTheme.titleMedium
+                              ?.copyWith(fontWeight: FontWeight.w600),
+                        ),
+                        const SizedBox(height: 3),
+                        Text(
+                          period,
+                          style: Theme.of(context).textTheme.bodySmall,
+                        ),
+                      ],
+                    ),
+                  ),
+                  if (onTap != null) ...[
+                    const SizedBox(width: 8),
+                    const Icon(Icons.chevron_right),
                   ],
-                ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  for (final metric in metrics) Chip(label: Text(metric)),
+                ],
               ),
             ],
           ),
-          const SizedBox(height: 16),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [for (final metric in metrics) Chip(label: Text(metric))],
-          ),
-        ],
+        ),
       ),
     );
   }
