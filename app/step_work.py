@@ -71,19 +71,68 @@ def add_assignment(text: str) -> dict[str, Any]:
     return assignment
 
 
-def complete_assignment(assignment_id: int) -> dict[str, Any] | None:
+def update_assignment(
+    assignment_id: int,
+    text: str,
+) -> dict[str, Any] | None:
+    clean_text = text.strip()
+
+    if not clean_text:
+        raise ValueError(
+            "Assignment text cannot be empty."
+        )
+
     step_work = load_step_work()
 
-    for assignment in step_work.get("assignments", []):
+    for assignment in step_work.get(
+        "assignments",
+        [],
+    ):
         if assignment.get("id") == assignment_id:
-            assignment["completed"] = True
-            assignment["completed_at"] = datetime.now().isoformat(
-                timespec="seconds"
+            assignment["text"] = clean_text
+            assignment["updated_at"] = (
+                datetime.now().isoformat(
+                    timespec="seconds"
+                )
             )
             save_step_work(step_work)
             return assignment
 
     return None
+
+
+def set_assignment_completed(
+    assignment_id: int,
+    completed: bool,
+) -> dict[str, Any] | None:
+    step_work = load_step_work()
+
+    for assignment in step_work.get(
+        "assignments",
+        [],
+    ):
+        if assignment.get("id") == assignment_id:
+            assignment["completed"] = completed
+            assignment["completed_at"] = (
+                datetime.now().isoformat(
+                    timespec="seconds"
+                )
+                if completed
+                else None
+            )
+            save_step_work(step_work)
+            return assignment
+
+    return None
+
+
+def complete_assignment(
+    assignment_id: int,
+) -> dict[str, Any] | None:
+    return set_assignment_completed(
+        assignment_id=assignment_id,
+        completed=True,
+    )
 
 
 def add_step_note(text: str) -> dict[str, Any]:

@@ -151,7 +151,7 @@ class _StepWorkScreenState extends State<StepWorkScreen> {
     }
   }
 
-  Future<void> _completeAssignment(int assignmentId) async {
+  Future<void> _setAssignmentCompleted(int assignmentId, bool completed) async {
     setState(() {
       _saving = true;
       _error = null;
@@ -161,9 +161,15 @@ class _StepWorkScreenState extends State<StepWorkScreen> {
       final localRepository = widget.localRepository;
 
       if (localRepository != null) {
-        await localRepository.completeAssignment(assignmentId);
+        await localRepository.setAssignmentCompleted(
+          assignmentId: assignmentId,
+          completed: completed,
+        );
       } else {
-        await widget.apiClient.completeStepAssignment(assignmentId);
+        await widget.apiClient.setStepAssignmentCompleted(
+          assignmentId: assignmentId,
+          completed: completed,
+        );
       }
 
       if (!mounted) {
@@ -177,7 +183,115 @@ class _StepWorkScreenState extends State<StepWorkScreen> {
       }
 
       setState(() {
-        _error = 'Unable to complete this assignment. Please try again.';
+        _error =
+            'Unable to update this assignment. '
+            'Please try again.';
+      });
+    } finally {
+      if (mounted) {
+        setState(() {
+          _saving = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _editAssignment(Map<String, dynamic> assignment) async {
+    final id = assignment['id'];
+
+    if (id is! int) {
+      return;
+    }
+
+    var draftText = (assignment['text'] ?? '').toString();
+
+    final updatedText = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text('Edit Assignment'),
+          content: TextFormField(
+            key: const ValueKey('step-work-edit-input'),
+            initialValue: draftText,
+            autofocus: true,
+            minLines: 1,
+            maxLines: 5,
+            textCapitalization: TextCapitalization.sentences,
+            decoration: const InputDecoration(
+              labelText: 'Assignment',
+              border: OutlineInputBorder(),
+            ),
+            onChanged: (value) {
+              draftText = value;
+            },
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(dialogContext).pop();
+              },
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              key: const ValueKey('step-work-save-edit'),
+              onPressed: () {
+                final value = draftText.trim();
+
+                if (value.isEmpty) {
+                  return;
+                }
+
+                Navigator.of(dialogContext).pop(value);
+              },
+              child: const Text('Save'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (!mounted || updatedText == null) {
+      return;
+    }
+
+    setState(() {
+      _saving = true;
+      _error = null;
+    });
+
+    try {
+      final localRepository = widget.localRepository;
+
+      if (localRepository != null) {
+        await localRepository.updateAssignment(
+          assignmentId: id,
+          text: updatedText,
+        );
+      } else {
+        await widget.apiClient.updateStepAssignment(
+          assignmentId: id,
+          text: updatedText,
+        );
+      }
+
+      if (!mounted) {
+        return;
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Step Work assignment updated.')),
+      );
+
+      _loadStepWork();
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _error =
+            'Unable to edit this assignment. '
+            'Please try again.';
       });
     } finally {
       if (mounted) {
@@ -429,7 +543,8 @@ class _StepWorkScreenState extends State<StepWorkScreen> {
                         _AssignmentTile(
                           assignment: assignments[index],
                           saving: _saving,
-                          onComplete: _completeAssignment,
+                          onCompletedChanged: _setAssignmentCompleted,
+                          onEdit: _editAssignment,
                         ),
                         if (index < assignments.length - 1)
                           const Divider(height: 1, indent: 68),
@@ -449,12 +564,16 @@ class _AssignmentTile extends StatelessWidget {
   const _AssignmentTile({
     required this.assignment,
     required this.saving,
-    required this.onComplete,
+    required this.onCompletedChanged,
+    required this.onEdit,
   });
 
   final Map<String, dynamic> assignment;
   final bool saving;
-  final ValueChanged<int> onComplete;
+
+  final void Function(int assignmentId, bool completed) onCompletedChanged;
+
+  final ValueChanged<Map<String, dynamic>> onEdit;
 
   @override
   Widget build(BuildContext context) {
@@ -466,12 +585,24 @@ class _AssignmentTile extends StatelessWidget {
 
     return ListTile(
       key: ValueKey('step-work-assignment-$id'),
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-      leading: Icon(
-        completed ? Icons.check_circle_outline : Icons.radio_button_unchecked,
-        color: completed
-            ? Theme.of(context).colorScheme.primary
-            : Theme.of(context).colorScheme.onSurfaceVariant,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      leading: Tooltip(
+        message: completed
+            ? 'Mark assignment incomplete'
+            : 'Mark assignment complete',
+        child: Checkbox(
+          key: ValueKey('step-work-completed-$id'),
+          value: completed,
+          onChanged: saving || id is! int
+              ? null
+              : (value) {
+                  if (value == null) {
+                    return;
+                  }
+
+                  onCompletedChanged(id, value);
+                },
+        ),
       ),
       title: Text(
         text,
@@ -480,18 +611,16 @@ class _AssignmentTile extends StatelessWidget {
         ),
       ),
       subtitle: Text(completed ? 'Completed' : 'Open'),
-      trailing: completed
-          ? null
-          : IconButton(
-              key: ValueKey('step-work-complete-$id'),
-              tooltip: 'Mark assignment complete',
-              onPressed: saving || id is! int
-                  ? null
-                  : () {
-                      onComplete(id);
-                    },
-              icon: const Icon(Icons.check),
-            ),
+      trailing: IconButton(
+        key: ValueKey('step-work-edit-$id'),
+        tooltip: 'Edit assignment',
+        onPressed: saving || id is! int
+            ? null
+            : () {
+                onEdit(assignment);
+              },
+        icon: const Icon(Icons.edit_outlined),
+      ),
     );
   }
 }

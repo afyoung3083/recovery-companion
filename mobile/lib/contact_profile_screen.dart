@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'api_client.dart';
 import 'app_components.dart';
+import 'beta_support_action.dart';
 import 'local_fellowship_repository.dart';
 
 class ContactProfileScreen extends StatefulWidget {
@@ -172,7 +173,10 @@ class _ContactProfileScreenState extends State<ContactProfileScreen> {
         : _handleController.text.trim();
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Contact Profile')),
+      appBar: AppBar(
+        title: const Text('Contact Profile'),
+        actions: const [BetaSupportAction()],
+      ),
       body: ListView(
         key: const ValueKey('contact-profile-screen'),
         padding: const EdgeInsets.fromLTRB(20, 20, 20, 32),

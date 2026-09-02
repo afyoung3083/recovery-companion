@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'api_client.dart';
 import 'app_components.dart';
+import 'beta_support_action.dart';
 import 'offline_copy_notice.dart';
 import 'offline_read_service.dart';
 import 'contact_profile_screen.dart';
@@ -148,7 +149,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
     await Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => Scaffold(
-          appBar: AppBar(title: Text(title)),
+          appBar: AppBar(
+            title: Text(title),
+            actions: const [BetaSupportAction()],
+          ),
           body: screen,
         ),
       ),

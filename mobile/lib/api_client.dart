@@ -308,6 +308,38 @@ class ApiClient {
     return _handleJsonResponse(response);
   }
 
+  Future<Map<String, dynamic>> updateStepAssignment({
+    required int assignmentId,
+    required String text,
+  }) async {
+    final response = await _httpClient.put(
+      Uri.parse(
+        '$baseUrl/step-work/assignments/'
+        '$assignmentId',
+      ),
+      headers: {...authenticatedHeaders, 'Content-Type': 'application/json'},
+      body: jsonEncode({'text': text}),
+    );
+
+    return _handleJsonResponse(response);
+  }
+
+  Future<Map<String, dynamic>> setStepAssignmentCompleted({
+    required int assignmentId,
+    required bool completed,
+  }) async {
+    final response = await _httpClient.put(
+      Uri.parse(
+        '$baseUrl/step-work/assignments/'
+        '$assignmentId/completed',
+      ),
+      headers: {...authenticatedHeaders, 'Content-Type': 'application/json'},
+      body: jsonEncode({'completed': completed}),
+    );
+
+    return _handleJsonResponse(response);
+  }
+
   Future<Map<String, dynamic>> completeStepAssignment(int assignmentId) async {
     final response = await _httpClient.put(
       Uri.parse(

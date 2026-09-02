@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'beta_support_action.dart';
+
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({required this.onComplete, super.key});
 
@@ -96,6 +98,13 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       body: SafeArea(
         child: Column(
           children: [
+            const Align(
+              alignment: Alignment.centerRight,
+              child: Padding(
+                padding: EdgeInsets.only(top: 4, right: 8),
+                child: BetaSupportAction(),
+              ),
+            ),
             Expanded(
               child: PageView.builder(
                 controller: _controller,

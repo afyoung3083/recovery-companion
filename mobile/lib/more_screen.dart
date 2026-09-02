@@ -2,8 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'api_client.dart';
 import 'app_components.dart';
-import 'beta_feedback_screen.dart';
-import 'beta_tester_guide_screen.dart';
+import 'beta_support_action.dart';
 import 'chat_screen.dart';
 import 'daily_checkin_screen.dart';
 import 'fellowship_screen.dart';
@@ -307,10 +306,9 @@ class MoreScreen extends StatelessWidget {
               title: 'Closed Beta Tester Guide',
               subtitle: 'What to test, privacy guidance, and how to send useful feedback.',
               onTap: () {
-                _open(
+                openBetaSupportDestination(
                   context,
-                  title: 'Closed Beta Tester Guide',
-                  child: const BetaTesterGuideScreen(),
+                  BetaSupportDestination.testerGuide,
                 );
               },
             ),
@@ -320,10 +318,9 @@ class MoreScreen extends StatelessWidget {
               subtitle:
                   'Report a problem, suggestion, or confusing experience.',
               onTap: () {
-                _open(
+                openBetaSupportDestination(
                   context,
-                  title: 'Beta Feedback & Support',
-                  child: const BetaFeedbackScreen(),
+                  BetaSupportDestination.feedback,
                 );
               },
             ),
@@ -421,7 +418,7 @@ class _ToolScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(title)),
+      appBar: AppBar(title: Text(title), actions: const [BetaSupportAction()]),
       body: child,
     );
   }

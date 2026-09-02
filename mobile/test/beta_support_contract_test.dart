@@ -20,11 +20,27 @@ void main() {
     expect(config, contains("betaBuildLabel = '$version'"));
   });
 
-  test('More exposes beta feedback entry point', () {
+  test('More exposes beta feedback through centralized support navigation', () {
     final more = File('lib/more_screen.dart').readAsStringSync();
 
     expect(more, contains("title: 'Beta Feedback & Support'"));
 
-    expect(more, contains('BetaFeedbackScreen'));
+    expect(more, contains('openBetaSupportDestination('));
+
+    expect(more, contains('BetaSupportDestination.feedback'));
+
+    expect(more, contains("import 'beta_support_action.dart';"));
+  });
+
+  test('central Beta support navigation owns feedback screen', () {
+    final support = File('lib/beta_support_action.dart').readAsStringSync();
+
+    expect(support, contains("import 'beta_feedback_screen.dart';"));
+
+    expect(support, contains('BetaFeedbackScreen()'));
+
+    expect(support, contains('BetaSupportDestination.feedback'));
+
+    expect(support, contains("'Send Feedback'"));
   });
 }
