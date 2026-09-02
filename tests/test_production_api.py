@@ -640,7 +640,19 @@ def test_rate_limit_returns_retry_after(
         clock=lambda: 100.0,
     )
 
+    provider_calls = 0
+
+    def deterministic_chat_handler(
+        _conversation: list[dict[str, str]],
+    ) -> str:
+        nonlocal provider_calls
+
+        provider_calls += 1
+
+        return "rate-limit test response"
+
     application = create_production_app(
+        chat_handler=deterministic_chat_handler,
         rate_limiter=limiter,
     )
 
@@ -676,6 +688,11 @@ def test_rate_limit_returns_retry_after(
     assert second.status_code == 200
     assert blocked.status_code == 429
     assert blocked.headers["retry-after"] == "60"
+
+    # Only the first two permitted requests may reach the
+    # simulated AI provider. The blocked request must stop
+    # at the rate limiter.
+    assert provider_calls == 2
 
 
 def test_provider_failure_is_sanitized(
