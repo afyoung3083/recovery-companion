@@ -138,7 +138,11 @@ void main() {
     expect(field.controller?.text, 'Please keep this message.');
 
     expect(
-      find.text('Unable to send your message. Please try again.'),
+      find.text(
+        'AI is temporarily unavailable. '
+        'Your saved recovery data remains available on this device. '
+        'Please try again later.',
+      ),
       findsOneWidget,
     );
 
