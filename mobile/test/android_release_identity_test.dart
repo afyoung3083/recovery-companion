@@ -52,9 +52,9 @@ void main() {
     );
   });
 
-  test('Sprint 53 beta version is 1.21.0+6', () {
+  test('closed beta version is 1.22.0+7', () {
     final pubspec = File('pubspec.yaml').readAsStringSync();
 
-    expect(pubspec, contains('version: 1.21.0+6'));
+    expect(pubspec, contains('version: 1.22.0+7'));
   });
 }

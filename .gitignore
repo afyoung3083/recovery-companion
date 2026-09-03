@@ -11,3 +11,6 @@ backups/
 # Android release signing secrets
 mobile/android/key.properties
 mobile/android/app/recovery-companion-upload.jks
+
+# Local Flutter production build-time secrets
+mobile/.dart-defines.production.json
