@@ -52,9 +52,9 @@ void main() {
     );
   });
 
-  test('closed beta version is 1.22.0+7', () {
+  test('closed beta version is 1.22.0+8', () {
     final pubspec = File('pubspec.yaml').readAsStringSync();
 
-    expect(pubspec, contains('version: 1.22.0+7'));
+    expect(pubspec, contains('version: 1.22.0+8'));
   });
 }

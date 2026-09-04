@@ -497,7 +497,6 @@ class _JournalScreenState extends State<JournalScreen> {
                               ? _reflection
                               : null,
                           canAnalyze:
-                              widget.localRepository == null &&
                               !readResult.isCached &&
                               _analyzingEntryId == null,
                           onAnalyze: (entryId) {

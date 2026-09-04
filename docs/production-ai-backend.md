@@ -2,14 +2,21 @@
 
 ## Status
 
-**Sprint 57 Slice 1 status: deployment readiness only.**
+**Sprint 57 status: production AI service is live.**
 
-This document and the accompanying source files do not mean the
-production service is live.
+Recovery Companion now uses the production HTTPS API at:
+https://api.recoverycompanionlabs.com
+Render deployment, the public route boundary, authentication, request limits,
+security headers, production AI endpoints, custom-domain HTTPS, and physical
+Android connectivity have been verified.
 
-Recovery Companion is not connected to a public production API until a
-later Sprint 57 slice creates the Render service, verifies it, attaches
-the production domain, and releases a newly configured Android bundle.
+Google Play Internal testing confirmed that build 1.22.0+7 upgraded the
+existing app without losing encrypted local recovery data. Recovery Companion
+Chat and Daily Recovery AI also worked from a physical Android phone over
+cellular data.
+
+Build 1.22.0+8 is the corrected Sprint 57 candidate. It fixes Journal AI
+reflection for authoritative local-first Journal entries.
 
 ## Purpose
 
@@ -157,34 +164,31 @@ The push-to-main check is required because the Render Blueprint uses:
 autoDeployTrigger: checksPass
 ```
 
-## Slice 2 deployment checklist
+## Verified Sprint 57 deployment
 
-Do not perform these actions until Slice 1 is merged:
+Sprint 57 verified this production path:
+Android phone
+-> https://api.recoverycompanion.com
+-> Render production API
+-> OpenAI Responses API
 
-1. Open Render and create a Blueprint from this repository.
-2. Review the service as billable before approving it.
-3. Supply `OPENAI_API_KEY` through the Render secret prompt.
-4. Generate a random beta API token outside source control.
-5. Store that beta token in the password manager.
-6. Supply the same token to Render.
-7. Complete the initial deployment.
-8. Verify `/health` at the temporary `onrender.com` hostname.
-9. Confirm `/docs`, `/openapi.json`, and recovery-data CRUD paths return
-   `404`.
-10. Confirm missing or invalid authorization returns `401`.
-11. Perform one sanitized AI smoke test.
-12. Review Render logs to ensure request bodies are absent.
 
-## Later Sprint 57 slices
+Verified behavior includes:
 
-A later slice will attach:
+- /health succeeds over the custom HTTPS domain;
+- undocumented recovery-data CRUD routes return 404;
+- API docs and OpenAPI routes are disabled;
+- missing or incorrect beta credentials return 401;
+- all intended production AI endpoints respond successfully;
+- oversized request bodies are rejected;
+- responses include no-store security controls;
+- application request bodies are not intentionally logged;
+- authoritative recovery records remain local-first;
+- existing encrypted local data survives Google Play upgrades;
+- Recovery Companion Chat works from a physical phone;
+- Daily Recovery optional AI perspective works from a physical phone;
+- Journal AI supports explicitly selected local-first Journal entries.
 
-```text
-api.recoverycompanionlabs.com
-```
-
-After HTTPS and physical-device verification, another slice will build
-a new signed Android App Bundle with the public API URL and temporary
-closed-beta token supplied through build-time configuration.
-
-The current Google Play build remains unchanged by Slice 1.
+The shared closed-beta bearer credential remains temporary and must be
+replaced before broad production distribution with stronger identity and
+device/app-attestation controls.

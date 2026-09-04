@@ -27,14 +27,14 @@ void main() {
     final runbook = File('../docs/android-beta-release-validation.md')
         .readAsStringSync();
 
-    expect(runbook, contains('SPRINT 53 UPGRADE PRESERVATION TEST'));
+    expect(runbook, contains('SPRINT 57 UPGRADE PRESERVATION TEST'));
 
     expect(
       runbook,
       contains('local encrypted recovery data survives the upgrade'),
     );
 
-    expect(runbook, contains('version code becomes `7`'));
+    expect(runbook, contains('version code becomes `8`'));
 
     expect(runbook, contains('working tree remains clean'));
   });
