@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'ai_service_error.dart';
 import 'api_client.dart';
 import 'app_components.dart';
 import 'local_monthly_review_repository.dart';
@@ -171,14 +172,13 @@ class _MonthlyReviewScreenState extends State<MonthlyReviewScreen> {
             ? 'No reflection was returned.'
             : reflection;
       });
-    } catch (_) {
+    } catch (error) {
       if (!mounted) {
         return;
       }
 
       setState(() {
-        _error =
-            'Unable to generate an AI reflection right now. Please try again.';
+        _error = aiServiceErrorMessage(error);
       });
     } finally {
       if (mounted) {

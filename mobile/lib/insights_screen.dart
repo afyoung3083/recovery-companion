@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'ai_service_error.dart';
 import 'api_client.dart';
 import 'app_components.dart';
 import 'offline_copy_notice.dart';
@@ -197,15 +198,13 @@ class _InsightsScreenState extends State<InsightsScreen> {
             ? 'No AI reflection was returned.'
             : reflection;
       });
-    } catch (_) {
+    } catch (error) {
       if (!mounted) {
         return;
       }
 
       setState(() {
-        _aiError =
-            'Unable to generate a Recovery Insights reflection. '
-            'Please try again.';
+        _aiError = aiServiceErrorMessage(error);
       });
     } finally {
       if (mounted) {

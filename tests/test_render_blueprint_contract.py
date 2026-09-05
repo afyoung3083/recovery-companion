@@ -204,29 +204,30 @@ def test_security_module_avoids_content_logging():
     for token in required:
         assert token in security
 
-
-def test_runbook_does_not_claim_service_is_live():
+def test_runbook_documents_live_service_and_boundary():
     runbook = source(
         "docs/production-ai-backend.md"
     )
 
     required = (
-        (
-            "deployment readiness only"
-        ),
-        (
-            "do not mean the\n"
-            "production service is live"
-        ),
+        "Sprint 57 status: production AI service is live.",
+        "https://api.recoverycompanionlabs.com",
         "app.production_api:app",
         "It must not run:",
         "app.api:app",
-        "api.recoverycompanionlabs.com",
-        (
-            "The current Google Play build "
-            "remains unchanged by Slice 1."
-        ),
+        "Google Play Internal testing",
+        "Build 1.22.0+9",
+        "Verified Sprint 57 deployment",
+        "The Render Blueprint is deployed in production.",
     )
 
     for token in required:
         assert token in runbook
+
+    assert "deployment readiness only" not in runbook
+    assert (
+        "do not mean the\n"
+        "production service is live"
+        not in runbook
+    )
+    assert "https://api.recoverycompanion.com" not in runbook

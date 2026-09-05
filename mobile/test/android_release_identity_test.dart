@@ -11,7 +11,7 @@ void main() {
 
     final activity = File(
       'android/app/src/main/kotlin/'
-      'com/recoverycompanion/app/'
+      'com/recoverycompanionlabs/recoverycompanion/'
       'MainActivity.kt',
     );
 
@@ -19,7 +19,7 @@ void main() {
       gradle,
       contains(
         'namespace = '
-        '"com.recoverycompanion.app"',
+        '"com.recoverycompanionlabs.recoverycompanion"',
       ),
     );
 
@@ -27,7 +27,7 @@ void main() {
       gradle,
       contains(
         'applicationId = '
-        '"com.recoverycompanion.app"',
+        '"com.recoverycompanionlabs.recoverycompanion"',
       ),
     );
 
@@ -47,14 +47,14 @@ void main() {
       activity.readAsStringSync(),
       contains(
         'package '
-        'com.recoverycompanion.app',
+        'com.recoverycompanionlabs.recoverycompanion',
       ),
     );
   });
 
-  test('Sprint 53 beta version is 1.21.0+6', () {
+  test('closed beta version is 1.22.0+9', () {
     final pubspec = File('pubspec.yaml').readAsStringSync();
 
-    expect(pubspec, contains('version: 1.21.0+6'));
+    expect(pubspec, contains('version: 1.22.0+9'));
   });
 }

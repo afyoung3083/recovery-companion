@@ -9,7 +9,10 @@ void main() {
     final manifest = File('android/app/src/main/AndroidManifest.xml')
         .readAsStringSync();
 
-    expect(gradle, contains('applicationId = "com.recoverycompanion.app"'));
+    expect(
+      gradle,
+      contains('applicationId = "com.recoverycompanionlabs.recoverycompanion"'),
+    );
 
     expect(manifest, contains('android:label="Recovery Companion"'));
 
@@ -24,14 +27,14 @@ void main() {
     final runbook = File('../docs/android-beta-release-validation.md')
         .readAsStringSync();
 
-    expect(runbook, contains('SPRINT 53 UPGRADE PRESERVATION TEST'));
+    expect(runbook, contains('SPRINT 57 UPGRADE PRESERVATION TEST'));
 
     expect(
       runbook,
       contains('local encrypted recovery data survives the upgrade'),
     );
 
-    expect(runbook, contains('version code becomes `7`'));
+    expect(runbook, contains('version code becomes `9`'));
 
     expect(runbook, contains('working tree remains clean'));
   });

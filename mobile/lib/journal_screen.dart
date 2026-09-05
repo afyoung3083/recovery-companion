@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'ai_service_error.dart';
 import 'api_client.dart';
 import 'app_components.dart';
 import 'offline_copy_notice.dart';
@@ -267,13 +268,13 @@ class _JournalScreenState extends State<JournalScreen> {
             ? 'No AI reflection was returned.'
             : reflection;
       });
-    } catch (_) {
+    } catch (error) {
       if (!mounted) {
         return;
       }
 
       setState(() {
-        _error = 'Unable to generate a journal reflection. Please try again.';
+        _error = aiServiceErrorMessage(error);
       });
     } finally {
       if (mounted) {
@@ -496,7 +497,6 @@ class _JournalScreenState extends State<JournalScreen> {
                               ? _reflection
                               : null,
                           canAnalyze:
-                              widget.localRepository == null &&
                               !readResult.isCached &&
                               _analyzingEntryId == null,
                           onAnalyze: (entryId) {

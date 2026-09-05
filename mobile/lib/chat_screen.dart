@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'ai_service_error.dart';
 import 'api_client.dart';
 import 'app_components.dart';
 
@@ -76,7 +77,7 @@ class _ChatScreenState extends State<ChatScreen> {
       });
 
       _scrollToBottom();
-    } catch (_) {
+    } catch (error) {
       if (!mounted) {
         return;
       }
@@ -94,7 +95,7 @@ class _ChatScreenState extends State<ChatScreen> {
           offset: message.length,
         );
 
-        _errorMessage = 'Unable to send your message. Please try again.';
+        _errorMessage = aiServiceErrorMessage(error);
       });
     } finally {
       if (mounted) {
