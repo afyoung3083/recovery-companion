@@ -7,10 +7,15 @@ class ApiClient {
     required this.baseUrl,
     this.apiToken = '',
     http.Client? httpClient,
-  }) : _httpClient = httpClient ?? http.Client();
+    this.requestTimeout = const Duration(seconds: 15),
+  }) : _httpClient = _TimeoutClient(
+         httpClient ?? http.Client(),
+         requestTimeout,
+       );
 
   final String baseUrl;
   final String apiToken;
+  final Duration requestTimeout;
   final http.Client _httpClient;
 
   // ============================================================
@@ -556,6 +561,23 @@ class ApiClient {
 
   void close() {
     _httpClient.close();
+  }
+}
+
+class _TimeoutClient extends http.BaseClient {
+  _TimeoutClient(this._inner, this.timeout);
+
+  final http.Client _inner;
+  final Duration timeout;
+
+  @override
+  Future<http.StreamedResponse> send(http.BaseRequest request) {
+    return _inner.send(request).timeout(timeout);
+  }
+
+  @override
+  void close() {
+    _inner.close();
   }
 }
 

@@ -5,13 +5,13 @@
 - Application ID: `com.recoverycompanionlabs.recoverycompanion`
 - App name: Recovery Companion
 - Version name: `1.22.0`
-- Version code: `8`
+- Version code: `9`
 - Target SDK: Android 16 / API 36
 - Distribution artifact: signed Android App Bundle (`.aab`)
 - Release signing: dedicated Recovery Companion upload key
 - Android backup: disabled
 - Production API: https://api.recoverycompanionlabs.com
-- Sprint 57 corrected candidate: 1.22.0+8
+- Sprint 57 corrected candidate: 1.22.0+9
 "@
 )
 
@@ -22,7 +22,7 @@
 - Application ID: `com.recoverycompanionlabs.recoverycompanion`
 - App name: Recovery Companion
 - Version name: `1.22.0`
-- Version code: `8`
+- Version code: `9`
 - Target SDK: Android 16 / API 36
 - Distribution artifact: signed Android App Bundle (`.aab`)
 - Release signing: dedicated Recovery Companion upload key
@@ -105,7 +105,7 @@ The APK remains useful for direct release-install validation.
 - Application ID: `com.recoverycompanionlabs.recoverycompanion`
 - App name: Recovery Companion
 - Version name: `1.22.0`
-- Version code: `8`
+- Version code: `9`
 - Target SDK: Android 16 / API 36
 - Distribution artifact: signed Android App Bundle (`.aab`)
 - Release signing: dedicated Recovery Companion upload key
@@ -188,7 +188,7 @@ The APK remains useful for direct release-install validation.
 Sprint 57 uses Google Play Internal testing as the physical-device release
 gate before updating the existing Closed testing track.
 
-The corrected 1.22.0+8 candidate must first be installed through Google Play
+The corrected 1.22.0+9 candidate must first be installed through Google Play
 Internal testing as an in-place upgrade.
 
 Required checks:

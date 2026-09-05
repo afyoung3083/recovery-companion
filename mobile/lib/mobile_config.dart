@@ -3,7 +3,7 @@ class MobileConfig {
 
   // Keep synchronized with mobile/pubspec.yaml.
   // A regression test protects against version drift.
-  static const String betaBuildLabel = '1.22.0+8';
+  static const String betaBuildLabel = '1.22.0+9';
 
   static const String privacyPolicyUrl =
       'https://afyoung3083.github.io/recovery-companion/privacy/';

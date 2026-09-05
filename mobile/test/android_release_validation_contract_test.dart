@@ -34,7 +34,7 @@ void main() {
       contains('local encrypted recovery data survives the upgrade'),
     );
 
-    expect(runbook, contains('version code becomes `8`'));
+    expect(runbook, contains('version code becomes `9`'));
 
     expect(runbook, contains('working tree remains clean'));
   });

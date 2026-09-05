@@ -8,7 +8,7 @@ the closed-testing group.
 - Application ID: `com.recoverycompanionlabs.recoverycompanion`
 - Application label: `Recovery Companion`
 - Previous closed-beta version: `1.21.0+6`
-- Sprint 57 corrected candidate: `1.22.0+8`
+- Sprint 57 corrected candidate: `1.22.0+9`
 - Upload-key alias: `recovery-companion-upload`
 - Production API: `https://api.recoverycompanionlabs.com`
 
@@ -34,7 +34,7 @@ Verify:
 
 - package is `com.recoverycompanionlabs.recoverycompanion`
 - version name is `1.22.0`
-- version code is `8`
+- version code is `9`
 - Google Play accepts the signed AAB without a signing or package error
 
 Before updating, preserve at least one recognizable local-first record. A
@@ -46,7 +46,7 @@ the app or clear its data.
 Verify after the Play update:
 
 - Android treats the operation as an upgrade rather than a fresh install
-- version code becomes `8`
+- version code becomes `9`
 - version name is `1.22.0`
 - the app launches successfully
 - onboarding completion remains intact
@@ -88,7 +88,7 @@ The release candidate passes when:
 
 1. the signed release AAB verifies cryptographically;
 2. Google Play accepts the signed AAB;
-3. build 8 upgrades the existing Play installation successfully;
+3. build 9 upgrades the existing Play installation successfully;
 4. local encrypted recovery data survives the upgrade;
 5. package identity and version information are correct;
 6. backup remains disabled;
