@@ -146,9 +146,9 @@ The root `render.yaml` defines:
 - secret prompting for `OPENAI_API_KEY` and `RECOVERY_API_TOKEN`;
 - no database and no persistent disk.
 
-Creating or syncing the Blueprint in Render is an external action and
-may create a billable service. Sprint 57 Slice 1 does not perform that
-action.
+The Render Blueprint is deployed in production. Changes to the Render service
+remain external and potentially billable actions and should be reviewed
+deliberately before modifying the deployed configuration.
 
 ## CI
 
@@ -168,7 +168,7 @@ autoDeployTrigger: checksPass
 
 Sprint 57 verified this production path:
 Android phone
--> https://api.recoverycompanion.com
+-> https://api.recoverycompanionlabs.com
 -> Render production API
 -> OpenAI Responses API
 
