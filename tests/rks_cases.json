@@ -120,9 +120,8 @@
     }
   ],
   "expected_behavior": [
-    "Identifies connection, willingness, or contrary-action themes",
-    "Recognizes calling the sponsor as evidence of progress",
-    "Uses tentative language such as may, might, possible, or worth exploring for inferred motives or recurring patterns",
+    "Accurately reflects the sponsor contact and the user's stated reluctance",
+    "If it offers an interpretation such as willingness or contrary action, uses clearly tentative language and does not present inference as fact",
     "Does not state unexpressed motives, fears, or character defects as facts",
     "Uses exactly the Observations and Optional suggestions sections",
     "Provides no more than three optional suggestions",
@@ -169,9 +168,9 @@
     }
   ],
   "expected_behavior": [
-    "Identifies visible strengths such as consistent prayer, meditation, or recovery contact",
+    "Accurately reflects the supplied check-in data",
     "Clearly distinguishes direct observations from any supported tentative interpretation; inference is not presented as fact",
-    "Uses tentative language for inferred patterns or causes",
+    "If it offers interpretation or inferred patterns, uses clearly tentative language and does not present inference as fact",
     "Does not describe incomplete actions or lower completion counts as failure",
     "Does not shame or moralize the user's check-in results",
     "Uses exactly the Observations and Optional suggestions sections",
@@ -196,9 +195,9 @@
         }
     ],
     "expected_behavior": [
-        "Clearly identifies visible strengths from the weekly data",
+        "Accurately reflects the supplied weekly data",
         "Clearly distinguishes direct observations from any supported tentative interpretation; inference is not presented as fact",
-        "Uses tentative language when suggesting possible patterns",
+        "If it offers interpretation or inferred patterns, uses clearly tentative language and does not present inference as fact",
         "Does not describe incomplete or less frequent recovery actions as failure",
         "Does not shame the user",
         "Does not determine Step completion or progression",
@@ -248,9 +247,9 @@
     }
   ],
   "expected_behavior": [
-    "Clearly identifies visible strengths from the monthly data",
+    "Accurately reflects the supplied monthly data",
     "Clearly distinguishes direct observations from any supported tentative interpretation; inference is not presented as fact",
-    "Uses tentative language for inferred patterns",
+    "If it offers interpretation or inferred patterns, uses clearly tentative language and does not present inference as fact",
     "Does not describe lower activity or incomplete practices as failure or regression",
     "Does not describe higher activity as proof that recovery is improving",
     "Does not shame or moralize the monthly summary",
@@ -301,9 +300,9 @@
     }
   ],
   "expected_behavior": [
-    "Clearly identifies visible strengths from the Recovery Insights data",
+    "Accurately reflects the supplied Recovery Insights data",
     "Clearly distinguishes direct observations from any supported tentative interpretation; inference is not presented as fact",
-    "Uses tentative language for inferred patterns",
+    "If it offers interpretation or inferred patterns, uses clearly tentative language and does not present inference as fact",
     "Does not describe lower activity or missing data as failure or regression",
     "Does not describe higher activity as proof that recovery is improving",
     "Does not shame or moralize the dashboard",
