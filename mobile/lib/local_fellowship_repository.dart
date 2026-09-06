@@ -90,7 +90,7 @@ class LocalFellowshipRepository {
       ...contacts[index],
       'handle': handle,
       'contact_type': contactType,
-      if (contactMethod != null) 'contact_method': contactMethod,
+      ...?contactMethod == null ? null : {'contact_method': contactMethod},
       'phone': phone,
       'email': email,
       'notes': notes,

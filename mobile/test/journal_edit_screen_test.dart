@@ -26,9 +26,8 @@ class MemorySecureKeyValueStore implements SecureKeyValueStore {
 }
 
 class FakeLocalJournalRepository extends LocalJournalRepository {
-  FakeLocalJournalRepository({bool failUpdates = false})
-    : _failUpdates = failUpdates,
-      _entries = [
+  FakeLocalJournalRepository({this.failUpdates = false})
+    : _entries = [
         {
           'id': 7,
           'created_at': '2026-09-03T14:30:00Z',
@@ -45,7 +44,7 @@ class FakeLocalJournalRepository extends LocalJournalRepository {
         ),
       );
 
-  final bool _failUpdates;
+  final bool failUpdates;
   final List<Map<String, dynamic>> _entries;
 
   @override
@@ -82,7 +81,7 @@ class FakeLocalJournalRepository extends LocalJournalRepository {
     required String text,
     required List<String> tags,
   }) async {
-    if (_failUpdates) {
+    if (failUpdates) {
       throw StateError('Update failed');
     }
 
