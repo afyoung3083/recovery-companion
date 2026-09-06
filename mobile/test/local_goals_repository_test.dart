@@ -55,6 +55,27 @@ void main() {
     expect(result['goals'], isEmpty);
   });
 
+  test('loads active goals without changing their fields', () async {
+    await store.write({
+      'goals': [
+        {
+          'id': 7,
+          'text': 'Call sponsor',
+          'active': true,
+          'completed': false,
+          'custom_field': 'preserve me',
+        },
+      ],
+    });
+
+    final result = await repository.getGoals();
+    final goal = (result['goals'] as List).single as Map;
+
+    expect(goal['id'], 7);
+    expect(goal['text'], 'Call sponsor');
+    expect(goal['custom_field'], 'preserve me');
+  });
+
   test('creates and reloads goal locally', () async {
     await repository.createGoal(
       text: 'Call sponsor three times this week',
@@ -96,6 +117,62 @@ void main() {
     expect(savedGoal['completed'], isTrue);
     expect(savedGoal['active'], isFalse);
   });
+
+  test('completed goals remain available in completed history', () async {
+    final created = await repository.createGoal(
+      text: 'Attend meeting',
+      area: 'meetings',
+    );
+
+    final id = (created['goal'] as Map)['id'] as int;
+
+    await repository.completeGoal(id);
+
+    final completed = await repository.getCompletedGoals();
+    final goals = completed['goals'] as List;
+
+    expect(goals.length, 1);
+    expect((goals.single as Map)['id'], id);
+    expect((goals.single as Map)['completed'], isTrue);
+  });
+
+  test(
+    'categorizes legacy active and completed flag combinations safely',
+    () async {
+      await store.write({
+        'goals': [
+          {'id': 1, 'text': 'Active flags', 'active': true, 'completed': false},
+          {
+            'id': 2,
+            'text': 'Inactive flags',
+            'active': false,
+            'completed': true,
+          },
+          {'id': 3, 'text': 'Inactive without completed flag', 'active': false},
+          {'id': 4, 'text': 'Completed without active flag', 'completed': true},
+          {'id': 5, 'text': 'Missing flags'},
+        ],
+      });
+
+      final active = await repository.getGoals();
+      final completed = await repository.getCompletedGoals();
+
+      expect(
+        (active['goals'] as List).map((goal) => (goal as Map)['id']).toList(),
+        [1, 5],
+      );
+      expect(
+        (completed['goals'] as List)
+            .map((goal) => (goal as Map)['id'])
+            .toList(),
+        [2, 3, 4],
+      );
+
+      final document = await store.read();
+      final savedGoals = (document['data'] as Map)['goals'] as List;
+      expect((savedGoals[2] as Map)['text'], 'Inactive without completed flag');
+    },
+  );
 
   test('goal changes preserve other recovery data', () async {
     await store.write({

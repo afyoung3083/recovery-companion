@@ -9,11 +9,22 @@ class LocalGoalsRepository {
     final goals = await _readGoals();
 
     final active = goals
-        .where((goal) => goal['active'] != false)
+        .where(_isActive)
         .map((goal) => Map<String, dynamic>.from(goal))
         .toList();
 
     return {'goals': active};
+  }
+
+  Future<Map<String, dynamic>> getCompletedGoals() async {
+    final goals = await _readGoals();
+
+    final completed = goals
+        .where(_isCompleted)
+        .map((goal) => Map<String, dynamic>.from(goal))
+        .toList();
+
+    return {'goals': completed};
   }
 
   Future<Map<String, dynamic>> createGoal({
@@ -94,5 +105,13 @@ class LocalGoalsRepository {
         .whereType<Map>()
         .map((goal) => Map<String, dynamic>.from(goal))
         .toList();
+  }
+
+  bool _isCompleted(Map<String, dynamic> goal) {
+    return goal['completed'] == true || goal['active'] == false;
+  }
+
+  bool _isActive(Map<String, dynamic> goal) {
+    return !_isCompleted(goal);
   }
 }
