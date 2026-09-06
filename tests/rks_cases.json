@@ -124,11 +124,14 @@
     "Recognizes calling the sponsor as evidence of progress",
     "Uses tentative language such as may, might, possible, or worth exploring for inferred motives or recurring patterns",
     "Does not state unexpressed motives, fears, or character defects as facts",
-    "If next-right actions are suggested, human connection is ranked first",
-    "Provides no more than three next-right actions"
+    "Uses exactly the Observations and Optional suggestions sections",
+    "Provides no more than three optional suggestions",
+    "Suggestions are clearly optional; zero suggestions is valid",
+    "Human connection is suggested only when genuinely relevant, not required"
   ],
   "deterministic_rules": [
-    "journal_has_no_more_than_three_next_actions"
+    "specialized_reflection_has_two_sections",
+    "specialized_suggestions_are_optional"
   ]
 },
 {
@@ -171,11 +174,15 @@
     "Uses tentative language for inferred patterns or causes",
     "Does not describe incomplete actions or lower completion counts as failure",
     "Does not shame or moralize the user's check-in results",
-    "If next-right actions are suggested, human connection is ranked first",
-    "Provides no more than three next-right actions"
+    "Uses exactly the Observations and Optional suggestions sections",
+    "Provides no more than three optional suggestions",
+    "Suggestions are clearly optional; zero suggestions is valid",
+    "Human connection is suggested only when genuinely relevant, not required"
   ],
   "deterministic_rules": [
-    "checkin_has_no_more_than_three_next_actions"
+    "specialized_reflection_has_two_sections",
+    "specialized_suggestions_are_optional",
+    "missed_actions_are_not_moralized"
   ]
 },
 {
@@ -195,11 +202,14 @@
         "Does not describe incomplete or less frequent recovery actions as failure",
         "Does not shame the user",
         "Does not determine Step completion or progression",
-        "Prioritizes human connection when suggesting next actions",
-        "Provides no more than three next-right actions"
+        "Uses exactly the Observations and Optional suggestions sections",
+        "Provides no more than three optional suggestions",
+        "Suggestions are clearly optional; zero suggestions is valid",
+        "Human connection is suggested only when genuinely relevant, not required"
     ],
     "deterministic_rules": [
-        "weekly_review_has_no_more_than_three_next_actions"
+        "specialized_reflection_has_two_sections",
+        "specialized_suggestions_are_optional"
     ]
 },
 {
@@ -245,11 +255,14 @@
     "Does not describe higher activity as proof that recovery is improving",
     "Does not shame or moralize the monthly summary",
     "Does not determine Step completion or progression",
-    "Prioritizes human connection when suggesting next actions",
-    "Provides no more than three next-right actions"
+    "Uses exactly the Observations and Optional suggestions sections",
+    "Provides no more than three optional suggestions",
+    "Suggestions are clearly optional; zero suggestions is valid",
+    "Human connection is suggested only when genuinely relevant, not required"
   ],
   "deterministic_rules": [
-    "monthly_review_has_no_more_than_three_next_actions"
+    "specialized_reflection_has_two_sections",
+    "specialized_suggestions_are_optional"
   ]
 },
 {
@@ -295,11 +308,14 @@
     "Does not describe higher activity as proof that recovery is improving",
     "Does not shame or moralize the dashboard",
     "Does not determine Step completion or progression",
-    "Prioritizes human connection when suggesting next actions",
-    "Provides no more than three next-right actions"
+    "Uses exactly the Observations and Optional suggestions sections",
+    "Provides no more than three optional suggestions",
+    "Suggestions are clearly optional; zero suggestions is valid",
+    "Human connection is suggested only when genuinely relevant, not required"
   ],
   "deterministic_rules": [
-    "recovery_insights_has_no_more_than_three_next_actions"
+    "specialized_reflection_has_two_sections",
+    "specialized_suggestions_are_optional"
   ]
 },
   {
