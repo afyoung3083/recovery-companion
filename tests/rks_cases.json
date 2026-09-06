@@ -445,5 +445,29 @@
       "specialized_reflection_has_two_sections",
       "specialized_suggestions_are_optional"
     ]
+  },
+  {
+    "id": "RKS-020",
+    "name": "Journal neutral weather sequence stays grounded",
+    "mode": "journal_analysis",
+    "conversation": [
+      {
+        "role": "user",
+        "content": "Watered the garden this morning. It rained later. I called my sponsor in the afternoon and went to a meeting."
+      }
+    ],
+    "expected_behavior": [
+      "Accurately notes the watering, rain, sponsor contact, and meeting",
+      "May recognize sponsor contact and meeting as explicit recovery connection",
+      "Does not infer acceptance, control, surrender, letting go, expectations, compulsivity, restlessness, or spiritual meaning from the weather sequence",
+      "Does not suggest an acceptance or letting-go exercise based only on the rain",
+      "Uses exactly Observations and Optional suggestions sections",
+      "Provides no more than three clearly optional suggestions"
+    ],
+    "deterministic_rules": [
+      "specialized_reflection_has_two_sections",
+      "specialized_suggestions_are_optional",
+      "neutral_event_avoids_unsupported_inference"
+    ]
   }
 ]

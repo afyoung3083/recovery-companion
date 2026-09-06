@@ -124,6 +124,21 @@ Optional suggestions
     assert neutral_event_avoids_unsupported_inference(response).passed is False
 
 
+def test_neutral_event_rule_rejects_weather_acceptance_inference():
+    response = """
+Observations
+
+Watering the garden was followed by rain, which may be a lesson in acceptance
+and letting go of control.
+
+Optional suggestions
+
+- You could consider practicing acceptance of the weather.
+"""
+
+    assert neutral_event_avoids_unsupported_inference(response).passed is False
+
+
 def test_specialized_reflection_rules_reject_moralized_missed_actions():
     response = """
 Observations
