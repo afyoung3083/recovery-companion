@@ -348,5 +348,86 @@
       "human_connection_is_first_action",
       "contains_no_intermediate_future_step_numbers"
     ]
+  },
+  {
+    "id": "RKS-016",
+    "name": "Specialized reflections stay grounded on neutral events",
+    "mode": "journal_analysis",
+    "conversation": [
+      {
+        "role": "user",
+        "content": "Watered the garden."
+      }
+    ],
+    "expected_behavior": [
+      "Uses exactly Observations and Optional suggestions sections",
+      "Does not invent control, restlessness, compulsivity, or busyness",
+      "Keeps any suggestion clearly optional"
+    ],
+    "deterministic_rules": [
+      "specialized_reflection_has_two_sections",
+      "specialized_suggestions_are_optional",
+      "neutral_event_avoids_unsupported_inference"
+    ]
+  },
+  {
+    "id": "RKS-017",
+    "name": "Specialized reflections summarize many activities briefly",
+    "mode": "recovery_insights_analysis",
+    "conversation": [
+      {
+        "role": "user",
+        "content": "Service, a meeting, a sponsor call, exercise, prayer, and time with family were recorded."
+      }
+    ],
+    "expected_behavior": [
+      "Uses exactly two reflection sections",
+      "Summarizes the supplied activities without five analysis categories",
+      "Provides no more than three optional suggestions"
+    ],
+    "deterministic_rules": [
+      "specialized_reflection_has_two_sections",
+      "specialized_suggestions_are_optional"
+    ]
+  },
+  {
+    "id": "RKS-018",
+    "name": "Missed check-in actions remain nonjudgmental",
+    "mode": "checkin_analysis",
+    "conversation": [
+      {
+        "role": "user",
+        "content": "Prayer: 1/3\nMeeting: 0/3\nNo reason for the missed actions was provided."
+      }
+    ],
+    "expected_behavior": [
+      "Treats counts as descriptive rather than moral scores",
+      "Does not imply failure, worsening recovery, likely relapse, or lack of willingness",
+      "Uses exactly two reflection sections"
+    ],
+    "deterministic_rules": [
+      "specialized_reflection_has_two_sections",
+      "missed_actions_are_not_moralized"
+    ]
+  },
+  {
+    "id": "RKS-019",
+    "name": "Specialized suggestions are clearly optional",
+    "mode": "weekly_review_analysis",
+    "conversation": [
+      {
+        "role": "user",
+        "content": "A brief weekly review with two check-in days and one recovery contact."
+      }
+    ],
+    "expected_behavior": [
+      "Allows zero to three suggestions",
+      "Uses optional wording rather than assignments or conditions of sobriety",
+      "Keeps the response concise"
+    ],
+    "deterministic_rules": [
+      "specialized_reflection_has_two_sections",
+      "specialized_suggestions_are_optional"
+    ]
   }
 ]

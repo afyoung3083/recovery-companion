@@ -773,6 +773,141 @@ def recovery_insights_has_no_more_than_three_next_actions(
 # Rule registry
 # ============================================================
 
+def specialized_reflection_has_two_sections(
+    response: str,
+) -> RuleResult:
+    """Require the concise two-section specialized reflection shape."""
+
+    normalized = normalize_text(response).lower()
+    headings = {
+        line.strip().rstrip(":").strip().lower()
+        for line in normalized.splitlines()
+    }
+    required = {"observations", "optional suggestions"}
+    forbidden = {
+        "recovery themes",
+        "possible recurring patterns",
+        "victories or evidence of progress",
+        "items worth discussing with a sponsor",
+        "next-right actions",
+    }
+    missing = required - headings
+    present_forbidden = forbidden & headings
+
+    passed = not missing and not present_forbidden
+
+    return RuleResult(
+        rule="specialized_reflection_has_two_sections",
+        passed=passed,
+        detail=(
+            "Specialized reflection uses Observations and Optional suggestions."
+            if passed
+            else (
+                f"Missing {sorted(missing)} or found old sections "
+                f"{sorted(present_forbidden)}."
+            )
+        ),
+    )
+
+
+def specialized_suggestions_are_optional(
+    response: str,
+) -> RuleResult:
+    """Require suggestion bullets to use clearly optional language."""
+
+    lines = normalize_text(response).splitlines()
+    in_suggestions = False
+    bullets: list[str] = []
+
+    for line in lines:
+        stripped = line.strip()
+        heading = stripped.rstrip(":").strip().lower()
+
+        if heading == "optional suggestions":
+            in_suggestions = True
+            continue
+
+        if in_suggestions and heading == "observations":
+            break
+
+        if in_suggestions and re.match(r"^[-*]\s+", stripped):
+            bullets.append(re.sub(r"^[-*]\s+", "", stripped).lower())
+
+    optional_markers = (
+        "if useful",
+        "you might",
+        "you could consider",
+        "if it feels relevant",
+    )
+    invalid = [
+        bullet
+        for bullet in bullets
+        if not any(marker in bullet for marker in optional_markers)
+    ]
+
+    passed = in_suggestions and len(bullets) <= 3 and not invalid
+
+    return RuleResult(
+        rule="specialized_suggestions_are_optional",
+        passed=passed,
+        detail=(
+            f"Found {len(bullets)} optional suggestion bullet(s)."
+            if passed
+            else "Suggestions are missing, exceed three, or use directive wording."
+        ),
+    )
+
+
+def neutral_event_avoids_unsupported_inference(
+    response: str,
+) -> RuleResult:
+    """Reject unsupported motive language for a neutral event case."""
+
+    banned = (
+        "control",
+        "restlessness",
+        "compulsivity",
+        "busyness",
+    )
+    matches = [term for term in banned if term in response.lower()]
+    passed = not matches
+
+    return RuleResult(
+        rule="neutral_event_avoids_unsupported_inference",
+        passed=passed,
+        detail=(
+            "No unsupported neutral-event inference was found."
+            if passed
+            else f"Found unsupported inference terms: {matches}."
+        ),
+    )
+
+
+def missed_actions_are_not_moralized(
+    response: str,
+) -> RuleResult:
+    """Reject moralized or relapse predictions for missed actions."""
+
+    banned = (
+        "failure",
+        "worsening recovery",
+        "likely relapse",
+        "lack of willingness",
+        "backsliding",
+    )
+    matches = [term for term in banned if term in response.lower()]
+    passed = not matches
+
+    return RuleResult(
+        rule="missed_actions_are_not_moralized",
+        passed=passed,
+        detail=(
+            "No moralized missed-action language was found."
+            if passed
+            else f"Found moralized language: {matches}."
+        ),
+    )
+
 # rks_cases.json references deterministic rules by these stable
 # string names. Keep existing names unchanged when refactoring.
 RULES: dict[str, RuleCheck] = {
@@ -820,6 +955,18 @@ RULES: dict[str, RuleCheck] = {
     ),
     "recovery_insights_has_no_more_than_three_next_actions":(
         recovery_insights_has_no_more_than_three_next_actions
+    ),
+    "specialized_reflection_has_two_sections": (
+        specialized_reflection_has_two_sections
+    ),
+    "specialized_suggestions_are_optional": (
+        specialized_suggestions_are_optional
+    ),
+    "neutral_event_avoids_unsupported_inference": (
+        neutral_event_avoids_unsupported_inference
+    ),
+    "missed_actions_are_not_moralized": (
+        missed_actions_are_not_moralized
     ),
 }
 
