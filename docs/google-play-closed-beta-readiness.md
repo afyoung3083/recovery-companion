@@ -11,7 +11,7 @@
 - Release signing: dedicated Recovery Companion upload key
 - Android backup: disabled
 - Production API: https://api.recoverycompanionlabs.com
-- Sprint 58 closed-beta candidate: 1.22.0+10
+- Sprint 58 timeout-hotfix candidate: 1.22.0+11
 "@
 )
 
