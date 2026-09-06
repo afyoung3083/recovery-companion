@@ -33,8 +33,9 @@ class _FellowshipScreenState extends State<FellowshipScreen> {
 
   final TextEditingController _handleController = TextEditingController();
 
-  final TextEditingController _contactMethodController =
-      TextEditingController();
+  final TextEditingController _phoneController = TextEditingController();
+
+  final TextEditingController _emailController = TextEditingController();
 
   final TextEditingController _notesController = TextEditingController();
 
@@ -55,7 +56,8 @@ class _FellowshipScreenState extends State<FellowshipScreen> {
   @override
   void dispose() {
     _handleController.dispose();
-    _contactMethodController.dispose();
+    _phoneController.dispose();
+    _emailController.dispose();
     _notesController.dispose();
     super.dispose();
   }
@@ -134,14 +136,23 @@ class _FellowshipScreenState extends State<FellowshipScreen> {
         await localRepository.createContact(
           handle: handle,
           contactType: _contactType,
-          contactMethod: _contactMethodController.text.trim(),
+          phone: _phoneController.text.trim(),
+          email: _emailController.text.trim(),
           notes: _notesController.text.trim(),
         );
       } else {
+        if (_phoneController.text.trim().isNotEmpty ||
+            _emailController.text.trim().isNotEmpty) {
+          setState(() {
+            _error = 'Phone and email require local-first storage and cannot be saved through the current connection.';
+            _saving = false;
+          });
+          return;
+        }
+
         await widget.apiClient.createFellowshipContact(
           handle: handle,
           contactType: _contactType,
-          contactMethod: _contactMethodController.text.trim(),
           notes: _notesController.text.trim(),
         );
       }
@@ -151,7 +162,8 @@ class _FellowshipScreenState extends State<FellowshipScreen> {
       }
 
       _handleController.clear();
-      _contactMethodController.clear();
+      _phoneController.clear();
+      _emailController.clear();
       _notesController.clear();
 
       setState(() {
@@ -273,6 +285,7 @@ class _FellowshipScreenState extends State<FellowshipScreen> {
             child: Column(
               children: [
                 TextField(
+                  key: const ValueKey('fellowship-add-handle'),
                   controller: _handleController,
                   decoration: const InputDecoration(
                     labelText: 'Name or handle',
@@ -312,11 +325,23 @@ class _FellowshipScreenState extends State<FellowshipScreen> {
                 const SizedBox(height: 14),
 
                 TextField(
-                  controller: _contactMethodController,
+                  key: const ValueKey('fellowship-add-phone'),
+                  controller: _phoneController,
                   decoration: const InputDecoration(
-                    labelText: 'Contact method',
-                    hintText: 'Phone, email, etc.',
-                    prefixIcon: Icon(Icons.contact_phone_outlined),
+                    labelText: 'Phone',
+                    prefixIcon: Icon(Icons.phone_outlined),
+                  ),
+                ),
+
+                const SizedBox(height: 14),
+
+                TextField(
+                  key: const ValueKey('fellowship-add-email'),
+                  controller: _emailController,
+                  keyboardType: TextInputType.emailAddress,
+                  decoration: const InputDecoration(
+                    labelText: 'Email',
+                    prefixIcon: Icon(Icons.email_outlined),
                   ),
                 ),
 
@@ -338,6 +363,7 @@ class _FellowshipScreenState extends State<FellowshipScreen> {
                 SizedBox(
                   width: double.infinity,
                   child: FilledButton.icon(
+                    key: const ValueKey('fellowship-add-submit'),
                     onPressed: _saving ? null : _addContact,
                     icon: _saving
                         ? const SizedBox(
@@ -456,9 +482,18 @@ class _ContactTile extends StatelessWidget {
       (contact['contact_type'] ?? 'other').toString(),
     );
 
-    final method = (contact['contact_method'] ?? '').toString().trim();
+    final phone = (contact['phone'] ?? '').toString().trim();
+    final email = (contact['email'] ?? '').toString().trim();
+    final legacyMethod = (contact['contact_method'] ?? '').toString().trim();
 
     final active = contact['active'] != false;
+
+    final details = <String>[
+      type,
+      if (phone.isNotEmpty) 'Phone: $phone',
+      if (email.isNotEmpty) 'Email: $email',
+      if (legacyMethod.isNotEmpty) 'Other contact info: $legacyMethod',
+    ];
 
     return ListTile(
       key: ValueKey('fellowship-contact-${contact['id']}'),
@@ -481,7 +516,7 @@ class _ContactTile extends StatelessWidget {
         ),
       ),
       title: Text(handle, style: const TextStyle(fontWeight: FontWeight.w600)),
-      subtitle: Text(method.isEmpty ? type : '$type ? $method'),
+      subtitle: Text(details.join('\n')),
       trailing: const Icon(Icons.chevron_right),
       onTap: onTap,
     );

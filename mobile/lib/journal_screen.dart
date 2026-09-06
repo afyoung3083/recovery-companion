@@ -285,6 +285,27 @@ class _JournalScreenState extends State<JournalScreen> {
     }
   }
 
+  Future<void> _editEntry(Map<String, dynamic> entry) async {
+    final localRepository = widget.localRepository;
+
+    if (localRepository == null) {
+      return;
+    }
+
+    final updated = await showDialog<bool>(
+      context: context,
+      builder: (_) =>
+          _JournalEntryEditDialog(entry: entry, repository: localRepository),
+    );
+
+    if (updated == true && mounted) {
+      _loadAll();
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Journal entry updated.')));
+    }
+  }
+
   List<Map<String, dynamic>> _entriesFrom(Map<String, dynamic>? data) {
     final rawEntries = data?['entries'];
 
@@ -497,8 +518,11 @@ class _JournalScreenState extends State<JournalScreen> {
                               ? _reflection
                               : null,
                           canAnalyze:
-                              !readResult.isCached &&
-                              _analyzingEntryId == null,
+                              !readResult.isCached && _analyzingEntryId == null,
+                          canEdit: widget.localRepository != null,
+                          onEdit: (entry) {
+                            _editEntry(entry);
+                          },
                           onAnalyze: (entryId) {
                             _analyzeEntry(entryId: entryId);
                           },
@@ -520,6 +544,8 @@ class _JournalEntryCard extends StatelessWidget {
     required this.analyzing,
     required this.reflection,
     required this.canAnalyze,
+    required this.canEdit,
+    required this.onEdit,
     required this.onAnalyze,
   });
 
@@ -527,6 +553,8 @@ class _JournalEntryCard extends StatelessWidget {
   final bool analyzing;
   final String? reflection;
   final bool canAnalyze;
+  final bool canEdit;
+  final ValueChanged<Map<String, dynamic>> onEdit;
   final ValueChanged<int> onAnalyze;
 
   @override
@@ -601,6 +629,21 @@ class _JournalEntryCard extends StatelessWidget {
                 ?.copyWith(height: 1.45),
           ),
 
+          if (canEdit) ...[
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                key: ValueKey('journal-edit-$id'),
+                onPressed: () {
+                  onEdit(entry);
+                },
+                icon: const Icon(Icons.edit_outlined),
+                label: const Text('Edit Entry'),
+              ),
+            ),
+          ],
+
           if (id is int) ...[
             const SizedBox(height: 16),
 
@@ -658,6 +701,157 @@ class _JournalEntryCard extends StatelessWidget {
           ],
         ],
       ),
+    );
+  }
+}
+
+class _JournalEntryEditDialog extends StatefulWidget {
+  const _JournalEntryEditDialog({
+    required this.entry,
+    required this.repository,
+  });
+
+  final Map<String, dynamic> entry;
+  final LocalJournalRepository repository;
+
+  @override
+  State<_JournalEntryEditDialog> createState() =>
+      _JournalEntryEditDialogState();
+}
+
+class _JournalEntryEditDialogState extends State<_JournalEntryEditDialog> {
+  late final TextEditingController _textController;
+  late final TextEditingController _tagsController;
+
+  bool _saving = false;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _textController = TextEditingController(
+      text: (widget.entry['text'] ?? '').toString(),
+    );
+    final rawTags = widget.entry['tags'];
+    final tags = rawTags is List
+        ? rawTags.map((tag) => tag.toString()).join(', ')
+        : '';
+    _tagsController = TextEditingController(text: tags);
+  }
+
+  @override
+  void dispose() {
+    _textController.dispose();
+    _tagsController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _save() async {
+    final text = _textController.text.trim();
+
+    if (text.isEmpty) {
+      setState(() {
+        _error = 'Write something before saving this journal entry.';
+      });
+      return;
+    }
+
+    final entryId = widget.entry['id'];
+    if (entryId is! int) {
+      setState(() {
+        _error =
+            'This journal entry cannot be edited because its ID is missing.';
+      });
+      return;
+    }
+
+    final tags = _tagsController.text
+        .split(',')
+        .map((tag) => tag.trim())
+        .where((tag) => tag.isNotEmpty)
+        .toList();
+
+    setState(() {
+      _saving = true;
+      _error = null;
+    });
+
+    try {
+      await widget.repository.updateEntry(
+        entryId: entryId,
+        text: text,
+        tags: tags,
+      );
+
+      if (mounted) {
+        Navigator.of(context).pop(true);
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          _saving = false;
+          _error = 'Unable to update this journal entry. Please try again.';
+        });
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final date = (widget.entry['date'] ?? widget.entry['created_at'] ?? '')
+        .toString();
+
+    return AlertDialog(
+      title: const Text('Edit Journal Entry'),
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (date.isNotEmpty) ...[
+              Text('Original date: $date'),
+              const SizedBox(height: 16),
+            ],
+            TextField(
+              key: const ValueKey('journal-edit-text'),
+              controller: _textController,
+              minLines: 5,
+              maxLines: 8,
+              decoration: const InputDecoration(
+                labelText: 'Journal entry',
+                alignLabelWithHint: true,
+              ),
+            ),
+            const SizedBox(height: 14),
+            TextField(
+              key: const ValueKey('journal-edit-tags'),
+              controller: _tagsController,
+              decoration: const InputDecoration(
+                labelText: 'Tags (optional)',
+                hintText: 'connection, sponsor',
+              ),
+            ),
+            if (_error != null) ...[
+              const SizedBox(height: 14),
+              Text(
+                _error!,
+                style: TextStyle(color: Theme.of(context).colorScheme.error),
+              ),
+            ],
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: _saving ? null : () => Navigator.of(context).pop(false),
+          child: const Text('Cancel'),
+        ),
+        FilledButton(
+          key: const ValueKey('journal-edit-save'),
+          onPressed: _saving ? null : _save,
+          child: Text(_saving ? 'Saving...' : 'Save Changes'),
+        ),
+      ],
     );
   }
 }

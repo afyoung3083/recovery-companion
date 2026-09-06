@@ -15,7 +15,8 @@ existing app without losing encrypted local recovery data. Recovery Companion
 Chat and Daily Recovery AI also worked from a physical Android phone over
 cellular data.
 
-Build 1.22.0+9 is the corrected Sprint 57 candidate. It fixes Journal AI
+Build 1.22.0+11 is the Sprint 58 timeout-hotfix candidate. It includes the
+concise, grounded AI reflection updates and fixes Journal AI
 reflection for authoritative local-first Journal entries.
 
 ## Purpose

@@ -216,7 +216,7 @@ def test_runbook_documents_live_service_and_boundary():
         "It must not run:",
         "app.api:app",
         "Google Play Internal testing",
-        "Build 1.22.0+9",
+        "Build 1.22.0+11",
         "Verified Sprint 57 deployment",
         "The Render Blueprint is deployed in production.",
     )

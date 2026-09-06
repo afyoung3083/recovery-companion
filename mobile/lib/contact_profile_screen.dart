@@ -34,12 +34,15 @@ class _ContactProfileScreenState extends State<ContactProfileScreen> {
   ];
 
   late final TextEditingController _handleController;
-  late final TextEditingController _contactMethodController;
+  late final TextEditingController _phoneController;
+  late final TextEditingController _emailController;
+  late final TextEditingController _legacyContactMethodController;
   late final TextEditingController _notesController;
 
   late String _contactType;
   late bool _active;
   late bool _originalActive;
+  late bool _hasLegacyContactMethod;
 
   bool _saving = false;
   String? _error;
@@ -52,9 +55,21 @@ class _ContactProfileScreenState extends State<ContactProfileScreen> {
       text: (widget.contact['handle'] ?? '').toString(),
     );
 
-    _contactMethodController = TextEditingController(
+    _phoneController = TextEditingController(
+      text: (widget.contact['phone'] ?? '').toString(),
+    );
+
+    _emailController = TextEditingController(
+      text: (widget.contact['email'] ?? '').toString(),
+    );
+
+    _legacyContactMethodController = TextEditingController(
       text: (widget.contact['contact_method'] ?? '').toString(),
     );
+
+    _hasLegacyContactMethod = _legacyContactMethodController.text
+        .trim()
+        .isNotEmpty;
 
     _notesController = TextEditingController(
       text: (widget.contact['notes'] ?? '').toString(),
@@ -73,7 +88,9 @@ class _ContactProfileScreenState extends State<ContactProfileScreen> {
   @override
   void dispose() {
     _handleController.dispose();
-    _contactMethodController.dispose();
+    _phoneController.dispose();
+    _emailController.dispose();
+    _legacyContactMethodController.dispose();
     _notesController.dispose();
     super.dispose();
   }
@@ -111,7 +128,11 @@ class _ContactProfileScreenState extends State<ContactProfileScreen> {
           contactId: contactId,
           handle: handle,
           contactType: _contactType,
-          contactMethod: _contactMethodController.text.trim(),
+          contactMethod: _hasLegacyContactMethod
+              ? _legacyContactMethodController.text.trim()
+              : null,
+          phone: _phoneController.text.trim(),
+          email: _emailController.text.trim(),
           notes: _notesController.text.trim(),
         );
 
@@ -122,11 +143,20 @@ class _ContactProfileScreenState extends State<ContactProfileScreen> {
           );
         }
       } else {
+        if (_phoneController.text.trim().isNotEmpty ||
+            _emailController.text.trim().isNotEmpty) {
+          throw StateError(
+            'Phone and email require local-first storage and cannot be saved through the current connection.',
+          );
+        }
+
         await widget.apiClient.updateFellowshipContact(
           contactId: contactId,
           handle: handle,
           contactType: _contactType,
-          contactMethod: _contactMethodController.text.trim(),
+          contactMethod: _hasLegacyContactMethod
+              ? _legacyContactMethodController.text.trim()
+              : '',
           notes: _notesController.text.trim(),
         );
 
@@ -240,14 +270,39 @@ class _ContactProfileScreenState extends State<ContactProfileScreen> {
                 const SizedBox(height: 14),
 
                 TextField(
-                  key: const ValueKey('contact-profile-method'),
-                  controller: _contactMethodController,
+                  key: const ValueKey('contact-profile-phone'),
+                  controller: _phoneController,
+                  keyboardType: TextInputType.phone,
                   decoration: const InputDecoration(
-                    labelText: 'Contact method',
-                    hintText: 'Phone, email, Signal, etc.',
-                    prefixIcon: Icon(Icons.contact_phone_outlined),
+                    labelText: 'Phone',
+                    prefixIcon: Icon(Icons.phone_outlined),
                   ),
                 ),
+
+                const SizedBox(height: 14),
+
+                TextField(
+                  key: const ValueKey('contact-profile-email'),
+                  controller: _emailController,
+                  keyboardType: TextInputType.emailAddress,
+                  decoration: const InputDecoration(
+                    labelText: 'Email',
+                    prefixIcon: Icon(Icons.email_outlined),
+                  ),
+                ),
+
+                if (_hasLegacyContactMethod) ...[
+                  const SizedBox(height: 14),
+                  TextField(
+                    key: const ValueKey('contact-profile-legacy-method'),
+                    controller: _legacyContactMethodController,
+                    decoration: const InputDecoration(
+                      labelText: 'Other contact info (legacy)',
+                      helperText: 'This value came from an earlier beta and is kept as entered.',
+                      prefixIcon: Icon(Icons.contact_phone_outlined),
+                    ),
+                  ),
+                ],
 
                 const SizedBox(height: 14),
 

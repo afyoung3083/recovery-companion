@@ -8,7 +8,7 @@ the closed-testing group.
 - Application ID: `com.recoverycompanionlabs.recoverycompanion`
 - Application label: `Recovery Companion`
 - Previous closed-beta version: `1.21.0+6`
-- Sprint 57 corrected candidate: `1.22.0+9`
+- Sprint 58 timeout-hotfix candidate: `1.22.0+11`
 - Upload-key alias: `recovery-companion-upload`
 - Production API: `https://api.recoverycompanionlabs.com`
 

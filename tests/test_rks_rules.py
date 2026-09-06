@@ -3,6 +3,10 @@ from tests.rks_rules import (
     has_exactly_one_numbered_action,
     has_no_more_than_three_numbered_actions,
     human_connection_is_first_action,
+    missed_actions_are_not_moralized,
+    neutral_event_avoids_unsupported_inference,
+    specialized_reflection_has_two_sections,
+    specialized_suggestions_are_optional,
 )
 
 
@@ -76,6 +80,60 @@ Next-right actions
     )
 
     assert result.passed is False
+
+
+def test_specialized_reflection_rules_accept_concise_optional_response():
+    response = """
+Observations
+
+Watering the garden is the activity described. No reason for it is provided.
+That detail can remain simply descriptive.
+
+Optional suggestions
+
+- If useful, you might notice what stood out to you while doing it.
+"""
+
+    assert specialized_reflection_has_two_sections(response).passed is True
+    assert specialized_suggestions_are_optional(response).passed is True
+    assert neutral_event_avoids_unsupported_inference(response).passed is True
+
+
+def test_specialized_reflection_rules_reject_old_sections_and_directives():
+    response = """
+Observed strengths
+- You did well.
+
+Next-right actions
+- Call your sponsor.
+"""
+
+    assert specialized_reflection_has_two_sections(response).passed is False
+    assert specialized_suggestions_are_optional(response).passed is False
+
+
+def test_specialized_reflection_rules_reject_unsupported_neutral_inference():
+    response = """
+Observations
+
+Watering the garden may reflect control and restlessness.
+
+Optional suggestions
+"""
+
+    assert neutral_event_avoids_unsupported_inference(response).passed is False
+
+
+def test_specialized_reflection_rules_reject_moralized_missed_actions():
+    response = """
+Observations
+
+Two check-in actions were missed, showing worsening recovery and likely relapse.
+
+Optional suggestions
+"""
+
+    assert missed_actions_are_not_moralized(response).passed is False
 
 
 def test_ranked_rules_require_action_section():

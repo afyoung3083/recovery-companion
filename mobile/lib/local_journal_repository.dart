@@ -109,6 +109,41 @@ class LocalJournalRepository {
     return {'entry': entry};
   }
 
+  Future<Map<String, dynamic>> updateEntry({
+    required int entryId,
+    required String text,
+    required List<String> tags,
+  }) async {
+    final document = await store.read();
+    final data = Map<String, dynamic>.from(document['data'] as Map);
+
+    final rawEntries = data['journal_entries'];
+    final entries = rawEntries is List
+        ? rawEntries
+              .whereType<Map>()
+              .map((entry) => Map<String, dynamic>.from(entry))
+              .toList()
+        : <Map<String, dynamic>>[];
+
+    final index = entries.indexWhere((entry) => entry['id'] == entryId);
+
+    if (index < 0) {
+      throw StateError('Journal entry $entryId was not found.');
+    }
+
+    entries[index] = {
+      ...entries[index],
+      'text': text,
+      'tags': List<String>.from(tags),
+      'updated_at': _now().toUtc().toIso8601String(),
+    };
+
+    data['journal_entries'] = entries;
+    await store.write(data);
+
+    return {'entry': entries[index]};
+  }
+
   Future<List<Map<String, dynamic>>> _readEntries() async {
     final document = await store.read();
     final data = Map<String, dynamic>.from(document['data'] as Map);

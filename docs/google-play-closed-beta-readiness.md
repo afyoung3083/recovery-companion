@@ -5,13 +5,13 @@
 - Application ID: `com.recoverycompanionlabs.recoverycompanion`
 - App name: Recovery Companion
 - Version name: `1.22.0`
-- Version code: `9`
+- Version code: `10`
 - Target SDK: Android 16 / API 36
 - Distribution artifact: signed Android App Bundle (`.aab`)
 - Release signing: dedicated Recovery Companion upload key
 - Android backup: disabled
 - Production API: https://api.recoverycompanionlabs.com
-- Sprint 57 corrected candidate: 1.22.0+9
+- Sprint 58 timeout-hotfix candidate: 1.22.0+11
 "@
 )
 

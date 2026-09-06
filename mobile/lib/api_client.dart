@@ -8,6 +8,7 @@ class ApiClient {
     this.apiToken = '',
     http.Client? httpClient,
     this.requestTimeout = const Duration(seconds: 15),
+    this.reflectionTimeout = const Duration(seconds: 30),
   }) : _httpClient = _TimeoutClient(
          httpClient ?? http.Client(),
          requestTimeout,
@@ -16,7 +17,8 @@ class ApiClient {
   final String baseUrl;
   final String apiToken;
   final Duration requestTimeout;
-  final http.Client _httpClient;
+  final Duration reflectionTimeout;
+  final _TimeoutClient _httpClient;
 
   // ============================================================
   // Public endpoints
@@ -57,12 +59,13 @@ class ApiClient {
   }) async {
     final hasLocalSummary = summary != null && summary.trim().isNotEmpty;
 
-    final response = await _httpClient.post(
-      Uri.parse('$baseUrl/recovery-insights/ai-reflection'),
+    final response = await _postJson(
+      '/recovery-insights/ai-reflection',
       headers: hasLocalSummary
           ? {...authenticatedHeaders, 'Content-Type': 'application/json'}
           : authenticatedHeaders,
       body: hasLocalSummary ? jsonEncode({'summary': summary.trim()}) : null,
+      timeout: reflectionTimeout,
     );
 
     return _handleJsonResponse(response);
@@ -225,8 +228,8 @@ class ApiClient {
   }) async {
     final hasLocalSummary = summary != null && summary.trim().isNotEmpty;
 
-    final response = await _httpClient.post(
-      Uri.parse('$baseUrl/daily-checkin/ai-reflection'),
+    final response = await _postJson(
+      '/daily-checkin/ai-reflection',
       headers: hasLocalSummary
           ? {...authenticatedHeaders, 'Content-Type': 'application/json'}
           : authenticatedHeaders,
@@ -236,6 +239,7 @@ class ApiClient {
               'checkin_count': checkinCount ?? 0,
             })
           : null,
+      timeout: reflectionTimeout,
     );
 
     return _handleJsonResponse(response);
@@ -274,12 +278,13 @@ class ApiClient {
   }) async {
     final hasLocalText = entryText != null && entryText.trim().isNotEmpty;
 
-    final response = await _httpClient.post(
-      Uri.parse('$baseUrl/journal/$entryId/ai-reflection'),
+    final response = await _postJson(
+      '/journal/$entryId/ai-reflection',
       headers: hasLocalText
           ? {...authenticatedHeaders, 'Content-Type': 'application/json'}
           : authenticatedHeaders,
       body: hasLocalText ? jsonEncode({'text': entryText.trim()}) : null,
+      timeout: reflectionTimeout,
     );
 
     return _handleJsonResponse(response);
@@ -458,12 +463,13 @@ class ApiClient {
   }) async {
     final hasLocalSummary = summary != null && summary.trim().isNotEmpty;
 
-    final response = await _httpClient.post(
-      Uri.parse('$baseUrl/weekly-review/ai-reflection'),
+    final response = await _postJson(
+      '/weekly-review/ai-reflection',
       headers: hasLocalSummary
           ? {...authenticatedHeaders, 'Content-Type': 'application/json'}
           : authenticatedHeaders,
       body: hasLocalSummary ? jsonEncode({'summary': summary.trim()}) : null,
+      timeout: reflectionTimeout,
     );
 
     return _handleJsonResponse(response);
@@ -499,12 +505,13 @@ class ApiClient {
   }) async {
     final hasLocalSummary = summary != null && summary.trim().isNotEmpty;
 
-    final response = await _httpClient.post(
-      Uri.parse('$baseUrl/monthly-review/ai-reflection'),
+    final response = await _postJson(
+      '/monthly-review/ai-reflection',
       headers: hasLocalSummary
           ? {...authenticatedHeaders, 'Content-Type': 'application/json'}
           : authenticatedHeaders,
       body: hasLocalSummary ? jsonEncode({'summary': summary.trim()}) : null,
+      timeout: reflectionTimeout,
     );
 
     return _handleJsonResponse(response);
@@ -536,6 +543,22 @@ class ApiClient {
     );
 
     return _handleJsonResponse(response);
+  }
+
+  Future<http.Response> _postJson(
+    String path, {
+    required Map<String, String> headers,
+    String? body,
+    required Duration timeout,
+  }) async {
+    final request = http.Request('POST', Uri.parse('$baseUrl$path'))
+      ..headers.addAll(headers);
+
+    if (body != null) {
+      request.body = body;
+    }
+
+    return _httpClient.sendWithTimeout(request, timeout);
   }
 
   Map<String, dynamic> _handleJsonResponse(http.Response response) {
@@ -573,6 +596,14 @@ class _TimeoutClient extends http.BaseClient {
   @override
   Future<http.StreamedResponse> send(http.BaseRequest request) {
     return _inner.send(request).timeout(timeout);
+  }
+
+  Future<http.Response> sendWithTimeout(
+    http.BaseRequest request,
+    Duration requestTimeout,
+  ) async {
+    final response = await _inner.send(request).timeout(requestTimeout);
+    return http.Response.fromStream(response);
   }
 
   @override

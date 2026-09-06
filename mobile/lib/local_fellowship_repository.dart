@@ -27,6 +27,8 @@ class LocalFellowshipRepository {
     required String handle,
     required String contactType,
     String contactMethod = '',
+    String phone = '',
+    String email = '',
     String notes = '',
   }) async {
     final document = await store.read();
@@ -49,6 +51,8 @@ class LocalFellowshipRepository {
       'handle': handle,
       'contact_type': contactType,
       'contact_method': contactMethod,
+      'phone': phone,
+      'email': email,
       'notes': notes,
       'active': true,
       'created_at': DateTime.now().toUtc().toIso8601String(),
@@ -66,7 +70,9 @@ class LocalFellowshipRepository {
     required int contactId,
     required String handle,
     required String contactType,
-    String contactMethod = '',
+    String? contactMethod,
+    String phone = '',
+    String email = '',
     String notes = '',
   }) async {
     final document = await store.read();
@@ -84,7 +90,9 @@ class LocalFellowshipRepository {
       ...contacts[index],
       'handle': handle,
       'contact_type': contactType,
-      'contact_method': contactMethod,
+      ...?contactMethod == null ? null : {'contact_method': contactMethod},
+      'phone': phone,
+      'email': email,
       'notes': notes,
       'updated_at': DateTime.now().toUtc().toIso8601String(),
     };

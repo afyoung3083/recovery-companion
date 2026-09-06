@@ -111,6 +111,132 @@ void main() {
     );
   });
 
+  test(
+    'updates a selected entry while preserving its original fields',
+    () async {
+      await store.write({
+        'profile': {'sobriety_date': '2026-08-12'},
+        'journal_entries': [
+          {
+            'id': 7,
+            'text': 'Original entry',
+            'tags': ['old'],
+            'created_at': '2026-08-20T10:00:00Z',
+            'date': '2026-08-20',
+            'active_extension': 'preserve me',
+          },
+          {
+            'id': 8,
+            'text': 'Other entry',
+            'tags': ['other'],
+            'created_at': '2026-08-21T10:00:00Z',
+            'date': '2026-08-21',
+          },
+        ],
+      });
+
+      final updated = await repository.updateEntry(
+        entryId: 7,
+        text: 'Edited entry',
+        tags: ['new', 'connection'],
+      );
+
+      final entry = updated['entry'] as Map;
+      expect(entry['id'], 7);
+      expect(entry['text'], 'Edited entry');
+      expect(entry['tags'], ['new', 'connection']);
+      expect(entry['created_at'], '2026-08-20T10:00:00Z');
+      expect(entry['date'], '2026-08-20');
+      expect(entry['active_extension'], 'preserve me');
+      expect(entry['updated_at'], '2026-08-27T18:30:00.000Z');
+
+      final entries = (await repository.getEntries())['entries'] as List;
+      expect(
+        (entries.firstWhere((item) => (item as Map)['id'] == 8) as Map)['text'],
+        'Other entry',
+      );
+      expect(
+        (entries.firstWhere((item) => (item as Map)['id'] == 7) as Map)['text'],
+        'Edited entry',
+      );
+
+      final data = (await store.read())['data'] as Map;
+      expect((data['profile'] as Map)['sobriety_date'], '2026-08-12');
+    },
+  );
+
+  test('edited text is returned for AI reflection', () async {
+    await store.write({
+      'journal_entries': [
+        {
+          'id': 3,
+          'text': 'Before editing',
+          'tags': [],
+          'created_at': '2026-08-20T10:00:00Z',
+          'date': '2026-08-20',
+        },
+      ],
+    });
+
+    await repository.updateEntry(
+      entryId: 3,
+      text: 'After editing',
+      tags: ['honesty'],
+    );
+
+    expect(await repository.getEntryForAiReflection(3), {
+      'entry_id': 3,
+      'text': 'After editing',
+    });
+  });
+
+  test('missing entry update fails without modifying storage', () async {
+    await store.write({
+      'journal_entries': [
+        {
+          'id': 1,
+          'text': 'Existing entry',
+          'tags': [],
+          'created_at': '2026-08-20T10:00:00Z',
+          'date': '2026-08-20',
+        },
+      ],
+    });
+    final before = await store.dataFile.readAsString();
+
+    expect(
+      () => repository.updateEntry(
+        entryId: 999,
+        text: 'Must not be created',
+        tags: [],
+      ),
+      throwsA(isA<StateError>()),
+    );
+
+    expect(await store.dataFile.readAsString(), before);
+  });
+
+  test('read-only operations do not mutate the encrypted document', () async {
+    await store.write({
+      'journal_entries': [
+        {
+          'id': 2,
+          'text': 'Private entry',
+          'tags': ['private'],
+          'created_at': '2026-08-20T10:00:00Z',
+          'date': '2026-08-20',
+        },
+      ],
+    });
+    final before = await store.dataFile.readAsString();
+
+    await repository.getEntries();
+    await repository.search('private');
+    await repository.getEntryForAiReflection(2);
+
+    expect(await store.dataFile.readAsString(), before);
+  });
+
   test('preserves other authoritative recovery data', () async {
     await store.write({
       'profile': {'sobriety_date': '2026-08-12'},

@@ -68,6 +68,8 @@ void main() {
       handle: 'Sponsor Test',
       contactType: 'sponsor',
       contactMethod: '555-0100',
+      phone: '555-0100',
+      email: 'sponsor@example.test',
       notes: 'Call when struggling',
     );
 
@@ -82,6 +84,8 @@ void main() {
     expect(contact['handle'], 'Sponsor Test');
     expect(contact['contact_type'], 'sponsor');
     expect(contact['contact_method'], '555-0100');
+    expect(contact['phone'], '555-0100');
+    expect(contact['email'], 'sponsor@example.test');
 
     final encrypted = await store.dataFile.readAsString();
 
@@ -103,6 +107,8 @@ void main() {
       handle: 'Updated',
       contactType: 'sponsor',
       contactMethod: 'Signal',
+      phone: '555-0101',
+      email: 'updated@example.test',
       notes: 'Updated note',
     );
 
@@ -114,7 +120,127 @@ void main() {
 
     expect(contact['contact_type'], 'sponsor');
 
+    expect(contact['contact_method'], 'Signal');
+    expect(contact['phone'], '555-0101');
+    expect(contact['email'], 'updated@example.test');
     expect(contact['notes'], 'Updated note');
+  });
+
+  test('legacy contact_method-only contact remains readable', () async {
+    await store.write({
+      'fellowship_contacts': [
+        {
+          'id': 4,
+          'handle': 'Legacy Contact',
+          'contact_type': 'fellowship',
+          'contact_method': 'Signal',
+          'notes': 'Keep this value',
+          'active': true,
+        },
+      ],
+    });
+
+    final result = await repository.getContacts();
+    final contact = (result['contacts'] as List).single as Map;
+
+    expect(contact['contact_method'], 'Signal');
+    expect(contact.containsKey('phone'), isFalse);
+    expect(contact.containsKey('email'), isFalse);
+  });
+
+  test(
+    'updating a legacy contact preserves contact_method when omitted',
+    () async {
+      await store.write({
+        'fellowship_contacts': [
+          {
+            'id': 4,
+            'handle': 'Legacy Contact',
+            'contact_type': 'fellowship',
+            'contact_method': 'Phone',
+            'notes': 'Original note',
+            'active': true,
+          },
+        ],
+      });
+
+      await repository.updateContact(
+        contactId: 4,
+        handle: 'Updated Contact',
+        contactType: 'sponsor',
+        notes: 'Updated note',
+      );
+
+      final contact =
+          ((await repository.getContacts())['contacts'] as List).single as Map;
+
+      expect(contact['contact_method'], 'Phone');
+      expect(contact['handle'], 'Updated Contact');
+    },
+  );
+
+  test(
+    'updating phone and email preserves identity and unknown fields',
+    () async {
+      final createdAt = '2026-09-01T12:00:00Z';
+
+      await store.write({
+        'fellowship_contacts': [
+          {
+            'id': 8,
+            'handle': 'Original Contact',
+            'contact_type': 'sponsor',
+            'contact_method': 'Text',
+            'notes': 'Original note',
+            'active': false,
+            'created_at': createdAt,
+            'custom_field': 'preserve me',
+          },
+        ],
+      });
+
+      await repository.updateContact(
+        contactId: 8,
+        handle: 'Updated Contact',
+        contactType: 'sponsor',
+        phone: '555-0102',
+        email: 'updated@example.test',
+        notes: 'Updated note',
+      );
+
+      final contact =
+          ((await repository.getContacts())['contacts'] as List).single as Map;
+
+      expect(contact['id'], 8);
+      expect(contact['created_at'], createdAt);
+      expect(contact['active'], isFalse);
+      expect(contact['notes'], 'Updated note');
+      expect(contact['contact_method'], 'Text');
+      expect(contact['phone'], '555-0102');
+      expect(contact['email'], 'updated@example.test');
+      expect(contact['custom_field'], 'preserve me');
+      expect(contact['updated_at'], isA<String>());
+    },
+  );
+
+  test('reading contacts does not mutate the encrypted document', () async {
+    await store.write({
+      'fellowship_contacts': [
+        {
+          'id': 3,
+          'handle': 'Legacy Contact',
+          'contact_type': 'fellowship',
+          'contact_method': 'arbitrary text',
+          'active': true,
+        },
+      ],
+    });
+    final before = await store.dataFile.readAsString();
+
+    await repository.getContacts();
+
+    final after = await store.dataFile.readAsString();
+    expect(after, before);
   });
 
   test('inactive contacts are excluded from recommendations', () async {

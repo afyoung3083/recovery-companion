@@ -37,6 +37,7 @@ class _GoalsScreenState extends State<GoalsScreen> {
   ];
 
   late Future<OfflineReadResult> _goalsFuture;
+  late Future<OfflineReadResult> _completedGoalsFuture;
 
   final TextEditingController _textController = TextEditingController();
   final TextEditingController _targetDateController = TextEditingController();
@@ -80,10 +81,26 @@ class _GoalsScreenState extends State<GoalsScreen> {
     return result;
   }
 
+  Future<OfflineReadResult> _loadCompletedGoals() async {
+    final localRepository = widget.localRepository;
+
+    if (localRepository == null) {
+      return const OfflineReadResult(
+        data: {'goals': <Map<String, dynamic>>[]},
+        source: OfflineReadSource.network,
+      );
+    }
+
+    final data = await localRepository.getCompletedGoals();
+
+    return OfflineReadResult(data: data, source: OfflineReadSource.network);
+  }
+
   @override
   void initState() {
     super.initState();
     _goalsFuture = _loadGoals();
+    _completedGoalsFuture = _loadCompletedGoals();
   }
 
   @override
@@ -96,19 +113,22 @@ class _GoalsScreenState extends State<GoalsScreen> {
   void _refresh() {
     setState(() {
       _goalsFuture = _loadGoals();
+      _completedGoalsFuture = _loadCompletedGoals();
       _actionError = null;
     });
   }
 
   Future<void> _refreshAsync() async {
-    final future = _loadGoals();
+    final goalsFuture = _loadGoals();
+    final completedGoalsFuture = _loadCompletedGoals();
 
     setState(() {
-      _goalsFuture = future;
+      _goalsFuture = goalsFuture;
+      _completedGoalsFuture = completedGoalsFuture;
       _actionError = null;
     });
 
-    await future;
+    await Future.wait([goalsFuture, completedGoalsFuture]);
   }
 
   bool get _canEditTargetDate {
@@ -510,6 +530,57 @@ class _GoalsScreenState extends State<GoalsScreen> {
             );
           },
         ),
+
+        const SizedBox(height: 28),
+
+        const AppSectionTitle(
+          title: 'Completed Goals',
+          subtitle: 'A record of goals you have finished.',
+        ),
+
+        FutureBuilder<OfflineReadResult>(
+          future: _completedGoalsFuture,
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Padding(
+                padding: EdgeInsets.all(16),
+                child: Center(child: CircularProgressIndicator()),
+              );
+            }
+
+            if (snapshot.hasError) {
+              return const AppStatusMessage(
+                title: 'Completed goals unavailable',
+                message: 'Recovery Companion could not load completed goals.',
+                icon: Icons.flag_outlined,
+              );
+            }
+
+            final goals = _goalsFrom(snapshot.data!.data);
+
+            if (goals.isEmpty) {
+              return const AppStatusMessage(
+                title: 'No completed goals yet.',
+                message: 'Completed goals will remain available here.',
+                icon: Icons.flag_outlined,
+              );
+            }
+
+            return Column(
+              children: [
+                for (final goal in goals)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: _GoalCard(
+                      goal: goal,
+                      completed: true,
+                      saving: false,
+                    ),
+                  ),
+              ],
+            );
+          },
+        ),
       ],
     );
   }
@@ -532,12 +603,14 @@ class _GoalCard extends StatelessWidget {
   const _GoalCard({
     required this.goal,
     required this.saving,
-    required this.onComplete,
+    this.onComplete,
+    this.completed = false,
   });
 
   final Map<String, dynamic> goal;
   final bool saving;
-  final Future<void> Function(int) onComplete;
+  final Future<void> Function(int)? onComplete;
+  final bool completed;
 
   @override
   Widget build(BuildContext context) {
@@ -548,6 +621,9 @@ class _GoalCard extends StatelessWidget {
     final area = (goal['area'] ?? 'other').toString();
 
     final targetDate = (goal['target_date'] ?? '').toString();
+
+    final completedAt = (goal['completed_at'] ?? goal['completed_date'] ?? '')
+        .toString();
 
     return AppSectionCard(
       child: Column(
@@ -592,21 +668,32 @@ class _GoalCard extends StatelessWidget {
                   avatar: const Icon(Icons.event_outlined, size: 18),
                   label: Text(targetDate),
                 ),
+              if (completed)
+                Chip(
+                  avatar: const Icon(Icons.check_circle_outline, size: 18),
+                  label: Text(
+                    completedAt.isEmpty
+                        ? 'Completed'
+                        : 'Completed $completedAt',
+                  ),
+                ),
             ],
           ),
-          const SizedBox(height: 14),
-          Align(
-            alignment: Alignment.centerRight,
-            child: FilledButton.tonalIcon(
-              onPressed: saving || id == null
-                  ? null
-                  : () {
-                      onComplete(id);
-                    },
-              icon: const Icon(Icons.check),
-              label: const Text('Complete'),
+          if (!completed) ...[
+            const SizedBox(height: 14),
+            Align(
+              alignment: Alignment.centerRight,
+              child: FilledButton.tonalIcon(
+                onPressed: saving || id == null || onComplete == null
+                    ? null
+                    : () {
+                        onComplete!(id);
+                      },
+                icon: const Icon(Icons.check),
+                label: const Text('Complete'),
+              ),
             ),
-          ),
+          ],
         ],
       ),
     );
