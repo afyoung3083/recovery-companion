@@ -92,4 +92,76 @@ void main() {
       throwsA(isA<TimeoutException>()),
     );
   });
+
+  test('ordinary Chat requests use the general timeout', () async {
+    final mockClient = MockClient((request) async {
+      await Future<void>.delayed(const Duration(milliseconds: 40));
+      return http.Response('{"ok":true}', 200);
+    });
+
+    final apiClient = ApiClient(
+      baseUrl: 'http://example.test',
+      httpClient: mockClient,
+      requestTimeout: const Duration(milliseconds: 10),
+      reflectionTimeout: const Duration(milliseconds: 100),
+    );
+    addTearDown(apiClient.close);
+
+    await expectLater(
+      apiClient.sendChat(
+        conversation: const [
+          {'role': 'user', 'content': 'Timeout test'},
+        ],
+      ),
+      throwsA(isA<TimeoutException>()),
+    );
+  });
+
+  test('all reflection endpoints use the longer timeout', () async {
+    final reflectionCalls =
+        <String, Future<Map<String, dynamic>> Function(ApiClient)>{
+          'journal': (client) => client.analyzeJournalEntry(1),
+          'daily-checkin': (client) => client.analyzeRecentCheckins(),
+          'recovery-insights': (client) =>
+              client.getRecoveryInsightsAiReflection(),
+          'weekly-review': (client) => client.getWeeklyReviewAiReflection(),
+          'monthly-review': (client) => client.getMonthlyReviewAiReflection(),
+        };
+
+    for (final entry in reflectionCalls.entries) {
+      final mockClient = MockClient((request) async {
+        await Future<void>.delayed(const Duration(milliseconds: 40));
+        return http.Response('{"ok":true}', 200);
+      });
+
+      final apiClient = ApiClient(
+        baseUrl: 'http://example.test',
+        httpClient: mockClient,
+        requestTimeout: const Duration(milliseconds: 10),
+        reflectionTimeout: const Duration(milliseconds: 100),
+      );
+
+      addTearDown(apiClient.close);
+
+      final result = await entry.value(apiClient);
+      expect(result['ok'], isTrue, reason: entry.key);
+    }
+  });
+
+  test('reflection requests time out beyond the reflection timeout', () async {
+    final neverCompletes = Completer<http.Response>();
+    final mockClient = MockClient((request) => neverCompletes.future);
+    final apiClient = ApiClient(
+      baseUrl: 'http://example.test',
+      httpClient: mockClient,
+      requestTimeout: const Duration(milliseconds: 10),
+      reflectionTimeout: const Duration(milliseconds: 25),
+    );
+    addTearDown(apiClient.close);
+
+    await expectLater(
+      apiClient.analyzeJournalEntry(1),
+      throwsA(isA<TimeoutException>()),
+    );
+  });
 }

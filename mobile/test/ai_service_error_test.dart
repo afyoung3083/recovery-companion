@@ -9,10 +9,7 @@ import 'package:mobile/api_client.dart';
 void main() {
   test('authorization failures give beta-build guidance', () {
     final message = aiServiceErrorMessage(
-      const ApiException(
-        'Unauthorized',
-        statusCode: 401,
-      ),
+      const ApiException('Unauthorized', statusCode: 401),
     );
 
     expect(message, contains('beta build'));
@@ -22,10 +19,7 @@ void main() {
 
   test('rate limiting asks the user to wait', () {
     final message = aiServiceErrorMessage(
-      const ApiException(
-        'Too many requests',
-        statusCode: 429,
-      ),
+      const ApiException('Too many requests', statusCode: 429),
     );
 
     expect(message, contains('temporarily busy'));
@@ -35,10 +29,7 @@ void main() {
 
   test('provider failures do not expose internal details', () {
     final message = aiServiceErrorMessage(
-      const ApiException(
-        'Sensitive provider detail',
-        statusCode: 502,
-      ),
+      const ApiException('Sensitive provider detail', statusCode: 502),
     );
 
     expect(message, contains('temporarily unavailable'));
@@ -47,9 +38,7 @@ void main() {
   });
 
   test('network failures provide connection guidance', () {
-    final message = aiServiceErrorMessage(
-      const SocketException('offline'),
-    );
+    final message = aiServiceErrorMessage(const SocketException('offline'));
 
     expect(message, contains('could not reach the AI service'));
     expect(message, contains('internet connection'));
@@ -65,21 +54,17 @@ void main() {
     expect(message, isNot(contains('connection failed')));
   });
 
-  test('timeouts use network guidance', () {
-    final message = aiServiceErrorMessage(
-      TimeoutException('timeout'),
-    );
+  test('timeouts explain that the AI service is taking longer', () {
+    final message = aiServiceErrorMessage(TimeoutException('timeout'));
 
-    expect(message, contains('could not reach the AI service'));
+    expect(message, contains('taking longer than expected'));
+    expect(message, isNot(contains('internet connection')));
     expect(message, isNot(contains('timeout')));
   });
 
   test('oversized AI requests receive actionable guidance', () {
     final message = aiServiceErrorMessage(
-      const ApiException(
-        'Too large',
-        statusCode: 413,
-      ),
+      const ApiException('Too large', statusCode: 413),
     );
 
     expect(message, contains('too large'));

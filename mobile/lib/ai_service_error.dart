@@ -39,9 +39,13 @@ String aiServiceErrorMessage(Object error) {
     }
   }
 
+  if (error is TimeoutException) {
+    return "Recovery Companion's AI service is taking longer than expected. "
+        'Please try again. $_localDataReminder';
+  }
+
   if (error is SocketException ||
       error is HandshakeException ||
-      error is TimeoutException ||
       error is http.ClientException) {
     return 'Recovery Companion could not reach the AI service. '
         'Check your internet connection and try again. '
