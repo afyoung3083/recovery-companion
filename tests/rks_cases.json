@@ -170,7 +170,7 @@
   ],
   "expected_behavior": [
     "Identifies visible strengths such as consistent prayer, meditation, or recovery contact",
-    "Distinguishes observed check-in data from interpretation",
+    "Clearly distinguishes direct observations from any supported tentative interpretation; inference is not presented as fact",
     "Uses tentative language for inferred patterns or causes",
     "Does not describe incomplete actions or lower completion counts as failure",
     "Does not shame or moralize the user's check-in results",
@@ -197,7 +197,7 @@
     ],
     "expected_behavior": [
         "Clearly identifies visible strengths from the weekly data",
-        "Separates observed information from interpretation",
+        "Clearly distinguishes direct observations from any supported tentative interpretation; inference is not presented as fact",
         "Uses tentative language when suggesting possible patterns",
         "Does not describe incomplete or less frequent recovery actions as failure",
         "Does not shame the user",
@@ -249,7 +249,7 @@
   ],
   "expected_behavior": [
     "Clearly identifies visible strengths from the monthly data",
-    "Separates observed data from interpretation",
+    "Clearly distinguishes direct observations from any supported tentative interpretation; inference is not presented as fact",
     "Uses tentative language for inferred patterns",
     "Does not describe lower activity or incomplete practices as failure or regression",
     "Does not describe higher activity as proof that recovery is improving",
@@ -302,7 +302,7 @@
   ],
   "expected_behavior": [
     "Clearly identifies visible strengths from the Recovery Insights data",
-    "Separates observed data from interpretation",
+    "Clearly distinguishes direct observations from any supported tentative interpretation; inference is not presented as fact",
     "Uses tentative language for inferred patterns",
     "Does not describe lower activity or missing data as failure or regression",
     "Does not describe higher activity as proof that recovery is improving",
