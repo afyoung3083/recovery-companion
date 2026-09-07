@@ -93,6 +93,9 @@ client = _LazyOpenAIClient()
 def generate_response(
     conversation: Conversation,
     instructions: str,
+    *,
+    reasoning_effort: str | None = None,
+    verbosity: str | None = None,
 ) -> str:
     """
     Generate a text response using the OpenAI Responses API.
@@ -105,6 +108,16 @@ def generate_response(
     instructions:
         Recovery-specific instructions that guide the model's
         behavior for this request.
+
+    reasoning_effort:
+        Optional Responses API reasoning effort override (for example
+        ``"low"``). Existing callers that omit this keep the model's
+        default reasoning effort.
+
+    verbosity:
+        Optional Responses API text verbosity override (for example
+        ``"low"``). Existing callers that omit this keep the model's
+        default verbosity.
 
     Returns
     -------
@@ -120,12 +133,20 @@ def generate_response(
     where Recovery Companion can sanitize and display them safely.
     """
 
-    response = get_client().responses.create(
-        model=MODEL_NAME,
-        instructions=instructions,
-        input=conversation,
-        store=False,
-    )
+    request_kwargs: dict[str, Any] = {
+        "model": MODEL_NAME,
+        "instructions": instructions,
+        "input": conversation,
+        "store": False,
+    }
+
+    if reasoning_effort is not None:
+        request_kwargs["reasoning"] = {"effort": reasoning_effort}
+
+    if verbosity is not None:
+        request_kwargs["text"] = {"verbosity": verbosity}
+
+    response = get_client().responses.create(**request_kwargs)
 
     output_text = response.output_text
 
