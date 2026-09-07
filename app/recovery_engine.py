@@ -27,6 +27,10 @@ def respond_to_user(
 
     Normal chat uses the external Recovery Companion system prompt
     stored in the configured prompt file.
+
+    Ordinary Chat requests low reasoning effort and low text verbosity
+    to reduce response-generation latency. Specialized AI reflections
+    are unaffected and keep the model's default settings.
     """
 
     system_prompt = load_system_prompt()
@@ -34,6 +38,8 @@ def respond_to_user(
     return generate_response(
         conversation=conversation,
         instructions=system_prompt,
+        reasoning_effort="low",
+        verbosity="low",
     )
 
 
