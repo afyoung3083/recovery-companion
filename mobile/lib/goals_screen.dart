@@ -325,6 +325,70 @@ class _GoalsScreenState extends State<GoalsScreen> {
     }
   }
 
+  Future<void> _editGoal(Map<String, dynamic> goal) async {
+    final localRepository = widget.localRepository;
+
+    if (localRepository == null) {
+      return;
+    }
+
+    final updated = await showDialog<bool>(
+      context: context,
+      builder: (_) => _GoalEditDialog(
+        goal: goal,
+        repository: localRepository,
+        now: widget.now,
+      ),
+    );
+
+    if (updated == true && mounted) {
+      await _refreshAsync();
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('Goal updated.')));
+    }
+  }
+
+  Future<void> _reactivateGoal(int goalId) async {
+    final localRepository = widget.localRepository;
+
+    if (localRepository == null) {
+      return;
+    }
+
+    setState(() {
+      _saving = true;
+      _actionError = null;
+    });
+
+    try {
+      await localRepository.reactivateGoal(goalId);
+      if (!mounted) {
+        return;
+      }
+      await _refreshAsync();
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('Goal reactivated.')));
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          _actionError = 'Unable to reactivate this goal. Please try again.';
+        });
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _saving = false;
+        });
+      }
+    }
+  }
+
   List<Map<String, dynamic>> _goalsFrom(Map<String, dynamic>? data) {
     final rawGoals = data?['goals'];
 
@@ -524,6 +588,9 @@ class _GoalsScreenState extends State<GoalsScreen> {
                             (readResult.isCached &&
                                 widget.localRepository == null),
                         onComplete: _completeGoal,
+                        onEdit: widget.localRepository == null
+                            ? null
+                            : _editGoal,
                       ),
                     ),
               ],
@@ -575,6 +642,10 @@ class _GoalsScreenState extends State<GoalsScreen> {
                       goal: goal,
                       completed: true,
                       saving: false,
+                      onEdit: widget.localRepository == null ? null : _editGoal,
+                      onReactivate: widget.localRepository == null
+                          ? null
+                          : _reactivateGoal,
                     ),
                   ),
               ],
@@ -604,12 +675,16 @@ class _GoalCard extends StatelessWidget {
     required this.goal,
     required this.saving,
     this.onComplete,
+    this.onEdit,
+    this.onReactivate,
     this.completed = false,
   });
 
   final Map<String, dynamic> goal;
   final bool saving;
   final Future<void> Function(int)? onComplete;
+  final Future<void> Function(Map<String, dynamic>)? onEdit;
+  final Future<void> Function(int)? onReactivate;
   final bool completed;
 
   @override
@@ -679,23 +754,238 @@ class _GoalCard extends StatelessWidget {
                 ),
             ],
           ),
-          if (!completed) ...[
+          if (onEdit != null || onReactivate != null || !completed) ...[
             const SizedBox(height: 14),
-            Align(
-              alignment: Alignment.centerRight,
-              child: FilledButton.tonalIcon(
-                onPressed: saving || id == null || onComplete == null
-                    ? null
-                    : () {
-                        onComplete!(id);
-                      },
-                icon: const Icon(Icons.check),
-                label: const Text('Complete'),
-              ),
+            Wrap(
+              alignment: WrapAlignment.end,
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                if (onEdit != null)
+                  OutlinedButton.icon(
+                    key: ValueKey('goal-edit-$id'),
+                    onPressed: saving
+                        ? null
+                        : () {
+                            onEdit!(goal);
+                          },
+                    icon: const Icon(Icons.edit_outlined),
+                    label: const Text('Edit'),
+                  ),
+                if (completed && onReactivate != null && id != null)
+                  FilledButton.tonalIcon(
+                    key: ValueKey('goal-reactivate-$id'),
+                    onPressed: saving ? null : () => onReactivate!(id),
+                    icon: const Icon(Icons.undo_outlined),
+                    label: const Text('Reactivate'),
+                  ),
+                if (!completed)
+                  FilledButton.tonalIcon(
+                    key: ValueKey('goal-complete-$id'),
+                    onPressed: saving || id == null || onComplete == null
+                        ? null
+                        : () {
+                            onComplete!(id);
+                          },
+                    icon: const Icon(Icons.check),
+                    label: const Text('Complete'),
+                  ),
+              ],
             ),
           ],
         ],
       ),
+    );
+  }
+}
+
+class _GoalEditDialog extends StatefulWidget {
+  const _GoalEditDialog({
+    required this.goal,
+    required this.repository,
+    this.now,
+  });
+
+  final Map<String, dynamic> goal;
+  final LocalGoalsRepository repository;
+  final DateTime Function()? now;
+
+  @override
+  State<_GoalEditDialog> createState() => _GoalEditDialogState();
+}
+
+class _GoalEditDialogState extends State<_GoalEditDialog> {
+  static const List<String> _areas = [
+    'connection',
+    'step_work',
+    'meetings',
+    'prayer',
+    'journal',
+    'service',
+    'health',
+    'other',
+  ];
+
+  late final TextEditingController _textController;
+  late final TextEditingController _targetDateController;
+  late String _area;
+  bool _saving = false;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _textController = TextEditingController(
+      text: (widget.goal['text'] ?? widget.goal['goal'] ?? '').toString(),
+    );
+    _targetDateController = TextEditingController(
+      text: (widget.goal['target_date'] ?? '').toString(),
+    );
+    final rawArea = (widget.goal['area'] ?? 'other').toString();
+    _area = _areas.contains(rawArea) ? rawArea : 'other';
+  }
+
+  @override
+  void dispose() {
+    _textController.dispose();
+    _targetDateController.dispose();
+    super.dispose();
+  }
+
+  DateTime _today() {
+    final current = (widget.now ?? DateTime.now)();
+    return DateTime(current.year, current.month, current.day);
+  }
+
+  Future<void> _chooseTargetDate() async {
+    final today = _today();
+    final selected = await showDatePicker(
+      context: context,
+      initialDate: DateTime.tryParse(_targetDateController.text) ?? today,
+      firstDate: today,
+      lastDate: DateTime(today.year + 20, 12, 31),
+      helpText: 'Choose goal target date',
+    );
+    if (selected == null || !mounted) {
+      return;
+    }
+    setState(() {
+      _targetDateController.text =
+          '${selected.year.toString().padLeft(4, '0')}-'
+          '${selected.month.toString().padLeft(2, '0')}-'
+          '${selected.day.toString().padLeft(2, '0')}';
+    });
+  }
+
+  Future<void> _save() async {
+    final goalId = widget.goal['id'];
+    final text = _textController.text.trim();
+    if (goalId is! int) {
+      setState(() {
+        _error = 'This goal cannot be edited because its ID is missing.';
+      });
+      return;
+    }
+    if (text.isEmpty) {
+      setState(() {
+        _error = 'Goal text is required.';
+      });
+      return;
+    }
+
+    setState(() {
+      _saving = true;
+      _error = null;
+    });
+
+    try {
+      await widget.repository.updateGoal(
+        goalId: goalId,
+        text: text,
+        area: _area,
+        targetDate: _targetDateController.text.trim(),
+      );
+      if (mounted) {
+        Navigator.of(context).pop(true);
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          _saving = false;
+          _error = 'Unable to update this goal. Please try again.';
+        });
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Edit Goal'),
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              key: const ValueKey('goal-edit-text'),
+              controller: _textController,
+              decoration: const InputDecoration(labelText: 'Goal'),
+            ),
+            const SizedBox(height: 14),
+            DropdownButtonFormField<String>(
+              key: const ValueKey('goal-edit-area'),
+              initialValue: _area,
+              decoration: const InputDecoration(labelText: 'Recovery area'),
+              items: _areas
+                  .map(
+                    (area) => DropdownMenuItem(
+                      value: area,
+                      child: Text(_GoalsScreenState._displayArea(area)),
+                    ),
+                  )
+                  .toList(),
+              onChanged: _saving
+                  ? null
+                  : (value) {
+                      if (value != null) {
+                        setState(() {
+                          _area = value;
+                        });
+                      }
+                    },
+            ),
+            const SizedBox(height: 14),
+            TextField(
+              key: const ValueKey('goal-edit-target-date'),
+              controller: _targetDateController,
+              readOnly: true,
+              onTap: _saving ? null : _chooseTargetDate,
+              decoration: const InputDecoration(
+                labelText: 'Target date',
+                prefixIcon: Icon(Icons.event_outlined),
+              ),
+            ),
+            if (_error != null) ...[
+              const SizedBox(height: 12),
+              Text(
+                _error!,
+                style: TextStyle(color: Theme.of(context).colorScheme.error),
+              ),
+            ],
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: _saving ? null : () => Navigator.of(context).pop(false),
+          child: const Text('Cancel'),
+        ),
+        FilledButton(
+          key: const ValueKey('goal-edit-save'),
+          onPressed: _saving ? null : _save,
+          child: Text(_saving ? 'Saving...' : 'Save Changes'),
+        ),
+      ],
     );
   }
 }
