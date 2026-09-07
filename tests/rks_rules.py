@@ -868,6 +868,11 @@ def neutral_event_avoids_unsupported_inference(
         "restlessness",
         "compulsivity",
         "busyness",
+        "acceptance",
+        "surrender",
+        "letting go",
+        "expectations",
+        "perfectionism",
     )
     matches = [term for term in banned if term in response.lower()]
     passed = not matches

@@ -73,6 +73,10 @@ def test_prompt_contract_requires_neutral_events_to_remain_grounded():
     assert "neutral activities may remain neutral" in instructions
     assert "isolated events or missing context" in instructions
     assert "Do not force an interpretation for every fact" in instructions
+    assert "ordinary neutral events or their sequence" in instructions
+    assert "Weather, chores, timing" in instructions
+    assert "coincidences" in instructions
+    assert "Optional suggestions must not introduce" in instructions
 
 
 def test_prompt_contract_treats_missed_checkins_as_descriptive():
