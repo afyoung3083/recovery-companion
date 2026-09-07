@@ -118,6 +118,171 @@ void main() {
     expect(savedGoal['active'], isFalse);
   });
 
+  test(
+    'updates active goal fields without changing lifecycle or identity',
+    () async {
+      await store.write({
+        'goals': [
+          {
+            'id': 4,
+            'text': 'Original active goal',
+            'area': 'health',
+            'target_date': '2026-09-10',
+            'active': true,
+            'completed': false,
+            'created_at': '2026-08-20T12:00:00Z',
+            'unknown_field': 'preserve me',
+          },
+          {'id': 5, 'text': 'Other goal', 'active': true, 'completed': false},
+        ],
+        'profile': {'sobriety_date': '2026-08-12'},
+      });
+
+      final result = await repository.updateGoal(
+        goalId: 4,
+        text: 'Updated active goal',
+        area: 'connection',
+        targetDate: '2026-09-20',
+      );
+
+      final goal = result['goal'] as Map;
+      expect(goal['id'], 4);
+      expect(goal['text'], 'Updated active goal');
+      expect(goal['area'], 'connection');
+      expect(goal['target_date'], '2026-09-20');
+      expect(goal['active'], isTrue);
+      expect(goal['completed'], isFalse);
+      expect(goal['created_at'], '2026-08-20T12:00:00Z');
+      expect(goal['unknown_field'], 'preserve me');
+
+      final active = (await repository.getGoals())['goals'] as List;
+      expect(
+        (active.firstWhere((item) => (item as Map)['id'] == 5) as Map)['text'],
+        'Other goal',
+      );
+      expect(
+        (active.firstWhere((item) => (item as Map)['id'] == 4) as Map)['text'],
+        'Updated active goal',
+      );
+
+      final data = (await store.read())['data'] as Map;
+      expect((data['profile'] as Map)['sobriety_date'], '2026-08-12');
+    },
+  );
+
+  test('updates completed goal fields without reactivating it', () async {
+    await store.write({
+      'goals': [
+        {
+          'id': 6,
+          'text': 'Original completed goal',
+          'area': 'meetings',
+          'target_date': '2026-09-01',
+          'active': false,
+          'completed': true,
+          'created_at': '2026-08-21T12:00:00Z',
+          'completed_at': '2026-08-30T18:00:00Z',
+          'unknown_field': 'keep this',
+        },
+      ],
+    });
+
+    final result = await repository.updateGoal(
+      goalId: 6,
+      text: 'Corrected completed goal',
+      area: 'connection',
+      targetDate: '',
+    );
+
+    final goal = result['goal'] as Map;
+    expect(goal['id'], 6);
+    expect(goal['text'], 'Corrected completed goal');
+    expect(goal['area'], 'connection');
+    expect(goal['target_date'], isEmpty);
+    expect(goal['active'], isFalse);
+    expect(goal['completed'], isTrue);
+    expect(goal['created_at'], '2026-08-21T12:00:00Z');
+    expect(goal['completed_at'], '2026-08-30T18:00:00Z');
+    expect(goal['unknown_field'], 'keep this');
+
+    expect((await repository.getGoals())['goals'], isEmpty);
+    expect(
+      ((await repository.getCompletedGoals())['goals'] as List).single,
+      goal,
+    );
+  });
+
+  test('missing goal update fails without modifying storage', () async {
+    await store.write({
+      'goals': [
+        {'id': 1, 'text': 'Existing goal', 'active': true, 'completed': false},
+      ],
+    });
+    final before = await store.dataFile.readAsString();
+
+    expect(
+      () => repository.updateGoal(
+        goalId: 999,
+        text: 'Should not exist',
+        area: 'other',
+        targetDate: '',
+      ),
+      throwsA(isA<StateError>()),
+    );
+
+    expect(await store.dataFile.readAsString(), before);
+  });
+
+  test('reactivates a completed goal without duplicating it', () async {
+    await store.write({
+      'goals': [
+        {
+          'id': 9,
+          'text': 'Completed goal',
+          'area': 'connection',
+          'target_date': '2026-10-01',
+          'active': false,
+          'completed': true,
+          'created_at': '2026-08-22T12:00:00Z',
+          'completed_at': '2026-08-31T18:00:00Z',
+          'unknown_field': 'preserve me',
+        },
+      ],
+    });
+
+    final result = await repository.reactivateGoal(9);
+    final goal = result['goal'] as Map;
+
+    expect(goal['id'], 9);
+    expect(goal['active'], isTrue);
+    expect(goal['completed'], isFalse);
+    expect(goal.containsKey('completed_at'), isFalse);
+    expect(goal['text'], 'Completed goal');
+    expect(goal['area'], 'connection');
+    expect(goal['target_date'], '2026-10-01');
+    expect(goal['created_at'], '2026-08-22T12:00:00Z');
+    expect(goal['unknown_field'], 'preserve me');
+
+    final active = (await repository.getGoals())['goals'] as List;
+    final completed = (await repository.getCompletedGoals())['goals'] as List;
+    expect(active, hasLength(1));
+    expect((active.single as Map)['id'], 9);
+    expect(completed, isEmpty);
+  });
+
+  test('missing goal reactivation fails without modifying storage', () async {
+    await store.write({
+      'goals': [
+        {'id': 1, 'text': 'Existing goal', 'active': true, 'completed': false},
+      ],
+    });
+    final before = await store.dataFile.readAsString();
+
+    expect(() => repository.reactivateGoal(999), throwsA(isA<StateError>()));
+
+    expect(await store.dataFile.readAsString(), before);
+  });
+
   test('completed goals remain available in completed history', () async {
     final created = await repository.createGoal(
       text: 'Attend meeting',
