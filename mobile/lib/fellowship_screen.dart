@@ -3,17 +3,20 @@ import 'package:flutter/material.dart';
 import 'api_client.dart';
 import 'app_components.dart';
 import 'contact_profile_screen.dart';
+import 'fellowship_contact_actions.dart';
 import 'local_fellowship_repository.dart';
 
 class FellowshipScreen extends StatefulWidget {
   const FellowshipScreen({
     required this.apiClient,
     this.localRepository,
+    this.contactActions,
     super.key,
   });
 
   final ApiClient apiClient;
   final LocalFellowshipRepository? localRepository;
+  final FellowshipContactActions? contactActions;
 
   @override
   State<FellowshipScreen> createState() => _FellowshipScreenState();
@@ -46,10 +49,12 @@ class _FellowshipScreenState extends State<FellowshipScreen> {
   String _contactType = 'fellowship';
   bool _saving = false;
   String? _error;
+  late final FellowshipContactActions _contactActions;
 
   @override
   void initState() {
     super.initState();
+    _contactActions = widget.contactActions ?? const FellowshipContactActions();
     _loadData();
   }
 
@@ -259,6 +264,7 @@ class _FellowshipScreenState extends State<FellowshipScreen> {
                       _ContactTile(
                         contact: contacts[index],
                         emphasized: index == 0,
+                        actions: _contactActions,
                         onTap: () {
                           _openContact(contacts[index]);
                         },
@@ -432,6 +438,7 @@ class _FellowshipScreenState extends State<FellowshipScreen> {
                     for (var index = 0; index < contacts.length; index++) ...[
                       _ContactTile(
                         contact: contacts[index],
+                        actions: _contactActions,
                         onTap: () {
                           _openContact(contacts[index]);
                         },
@@ -467,12 +474,29 @@ class _ContactTile extends StatelessWidget {
   const _ContactTile({
     required this.contact,
     required this.onTap,
+    required this.actions,
     this.emphasized = false,
   });
 
   final Map<String, dynamic> contact;
   final VoidCallback onTap;
+  final FellowshipContactActions actions;
   final bool emphasized;
+
+  Future<void> _launch({
+    required BuildContext context,
+    required Future<bool> Function() action,
+    required String failureMessage,
+  }) async {
+    final launched = await action();
+
+    if (!context.mounted || launched) {
+      return;
+    }
+
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(failureMessage)));
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -487,6 +511,7 @@ class _ContactTile extends StatelessWidget {
     final legacyMethod = (contact['contact_method'] ?? '').toString().trim();
 
     final active = contact['active'] != false;
+    final contactId = contact['id'];
 
     final details = <String>[
       type,
@@ -496,7 +521,7 @@ class _ContactTile extends StatelessWidget {
     ];
 
     return ListTile(
-      key: ValueKey('fellowship-contact-${contact['id']}'),
+      key: ValueKey('fellowship-contact-$contactId'),
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 7),
       leading: Container(
         width: 42,
@@ -517,7 +542,51 @@ class _ContactTile extends StatelessWidget {
       ),
       title: Text(handle, style: const TextStyle(fontWeight: FontWeight.w600)),
       subtitle: Text(details.join('\n')),
-      trailing: const Icon(Icons.chevron_right),
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (phone.isNotEmpty) ...[
+            IconButton(
+              key: ValueKey('fellowship-contact-call-$contactId'),
+              tooltip: 'Call $handle',
+              onPressed: () {
+                _launch(
+                  context: context,
+                  action: () => actions.call(phone),
+                  failureMessage: 'Could not open the phone app.',
+                );
+              },
+              icon: const Icon(Icons.call_outlined),
+            ),
+            IconButton(
+              key: ValueKey('fellowship-contact-text-$contactId'),
+              tooltip: 'Text $handle',
+              onPressed: () {
+                _launch(
+                  context: context,
+                  action: () => actions.text(phone),
+                  failureMessage: 'Could not open messaging.',
+                );
+              },
+              icon: const Icon(Icons.sms_outlined),
+            ),
+          ],
+          if (email.isNotEmpty)
+            IconButton(
+              key: ValueKey('fellowship-contact-email-$contactId'),
+              tooltip: 'Email $handle',
+              onPressed: () {
+                _launch(
+                  context: context,
+                  action: () => actions.email(email),
+                  failureMessage: 'Could not open an email app.',
+                );
+              },
+              icon: const Icon(Icons.email_outlined),
+            ),
+          const Icon(Icons.chevron_right),
+        ],
+      ),
       onTap: onTap,
     );
   }
