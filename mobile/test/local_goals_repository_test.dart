@@ -355,4 +355,85 @@ void main() {
     expect((data['profile'] as Map)['sobriety_date'], '2026-08-12');
     expect(((data['journal_entries'] as List).first as Map)['text'], 'Keep me');
   });
+
+  test('deleting an active goal removes only that goal', () async {
+    await store.write({
+      'goals': [
+        {'id': 1, 'text': 'Keep this one', 'active': true, 'completed': false},
+        {
+          'id': 2,
+          'text': 'Delete this one',
+          'active': true,
+          'completed': false,
+        },
+        {'id': 3, 'text': 'Keep this too', 'active': true, 'completed': false},
+      ],
+    });
+
+    await repository.deleteGoal(2);
+
+    final active = await repository.getGoals();
+    final ids = (active['goals'] as List)
+        .map((goal) => (goal as Map)['id'])
+        .toList();
+
+    expect(ids, [1, 3]);
+  });
+
+  test('deleting a goal preserves unknown fields on other records', () async {
+    await store.write({
+      'goals': [
+        {'id': 1, 'text': 'Delete me', 'active': true, 'completed': false},
+        {
+          'id': 2,
+          'text': 'Preserve me',
+          'active': true,
+          'completed': false,
+          'unexpected_field': 'kept',
+        },
+      ],
+    });
+
+    await repository.deleteGoal(1);
+
+    final document = await store.read();
+    final savedGoals = (document['data'] as Map)['goals'] as List;
+
+    expect(savedGoals.length, 1);
+    expect((savedGoals.single as Map)['unexpected_field'], 'kept');
+  });
+
+  test('deleting a goal preserves unrelated recovery data', () async {
+    await store.write({
+      'goals': [
+        {'id': 1, 'text': 'Delete me', 'active': true, 'completed': false},
+      ],
+      'profile': {'sobriety_date': '2026-08-12'},
+      'journal_entries': [
+        {'id': 1, 'text': 'Keep me'},
+      ],
+    });
+
+    await repository.deleteGoal(1);
+
+    final document = await store.read();
+    final data = Map<String, dynamic>.from(document['data'] as Map);
+
+    expect((data['goals'] as List), isEmpty);
+    expect((data['profile'] as Map)['sobriety_date'], '2026-08-12');
+    expect(((data['journal_entries'] as List).first as Map)['text'], 'Keep me');
+  });
+
+  test('missing goal deletion fails without modifying storage', () async {
+    await store.write({
+      'goals': [
+        {'id': 1, 'text': 'Existing goal', 'active': true, 'completed': false},
+      ],
+    });
+    final before = await store.dataFile.readAsString();
+
+    expect(() => repository.deleteGoal(999), throwsA(isA<StateError>()));
+
+    expect(await store.dataFile.readAsString(), before);
+  });
 }

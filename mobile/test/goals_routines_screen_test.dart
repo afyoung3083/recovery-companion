@@ -19,6 +19,7 @@ class FakeLocalGoalsRepository extends LocalGoalsRepository {
     List<Map<String, dynamic>> completedGoals = const [],
     this.failUpdates = false,
     this.failReactivation = false,
+    this.failDelete = false,
   }) : _activeGoals = activeGoals
            .map((goal) => Map<String, dynamic>.from(goal))
            .toList(),
@@ -36,6 +37,7 @@ class FakeLocalGoalsRepository extends LocalGoalsRepository {
   final List<Map<String, dynamic>> _completedGoals;
   final bool failUpdates;
   final bool failReactivation;
+  final bool failDelete;
 
   @override
   Future<Map<String, dynamic>> getGoals() async {
@@ -140,6 +142,20 @@ class FakeLocalGoalsRepository extends LocalGoalsRepository {
       ..._completedGoals,
     ].map((goal) => goal['id']).whereType<int>();
     return (ids.isEmpty ? 0 : ids.reduce((a, b) => a > b ? a : b)) + 1;
+  }
+
+  @override
+  Future<void> deleteGoal(int goalId) async {
+    if (failDelete) {
+      throw StateError('Delete failed');
+    }
+
+    final index = _activeGoals.indexWhere((goal) => goal['id'] == goalId);
+    if (index < 0) {
+      throw StateError('Goal $goalId was not found.');
+    }
+
+    _activeGoals.removeAt(index);
   }
 
   List<Map<String, dynamic>> _copyGoals(List<Map<String, dynamic>> goals) {
@@ -570,6 +586,283 @@ void main() {
           ?.text,
       'Retry this edit',
     );
+  });
+
+  testWidgets('active Goal shows Delete and Completed Goal does not', (
+    tester,
+  ) async {
+    final repository = FakeLocalGoalsRepository(
+      activeGoals: [
+        {
+          'id': 6,
+          'text': 'Active goal',
+          'area': 'other',
+          'target_date': '',
+          'active': true,
+          'completed': false,
+        },
+      ],
+      completedGoals: [
+        {
+          'id': 7,
+          'text': 'Completed goal',
+          'area': 'other',
+          'target_date': '',
+          'active': false,
+          'completed': true,
+        },
+      ],
+    );
+    final apiClient = ApiClient(
+      baseUrl: 'http://example.test',
+      httpClient: MockClient((_) async => http.Response('{}', 500)),
+    );
+    addTearDown(apiClient.close);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.light(),
+        home: Scaffold(
+          body: GoalsScreen(apiClient: apiClient, localRepository: repository),
+        ),
+      ),
+    );
+    await pumpGoalsAsyncWork(tester);
+
+    await scrollUntilBuilt(tester, find.byKey(const ValueKey('goal-delete-6')));
+    expect(find.byKey(const ValueKey('goal-delete-6')), findsOneWidget);
+
+    await scrollUntilBuilt(tester, find.text('Completed goal'));
+    expect(find.byKey(const ValueKey('goal-delete-7')), findsNothing);
+  });
+
+  testWidgets('tapping Delete shows a confirmation dialog', (tester) async {
+    final repository = FakeLocalGoalsRepository(
+      activeGoals: [
+        {
+          'id': 8,
+          'text': 'Delete candidate',
+          'area': 'other',
+          'target_date': '',
+          'active': true,
+          'completed': false,
+        },
+      ],
+    );
+    final apiClient = ApiClient(
+      baseUrl: 'http://example.test',
+      httpClient: MockClient((_) async => http.Response('{}', 500)),
+    );
+    addTearDown(apiClient.close);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.light(),
+        home: Scaffold(
+          body: GoalsScreen(apiClient: apiClient, localRepository: repository),
+        ),
+      ),
+    );
+    await pumpGoalsAsyncWork(tester);
+
+    final deleteButton = find.byKey(const ValueKey('goal-delete-8'));
+    await scrollUntilBuilt(tester, deleteButton);
+    await tester.tap(deleteButton);
+    await tester.pump(const Duration(milliseconds: 100));
+
+    expect(find.text('Delete goal?'), findsOneWidget);
+    expect(
+      find.text('Are you sure you want to permanently delete this goal?'),
+      findsOneWidget,
+    );
+    expect(find.text('Cancel'), findsOneWidget);
+    expect(find.byKey(const ValueKey('goal-delete-confirm')), findsOneWidget);
+
+    expect((await repository.getGoals())['goals'], hasLength(1));
+  });
+
+  testWidgets('cancel on the delete dialog preserves the goal', (tester) async {
+    final repository = FakeLocalGoalsRepository(
+      activeGoals: [
+        {
+          'id': 9,
+          'text': 'Keep this goal',
+          'area': 'other',
+          'target_date': '',
+          'active': true,
+          'completed': false,
+        },
+      ],
+    );
+    final apiClient = ApiClient(
+      baseUrl: 'http://example.test',
+      httpClient: MockClient((_) async => http.Response('{}', 500)),
+    );
+    addTearDown(apiClient.close);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.light(),
+        home: Scaffold(
+          body: GoalsScreen(apiClient: apiClient, localRepository: repository),
+        ),
+      ),
+    );
+    await pumpGoalsAsyncWork(tester);
+
+    final deleteButton = find.byKey(const ValueKey('goal-delete-9'));
+    await scrollUntilBuilt(tester, deleteButton);
+    await tester.tap(deleteButton);
+    await tester.pump(const Duration(milliseconds: 100));
+
+    await tester.tap(find.text('Cancel'));
+    await pumpGoalsAsyncWork(tester);
+
+    expect(find.text('Delete goal?'), findsNothing);
+    expect(find.text('Keep this goal'), findsOneWidget);
+    expect((await repository.getGoals())['goals'], hasLength(1));
+  });
+
+  testWidgets('confirming Delete removes the goal without duplication', (
+    tester,
+  ) async {
+    final repository = FakeLocalGoalsRepository(
+      activeGoals: [
+        {
+          'id': 10,
+          'text': 'Remove this goal',
+          'area': 'other',
+          'target_date': '',
+          'active': true,
+          'completed': false,
+        },
+        {
+          'id': 11,
+          'text': 'Keep this goal',
+          'area': 'other',
+          'target_date': '',
+          'active': true,
+          'completed': false,
+        },
+      ],
+    );
+    final apiClient = ApiClient(
+      baseUrl: 'http://example.test',
+      httpClient: MockClient((_) async => http.Response('{}', 500)),
+    );
+    addTearDown(apiClient.close);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.light(),
+        home: Scaffold(
+          body: GoalsScreen(apiClient: apiClient, localRepository: repository),
+        ),
+      ),
+    );
+    await pumpGoalsAsyncWork(tester);
+
+    final deleteButton = find.byKey(const ValueKey('goal-delete-10'));
+    await scrollUntilBuilt(tester, deleteButton);
+    await tester.tap(deleteButton);
+    await tester.pump(const Duration(milliseconds: 100));
+    await tester.tap(find.byKey(const ValueKey('goal-delete-confirm')));
+    await pumpGoalsAsyncWork(tester);
+
+    expect(find.text('Goal deleted.'), findsOneWidget);
+    expect(find.text('Remove this goal'), findsNothing);
+    expect(find.text('Keep this goal'), findsOneWidget);
+
+    final remaining = (await repository.getGoals())['goals'] as List;
+    expect(remaining, hasLength(1));
+    expect((remaining.single as Map)['id'], 11);
+  });
+
+  testWidgets('delete failure leaves the goal visible and shows an error', (
+    tester,
+  ) async {
+    final repository = FakeLocalGoalsRepository(
+      activeGoals: [
+        {
+          'id': 12,
+          'text': 'Stubborn goal',
+          'area': 'other',
+          'target_date': '',
+          'active': true,
+          'completed': false,
+        },
+      ],
+      failDelete: true,
+    );
+    final apiClient = ApiClient(
+      baseUrl: 'http://example.test',
+      httpClient: MockClient((_) async => http.Response('{}', 500)),
+    );
+    addTearDown(apiClient.close);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.light(),
+        home: Scaffold(
+          body: GoalsScreen(apiClient: apiClient, localRepository: repository),
+        ),
+      ),
+    );
+    await pumpGoalsAsyncWork(tester);
+
+    final deleteButton = find.byKey(const ValueKey('goal-delete-12'));
+    await scrollUntilBuilt(tester, deleteButton);
+    await tester.tap(deleteButton);
+    await tester.pump(const Duration(milliseconds: 100));
+    await tester.tap(find.byKey(const ValueKey('goal-delete-confirm')));
+    await pumpGoalsAsyncWork(tester);
+
+    expect(
+      find.text('Unable to delete this goal. Please try again.'),
+      findsOneWidget,
+    );
+    expect(find.text('Stubborn goal'), findsOneWidget);
+    expect((await repository.getGoals())['goals'], hasLength(1));
+  });
+
+  testWidgets('non-local Goals screen has no local Delete control', (
+    tester,
+  ) async {
+    final mockClient = MockClient((request) async {
+      return http.Response(
+        jsonEncode({
+          'goals': [
+            {
+              'id': 1,
+              'text': 'Server goal',
+              'area': 'other',
+              'target_date': '',
+              'active': true,
+            },
+          ],
+        }),
+        200,
+      );
+    });
+
+    final apiClient = ApiClient(
+      baseUrl: 'http://example.test',
+      httpClient: mockClient,
+    );
+    addTearDown(apiClient.close);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.light(),
+        home: Scaffold(body: GoalsScreen(apiClient: apiClient)),
+      ),
+    );
+    await pumpGoalsAsyncWork(tester);
+
+    await scrollUntilBuilt(tester, find.text('Server goal'));
+
+    expect(find.byKey(const ValueKey('goal-delete-1')), findsNothing);
+    expect(find.text('Complete'), findsOneWidget);
   });
 
   testWidgets('Routines uses recovery design system and empty state', (

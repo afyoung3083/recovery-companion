@@ -136,6 +136,23 @@ class LocalGoalsRepository {
     return {'goal': goals[index]};
   }
 
+  Future<void> deleteGoal(int goalId) async {
+    final document = await store.read();
+    final data = Map<String, dynamic>.from(document['data'] as Map);
+    final goals = await _goalsFromData(data);
+
+    final index = goals.indexWhere((goal) => goal['id'] == goalId);
+
+    if (index < 0) {
+      throw StateError('Goal $goalId was not found.');
+    }
+
+    goals.removeAt(index);
+
+    data['goals'] = goals;
+    await store.write(data);
+  }
+
   Future<List<Map<String, dynamic>>> _readGoals() async {
     final document = await store.read();
     final data = Map<String, dynamic>.from(document['data'] as Map);

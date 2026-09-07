@@ -84,16 +84,34 @@ void main() {
     addTearDown(apiClient.close);
 
     await expectLater(
-      apiClient.sendChat(
-        conversation: const [
-          {'role': 'user', 'content': 'Connectivity test'},
-        ],
-      ),
+      apiClient.getDashboard(),
       throwsA(isA<TimeoutException>()),
     );
   });
 
-  test('ordinary Chat requests use the general timeout', () async {
+  test('ordinary non-AI requests use the short general timeout', () async {
+    final neverCompletes = Completer<http.Response>();
+
+    final mockClient = MockClient((request) {
+      return neverCompletes.future;
+    });
+
+    final apiClient = ApiClient(
+      baseUrl: 'http://example.test',
+      httpClient: mockClient,
+      requestTimeout: const Duration(milliseconds: 10),
+      chatTimeout: const Duration(milliseconds: 100),
+      reflectionTimeout: const Duration(milliseconds: 100),
+    );
+    addTearDown(apiClient.close);
+
+    await expectLater(
+      apiClient.getDashboard(),
+      throwsA(isA<TimeoutException>()),
+    );
+  });
+
+  test('chat requests succeed beyond the general timeout but within the chat timeout', () async {
     final mockClient = MockClient((request) async {
       await Future<void>.delayed(const Duration(milliseconds: 40));
       return http.Response('{"ok":true}', 200);
@@ -103,6 +121,29 @@ void main() {
       baseUrl: 'http://example.test',
       httpClient: mockClient,
       requestTimeout: const Duration(milliseconds: 10),
+      chatTimeout: const Duration(milliseconds: 100),
+      reflectionTimeout: const Duration(milliseconds: 100),
+    );
+    addTearDown(apiClient.close);
+
+    final result = await apiClient.sendChat(
+      conversation: const [
+        {'role': 'user', 'content': 'Timeout test'},
+      ],
+    );
+
+    expect(result['ok'], isTrue);
+  });
+
+  test('chat requests still time out beyond the chat timeout', () async {
+    final neverCompletes = Completer<http.Response>();
+    final mockClient = MockClient((request) => neverCompletes.future);
+
+    final apiClient = ApiClient(
+      baseUrl: 'http://example.test',
+      httpClient: mockClient,
+      requestTimeout: const Duration(milliseconds: 10),
+      chatTimeout: const Duration(milliseconds: 25),
       reflectionTimeout: const Duration(milliseconds: 100),
     );
     addTearDown(apiClient.close);

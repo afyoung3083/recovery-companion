@@ -389,6 +389,69 @@ class _GoalsScreenState extends State<GoalsScreen> {
     }
   }
 
+  Future<void> _deleteGoal(int goalId) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Delete goal?'),
+        content: const Text(
+          'Are you sure you want to permanently delete this goal?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            key: const ValueKey('goal-delete-confirm'),
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true || !mounted) {
+      return;
+    }
+
+    final localRepository = widget.localRepository;
+
+    if (localRepository == null) {
+      return;
+    }
+
+    setState(() {
+      _saving = true;
+      _actionError = null;
+    });
+
+    try {
+      await localRepository.deleteGoal(goalId);
+      if (!mounted) {
+        return;
+      }
+      await _refreshAsync();
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('Goal deleted.')));
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          _actionError = 'Unable to delete this goal. Please try again.';
+        });
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _saving = false;
+        });
+      }
+    }
+  }
+
   List<Map<String, dynamic>> _goalsFrom(Map<String, dynamic>? data) {
     final rawGoals = data?['goals'];
 
@@ -591,6 +654,9 @@ class _GoalsScreenState extends State<GoalsScreen> {
                         onEdit: widget.localRepository == null
                             ? null
                             : _editGoal,
+                        onDelete: widget.localRepository == null
+                            ? null
+                            : _deleteGoal,
                       ),
                     ),
               ],
@@ -677,6 +743,7 @@ class _GoalCard extends StatelessWidget {
     this.onComplete,
     this.onEdit,
     this.onReactivate,
+    this.onDelete,
     this.completed = false,
   });
 
@@ -685,6 +752,7 @@ class _GoalCard extends StatelessWidget {
   final Future<void> Function(int)? onComplete;
   final Future<void> Function(Map<String, dynamic>)? onEdit;
   final Future<void> Function(int)? onReactivate;
+  final Future<void> Function(int)? onDelete;
   final bool completed;
 
   @override
@@ -754,7 +822,10 @@ class _GoalCard extends StatelessWidget {
                 ),
             ],
           ),
-          if (onEdit != null || onReactivate != null || !completed) ...[
+          if (onEdit != null ||
+              onReactivate != null ||
+              onDelete != null ||
+              !completed) ...[
             const SizedBox(height: 14),
             Wrap(
               alignment: WrapAlignment.end,
@@ -789,6 +860,13 @@ class _GoalCard extends StatelessWidget {
                           },
                     icon: const Icon(Icons.check),
                     label: const Text('Complete'),
+                  ),
+                if (!completed && onDelete != null && id != null)
+                  OutlinedButton.icon(
+                    key: ValueKey('goal-delete-$id'),
+                    onPressed: saving ? null : () => onDelete!(id),
+                    icon: const Icon(Icons.delete_outline),
+                    label: const Text('Delete'),
                   ),
               ],
             ),
