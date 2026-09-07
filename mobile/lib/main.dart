@@ -80,6 +80,8 @@ class _HomeShellState extends State<HomeShell> {
   LocalStepWorkRepository? _localStepWorkRepository;
   LocalWeeklyReviewRepository? _localWeeklyReviewRepository;
 
+  bool _localInitializationPending = true;
+
   static const List<_Destination> _destinations = [
     _Destination(label: 'Dashboard', icon: Icons.dashboard_outlined),
     _Destination(label: 'Insights', icon: Icons.insights_outlined),
@@ -110,31 +112,43 @@ class _HomeShellState extends State<HomeShell> {
   }
 
   Future<void> _initializeLocalRecovery() async {
-    final store = await LocalRecoveryStore.openDefault();
+    try {
+      final store = await LocalRecoveryStore.openDefault();
 
-    if (!mounted) {
-      return;
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _localGoalsRepository = LocalGoalsRepository(store: store);
+        _localInsightsRepository = LocalInsightsRepository(store: store);
+        _localDailyCheckInRepository = LocalDailyCheckInRepository(
+          store: store,
+        );
+        _localDataOwnershipRepository = LocalDataOwnershipRepository(
+          store: store,
+        );
+        _localDashboardRepository = LocalDashboardRepository(store: store);
+        _localFellowshipRepository = LocalFellowshipRepository(store: store);
+
+        _localJournalRepository = LocalJournalRepository(store: store);
+        _localMonthlyReviewRepository = LocalMonthlyReviewRepository(
+          store: store,
+        );
+        _localProfileRepository = LocalProfileRepository(store: store);
+        _localRoutinesRepository = LocalRoutinesRepository(store: store);
+        _localStepWorkRepository = LocalStepWorkRepository(store: store);
+        _localWeeklyReviewRepository = LocalWeeklyReviewRepository(
+          store: store,
+        );
+      });
+    } finally {
+      if (mounted) {
+        setState(() {
+          _localInitializationPending = false;
+        });
+      }
     }
-
-    setState(() {
-      _localGoalsRepository = LocalGoalsRepository(store: store);
-      _localInsightsRepository = LocalInsightsRepository(store: store);
-      _localDailyCheckInRepository = LocalDailyCheckInRepository(store: store);
-      _localDataOwnershipRepository = LocalDataOwnershipRepository(
-        store: store,
-      );
-      _localDashboardRepository = LocalDashboardRepository(store: store);
-      _localFellowshipRepository = LocalFellowshipRepository(store: store);
-
-      _localJournalRepository = LocalJournalRepository(store: store);
-      _localMonthlyReviewRepository = LocalMonthlyReviewRepository(
-        store: store,
-      );
-      _localProfileRepository = LocalProfileRepository(store: store);
-      _localRoutinesRepository = LocalRoutinesRepository(store: store);
-      _localStepWorkRepository = LocalStepWorkRepository(store: store);
-      _localWeeklyReviewRepository = LocalWeeklyReviewRepository(store: store);
-    });
   }
 
   Future<void> _initializeReminderNavigation() async {
@@ -294,6 +308,7 @@ class _HomeShellState extends State<HomeShell> {
           localJournalRepository: _localJournalRepository,
           localProfileRepository: _localProfileRepository,
           localStepWorkRepository: _localStepWorkRepository,
+          localInitializationPending: _localInitializationPending,
         );
 
       case 1:

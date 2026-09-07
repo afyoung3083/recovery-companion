@@ -42,7 +42,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       body:
           'AI features run only when you explicitly request them. '
           'The app sends only the specific entry or locally prepared '
-          'summary needed for that request?not your entire recovery '
+          'summary needed for that request—not your entire recovery '
           'history.',
     ),
     _OnboardingPageData(
