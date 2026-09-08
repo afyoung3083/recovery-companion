@@ -86,6 +86,73 @@ class LocalGoalsRepository {
     return {'goal': goals[index]};
   }
 
+  Future<Map<String, dynamic>> updateGoal({
+    required int goalId,
+    required String text,
+    required String area,
+    required String targetDate,
+  }) async {
+    final document = await store.read();
+    final data = Map<String, dynamic>.from(document['data'] as Map);
+    final goals = await _goalsFromData(data);
+
+    final index = goals.indexWhere((goal) => goal['id'] == goalId);
+
+    if (index < 0) {
+      throw StateError('Goal $goalId was not found.');
+    }
+
+    goals[index] = {
+      ...goals[index],
+      'text': text,
+      'area': area,
+      'target_date': targetDate,
+    };
+
+    data['goals'] = goals;
+    await store.write(data);
+
+    return {'goal': goals[index]};
+  }
+
+  Future<Map<String, dynamic>> reactivateGoal(int goalId) async {
+    final document = await store.read();
+    final data = Map<String, dynamic>.from(document['data'] as Map);
+    final goals = await _goalsFromData(data);
+
+    final index = goals.indexWhere((goal) => goal['id'] == goalId);
+
+    if (index < 0) {
+      throw StateError('Goal $goalId was not found.');
+    }
+
+    final reactivated = {...goals[index], 'active': true, 'completed': false};
+    reactivated.remove('completed_at');
+    goals[index] = reactivated;
+
+    data['goals'] = goals;
+    await store.write(data);
+
+    return {'goal': goals[index]};
+  }
+
+  Future<void> deleteGoal(int goalId) async {
+    final document = await store.read();
+    final data = Map<String, dynamic>.from(document['data'] as Map);
+    final goals = await _goalsFromData(data);
+
+    final index = goals.indexWhere((goal) => goal['id'] == goalId);
+
+    if (index < 0) {
+      throw StateError('Goal $goalId was not found.');
+    }
+
+    goals.removeAt(index);
+
+    data['goals'] = goals;
+    await store.write(data);
+  }
+
   Future<List<Map<String, dynamic>>> _readGoals() async {
     final document = await store.read();
     final data = Map<String, dynamic>.from(document['data'] as Map);

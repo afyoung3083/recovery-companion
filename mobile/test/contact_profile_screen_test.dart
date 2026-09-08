@@ -8,6 +8,7 @@ import 'package:http/testing.dart';
 import 'package:mobile/api_client.dart';
 import 'package:mobile/app_theme.dart';
 import 'package:mobile/contact_profile_screen.dart';
+import 'package:mobile/fellowship_contact_actions.dart';
 import 'package:mobile/local_fellowship_repository.dart';
 import 'package:mobile/local_recovery_store.dart';
 import 'package:mobile/secure_offline_cache_store.dart';
@@ -350,5 +351,297 @@ void main() {
     await tester.pump(const Duration(milliseconds: 100));
 
     expect(repository._contact['contact_method'], isEmpty);
+  });
+
+  testWidgets('phone-only contact shows Call and Text but no Email', (
+    tester,
+  ) async {
+    final apiClient = ApiClient(
+      baseUrl: baseUrl,
+      apiToken: token,
+      httpClient: MockClient((_) async => http.Response('{}', 500)),
+    );
+    addTearDown(apiClient.close);
+
+    final phoneOnly = contact();
+    phoneOnly.remove('email');
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.light(),
+        home: ContactProfileScreen(apiClient: apiClient, contact: phoneOnly),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await scrollUntilBuiltFinite(
+      tester,
+      find.byKey(const ValueKey('contact-profile-action-call')),
+    );
+
+    expect(
+      find.byKey(const ValueKey('contact-profile-action-call')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('contact-profile-action-text')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('contact-profile-action-email')),
+      findsNothing,
+    );
+  });
+
+  testWidgets('email-only contact shows Email but no Call or Text', (
+    tester,
+  ) async {
+    final apiClient = ApiClient(
+      baseUrl: baseUrl,
+      apiToken: token,
+      httpClient: MockClient((_) async => http.Response('{}', 500)),
+    );
+    addTearDown(apiClient.close);
+
+    final emailOnly = contact();
+    emailOnly.remove('phone');
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.light(),
+        home: ContactProfileScreen(apiClient: apiClient, contact: emailOnly),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await scrollUntilBuiltFinite(
+      tester,
+      find.byKey(const ValueKey('contact-profile-action-email')),
+    );
+
+    expect(
+      find.byKey(const ValueKey('contact-profile-action-call')),
+      findsNothing,
+    );
+    expect(
+      find.byKey(const ValueKey('contact-profile-action-text')),
+      findsNothing,
+    );
+    expect(
+      find.byKey(const ValueKey('contact-profile-action-email')),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('phone and email contact shows all three native actions', (
+    tester,
+  ) async {
+    final apiClient = ApiClient(
+      baseUrl: baseUrl,
+      apiToken: token,
+      httpClient: MockClient((_) async => http.Response('{}', 500)),
+    );
+    addTearDown(apiClient.close);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.light(),
+        home: ContactProfileScreen(apiClient: apiClient, contact: contact()),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await scrollUntilBuiltFinite(
+      tester,
+      find.byKey(const ValueKey('contact-profile-action-email')),
+    );
+
+    expect(
+      find.byKey(const ValueKey('contact-profile-action-call')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('contact-profile-action-text')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('contact-profile-action-email')),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('legacy-only contact shows no native actions', (tester) async {
+    final apiClient = ApiClient(
+      baseUrl: baseUrl,
+      apiToken: token,
+      httpClient: MockClient((_) async => http.Response('{}', 500)),
+    );
+    addTearDown(apiClient.close);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.light(),
+        home: ContactProfileScreen(
+          apiClient: apiClient,
+          contact: legacyOnlyContact(),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey('contact-profile-action-call')),
+      findsNothing,
+    );
+    expect(
+      find.byKey(const ValueKey('contact-profile-action-text')),
+      findsNothing,
+    );
+    expect(
+      find.byKey(const ValueKey('contact-profile-action-email')),
+      findsNothing,
+    );
+  });
+
+  testWidgets('tapping Call requests a tel URI', (tester) async {
+    final requested = <Uri>[];
+    final apiClient = ApiClient(
+      baseUrl: baseUrl,
+      apiToken: token,
+      httpClient: MockClient((_) async => http.Response('{}', 500)),
+    );
+    addTearDown(apiClient.close);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.light(),
+        home: ContactProfileScreen(
+          apiClient: apiClient,
+          contact: contact(),
+          contactActions: FellowshipContactActions(
+            launcher: (uri) async {
+              requested.add(uri);
+              return true;
+            },
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await scrollUntilBuiltFinite(
+      tester,
+      find.byKey(const ValueKey('contact-profile-action-call')),
+    );
+    await tester.tap(find.byKey(const ValueKey('contact-profile-action-call')));
+    await tester.pumpAndSettle();
+
+    expect(requested, [Uri.parse('tel:555-0100')]);
+  });
+
+  testWidgets('tapping Text requests an sms URI', (tester) async {
+    final requested = <Uri>[];
+    final apiClient = ApiClient(
+      baseUrl: baseUrl,
+      apiToken: token,
+      httpClient: MockClient((_) async => http.Response('{}', 500)),
+    );
+    addTearDown(apiClient.close);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.light(),
+        home: ContactProfileScreen(
+          apiClient: apiClient,
+          contact: contact(),
+          contactActions: FellowshipContactActions(
+            launcher: (uri) async {
+              requested.add(uri);
+              return true;
+            },
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await scrollUntilBuiltFinite(
+      tester,
+      find.byKey(const ValueKey('contact-profile-action-text')),
+    );
+    await tester.tap(find.byKey(const ValueKey('contact-profile-action-text')));
+    await tester.pumpAndSettle();
+
+    expect(requested, [Uri.parse('sms:555-0100')]);
+  });
+
+  testWidgets('tapping Email requests a mailto URI', (tester) async {
+    final requested = <Uri>[];
+    final apiClient = ApiClient(
+      baseUrl: baseUrl,
+      apiToken: token,
+      httpClient: MockClient((_) async => http.Response('{}', 500)),
+    );
+    addTearDown(apiClient.close);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.light(),
+        home: ContactProfileScreen(
+          apiClient: apiClient,
+          contact: contact(),
+          contactActions: FellowshipContactActions(
+            launcher: (uri) async {
+              requested.add(uri);
+              return true;
+            },
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await scrollUntilBuiltFinite(
+      tester,
+      find.byKey(const ValueKey('contact-profile-action-email')),
+    );
+    await tester.tap(
+      find.byKey(const ValueKey('contact-profile-action-email')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(requested, [Uri.parse('mailto:sponsor@example.test')]);
+  });
+
+  testWidgets('launch failure shows a concise error message', (tester) async {
+    final apiClient = ApiClient(
+      baseUrl: baseUrl,
+      apiToken: token,
+      httpClient: MockClient((_) async => http.Response('{}', 500)),
+    );
+    addTearDown(apiClient.close);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.light(),
+        home: ContactProfileScreen(
+          apiClient: apiClient,
+          contact: contact(),
+          contactActions: FellowshipContactActions(
+            launcher: (uri) async => false,
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await scrollUntilBuiltFinite(
+      tester,
+      find.byKey(const ValueKey('contact-profile-action-call')),
+    );
+    await tester.tap(find.byKey(const ValueKey('contact-profile-action-call')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Could not open the phone app.'), findsOneWidget);
   });
 }

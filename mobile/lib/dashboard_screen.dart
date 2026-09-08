@@ -28,12 +28,17 @@ class DashboardScreen extends StatefulWidget {
     this.localJournalRepository,
     this.localProfileRepository,
     this.localStepWorkRepository,
+    this.localInitializationPending = false,
     super.key,
   });
 
   final ApiClient apiClient;
   final OfflineReadService? offlineReadService;
   final LocalDashboardRepository? localRepository;
+
+  // True only while the owning screen is still opening local-first storage.
+  // Prevents a network/offline-cache fallback from racing local init.
+  final bool localInitializationPending;
   final LocalDailyCheckInRepository? localDailyCheckInRepository;
   final LocalFellowshipRepository? localFellowshipRepository;
   final LocalJournalRepository? localJournalRepository;
@@ -47,7 +52,7 @@ class DashboardScreen extends StatefulWidget {
 }
 
 class _DashboardScreenState extends State<DashboardScreen> {
-  late Future<OfflineReadResult> _dashboardFuture;
+  Future<OfflineReadResult>? _dashboardFuture;
 
   Future<OfflineReadResult> _loadDashboard() async {
     final localRepository = widget.localRepository;
@@ -75,7 +80,28 @@ class _DashboardScreenState extends State<DashboardScreen> {
   @override
   void initState() {
     super.initState();
-    _dashboardFuture = _loadDashboard();
+    if (!widget.localInitializationPending) {
+      _dashboardFuture = _loadDashboard();
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant DashboardScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+
+    final stoppedPending =
+        oldWidget.localInitializationPending &&
+        !widget.localInitializationPending;
+
+    final repositoryBecameAvailable =
+        oldWidget.localRepository == null && widget.localRepository != null;
+
+    if (!widget.localInitializationPending &&
+        (stoppedPending || repositoryBecameAvailable)) {
+      setState(() {
+        _dashboardFuture = _loadDashboard();
+      });
+    }
   }
 
   void _refresh() {
@@ -165,6 +191,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (widget.localInitializationPending || _dashboardFuture == null) {
+      return const Center(
+        key: ValueKey('dashboard-startup-loading'),
+        child: CircularProgressIndicator(),
+      );
+    }
+
     return FutureBuilder<OfflineReadResult>(
       future: _dashboardFuture,
       builder: (context, snapshot) {

@@ -8,6 +8,7 @@ class ApiClient {
     this.apiToken = '',
     http.Client? httpClient,
     this.requestTimeout = const Duration(seconds: 15),
+    this.chatTimeout = const Duration(seconds: 30),
     this.reflectionTimeout = const Duration(seconds: 30),
   }) : _httpClient = _TimeoutClient(
          httpClient ?? http.Client(),
@@ -17,6 +18,7 @@ class ApiClient {
   final String baseUrl;
   final String apiToken;
   final Duration requestTimeout;
+  final Duration chatTimeout;
   final Duration reflectionTimeout;
   final _TimeoutClient _httpClient;
 
@@ -98,10 +100,11 @@ class ApiClient {
   Future<Map<String, dynamic>> sendChat({
     required List<Map<String, String>> conversation,
   }) async {
-    final response = await _httpClient.post(
-      Uri.parse('$baseUrl/chat'),
+    final response = await _postJson(
+      '/chat',
       headers: {...authenticatedHeaders, 'Content-Type': 'application/json'},
       body: jsonEncode({'conversation': conversation}),
+      timeout: chatTimeout,
     );
 
     return _handleJsonResponse(response);

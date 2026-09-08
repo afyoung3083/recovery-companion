@@ -30,6 +30,14 @@ void main() {
 
     expect(find.text('You control what AI sees'), findsOneWidget);
 
+    final aiPageText = tester
+        .widgetList<Text>(find.byType(Text))
+        .map((widget) => widget.data ?? '')
+        .join();
+
+    expect(aiPageText, contains('request\u2014not'));
+    expect(aiPageText, isNot(contains('request?not')));
+
     await tester.tap(find.byKey(const ValueKey('onboarding-next')));
 
     await tester.pumpAndSettle();

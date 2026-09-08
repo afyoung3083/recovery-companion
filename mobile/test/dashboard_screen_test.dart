@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -9,9 +10,54 @@ import 'package:mobile/app_theme.dart';
 import 'package:mobile/dashboard_screen.dart';
 import 'package:mobile/daily_checkin_screen.dart';
 import 'package:mobile/journal_screen.dart';
+import 'package:mobile/local_dashboard_repository.dart';
+import 'package:mobile/local_recovery_store.dart';
 import 'package:mobile/offline_read_service.dart';
 import 'package:mobile/profile_screen.dart';
+import 'package:mobile/secure_offline_cache_store.dart';
 import 'package:mobile/step_work_screen.dart';
+
+class MemorySecureKeyValueStore implements SecureKeyValueStore {
+  @override
+  Future<void> delete({required String key}) async {}
+
+  @override
+  Future<String?> read({required String key}) async => null;
+
+  @override
+  Future<Map<String, String>> readAll() async => {};
+
+  @override
+  Future<void> write({required String key, required String value}) async {}
+}
+
+class FakeLocalDashboardRepository extends LocalDashboardRepository {
+  FakeLocalDashboardRepository(this._data)
+    : super(
+        store: LocalRecoveryStore(
+          dataFile: File('unused-dashboard-widget-test.enc'),
+          keyStore: MemorySecureKeyValueStore(),
+        ),
+      );
+
+  final Map<String, dynamic> _data;
+
+  @override
+  Future<Map<String, dynamic>> getDashboard() async => _data;
+}
+
+Map<String, dynamic> fakeLocalDashboardData() {
+  return {
+    'dashboard_data': {
+      'sobriety_date': '2025-01-01',
+      'sobriety_days': 42,
+      'today_checkin': {'saved': false, 'completed_count': 0, 'total': 6},
+      'current_step': 1,
+      'open_assignments': <Map<String, dynamic>>[],
+      'recommended_contacts': <Map<String, dynamic>>[],
+    },
+  };
+}
 
 void main() {
   const baseUrl = 'http://example.test';
@@ -195,6 +241,181 @@ void main() {
 
     apiClient.close();
   });
+
+  testWidgets(
+    'Dashboard shows a loading state while local initialization is pending',
+    (tester) async {
+      var networkCalls = 0;
+
+      final mockClient = MockClient((request) async {
+        networkCalls += 1;
+        throw StateError('Unexpected network request: ${request.url}');
+      });
+
+      final apiClient = ApiClient(
+        baseUrl: baseUrl,
+        apiToken: token,
+        httpClient: mockClient,
+      );
+      addTearDown(apiClient.close);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.light(),
+          home: Scaffold(
+            body: DashboardScreen(
+              apiClient: apiClient,
+              localInitializationPending: true,
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 50));
+
+      expect(
+        find.byKey(const ValueKey('dashboard-startup-loading')),
+        findsOneWidget,
+      );
+      expect(find.text('Unable to load Dashboard'), findsNothing);
+      expect(networkCalls, 0);
+    },
+  );
+
+  testWidgets(
+    'Dashboard automatically loads local data once initialization completes',
+    (tester) async {
+      var networkCalls = 0;
+
+      final mockClient = MockClient((request) async {
+        networkCalls += 1;
+        throw StateError('Unexpected network request: ${request.url}');
+      });
+
+      final apiClient = ApiClient(
+        baseUrl: baseUrl,
+        apiToken: token,
+        httpClient: mockClient,
+      );
+      addTearDown(apiClient.close);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.light(),
+          home: Scaffold(
+            body: DashboardScreen(
+              apiClient: apiClient,
+              localInitializationPending: true,
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 50));
+
+      expect(
+        find.byKey(const ValueKey('dashboard-startup-loading')),
+        findsOneWidget,
+      );
+
+      final repository = FakeLocalDashboardRepository(fakeLocalDashboardData());
+
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.light(),
+          home: Scaffold(
+            body: DashboardScreen(
+              apiClient: apiClient,
+              localRepository: repository,
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+
+      expect(find.text('Unable to load Dashboard'), findsNothing);
+      expect(
+        find.byKey(const ValueKey('dashboard-sobriety-card')),
+        findsOneWidget,
+      );
+      expect(networkCalls, 0);
+    },
+  );
+
+  testWidgets(
+    'Dashboard falls back and can still show Retry when init completes without a local repository',
+    (tester) async {
+      final mockClient = MockClient((request) async {
+        return http.Response('{}', 500);
+      });
+
+      final apiClient = ApiClient(
+        baseUrl: baseUrl,
+        apiToken: token,
+        httpClient: mockClient,
+      );
+      addTearDown(apiClient.close);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.light(),
+          home: Scaffold(body: DashboardScreen(apiClient: apiClient)),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Unable to load Dashboard'), findsOneWidget);
+      expect(find.text('Retry'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'Repository transition after a failed fallback reloads instead of leaving a stale error',
+    (tester) async {
+      final mockClient = MockClient((request) async {
+        return http.Response('{}', 500);
+      });
+
+      final apiClient = ApiClient(
+        baseUrl: baseUrl,
+        apiToken: token,
+        httpClient: mockClient,
+      );
+      addTearDown(apiClient.close);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.light(),
+          home: Scaffold(body: DashboardScreen(apiClient: apiClient)),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Unable to load Dashboard'), findsOneWidget);
+
+      final repository = FakeLocalDashboardRepository(fakeLocalDashboardData());
+
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.light(),
+          home: Scaffold(
+            body: DashboardScreen(
+              apiClient: apiClient,
+              localRepository: repository,
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Unable to load Dashboard'), findsNothing);
+      expect(
+        find.byKey(const ValueKey('dashboard-sobriety-card')),
+        findsOneWidget,
+      );
+    },
+  );
   testWidgets('Dashboard fellowship contact opens editable profile', (
     tester,
   ) async {

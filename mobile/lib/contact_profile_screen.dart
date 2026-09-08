@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'api_client.dart';
 import 'app_components.dart';
 import 'beta_support_action.dart';
+import 'fellowship_contact_actions.dart';
 import 'local_fellowship_repository.dart';
 
 class ContactProfileScreen extends StatefulWidget {
@@ -10,12 +11,14 @@ class ContactProfileScreen extends StatefulWidget {
     required this.apiClient,
     required this.contact,
     this.localRepository,
+    this.contactActions,
     super.key,
   });
 
   final ApiClient apiClient;
   final Map<String, dynamic> contact;
   final LocalFellowshipRepository? localRepository;
+  final FellowshipContactActions? contactActions;
 
   @override
   State<ContactProfileScreen> createState() => _ContactProfileScreenState();
@@ -46,10 +49,13 @@ class _ContactProfileScreenState extends State<ContactProfileScreen> {
 
   bool _saving = false;
   String? _error;
+  late final FellowshipContactActions _contactActions;
 
   @override
   void initState() {
     super.initState();
+
+    _contactActions = widget.contactActions ?? const FellowshipContactActions();
 
     _handleController = TextEditingController(
       text: (widget.contact['handle'] ?? '').toString(),
@@ -196,6 +202,41 @@ class _ContactProfileScreenState extends State<ContactProfileScreen> {
     }
   }
 
+  Future<void> _launchCall() async {
+    await _launchAction(
+      action: () => _contactActions.call(_phoneController.text),
+      failureMessage: 'Could not open the phone app.',
+    );
+  }
+
+  Future<void> _launchText() async {
+    await _launchAction(
+      action: () => _contactActions.text(_phoneController.text),
+      failureMessage: 'Could not open messaging.',
+    );
+  }
+
+  Future<void> _launchEmail() async {
+    await _launchAction(
+      action: () => _contactActions.email(_emailController.text),
+      failureMessage: 'Could not open an email app.',
+    );
+  }
+
+  Future<void> _launchAction({
+    required Future<bool> Function() action,
+    required String failureMessage,
+  }) async {
+    final launched = await action();
+
+    if (!mounted || launched) {
+      return;
+    }
+
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(failureMessage)));
+  }
+
   @override
   Widget build(BuildContext context) {
     final displayName = _handleController.text.trim().isEmpty
@@ -277,6 +318,9 @@ class _ContactProfileScreenState extends State<ContactProfileScreen> {
                     labelText: 'Phone',
                     prefixIcon: Icon(Icons.phone_outlined),
                   ),
+                  onChanged: (_) {
+                    setState(() {});
+                  },
                 ),
 
                 const SizedBox(height: 14),
@@ -289,6 +333,9 @@ class _ContactProfileScreenState extends State<ContactProfileScreen> {
                     labelText: 'Email',
                     prefixIcon: Icon(Icons.email_outlined),
                   ),
+                  onChanged: (_) {
+                    setState(() {});
+                  },
                 ),
 
                 if (_hasLegacyContactMethod) ...[
@@ -321,6 +368,47 @@ class _ContactProfileScreenState extends State<ContactProfileScreen> {
               ],
             ),
           ),
+
+          if (_phoneController.text.trim().isNotEmpty ||
+              _emailController.text.trim().isNotEmpty) ...[
+            const SizedBox(height: 24),
+
+            const AppSectionTitle(
+              title: 'Reach Out',
+              subtitle:
+                  'Opens your device\'s own dialer, messages, or email app.',
+            ),
+
+            AppSectionCard(
+              child: Wrap(
+                spacing: 12,
+                runSpacing: 12,
+                children: [
+                  if (_phoneController.text.trim().isNotEmpty) ...[
+                    OutlinedButton.icon(
+                      key: const ValueKey('contact-profile-action-call'),
+                      onPressed: _launchCall,
+                      icon: const Icon(Icons.call_outlined),
+                      label: const Text('Call'),
+                    ),
+                    OutlinedButton.icon(
+                      key: const ValueKey('contact-profile-action-text'),
+                      onPressed: _launchText,
+                      icon: const Icon(Icons.sms_outlined),
+                      label: const Text('Text'),
+                    ),
+                  ],
+                  if (_emailController.text.trim().isNotEmpty)
+                    OutlinedButton.icon(
+                      key: const ValueKey('contact-profile-action-email'),
+                      onPressed: _launchEmail,
+                      icon: const Icon(Icons.email_outlined),
+                      label: const Text('Email'),
+                    ),
+                ],
+              ),
+            ),
+          ],
 
           const SizedBox(height: 24),
 

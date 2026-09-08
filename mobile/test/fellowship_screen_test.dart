@@ -6,6 +6,7 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:mobile/api_client.dart';
 import 'package:mobile/app_theme.dart';
+import 'package:mobile/fellowship_contact_actions.dart';
 import 'package:mobile/fellowship_screen.dart';
 import 'package:mobile/local_fellowship_repository.dart';
 import 'package:mobile/local_recovery_store.dart';
@@ -283,5 +284,259 @@ void main() {
 
     expect(find.text('Fellowship\nOther contact info: Signal'), findsOneWidget);
     expect(find.textContaining('?'), findsNothing);
+  });
+
+  testWidgets('structured phone renders call and text quick actions', (
+    tester,
+  ) async {
+    final repository = FakeLocalFellowshipRepository(
+      contacts: [
+        {
+          'id': 3,
+          'handle': 'Phone Contact',
+          'contact_type': 'sponsor',
+          'phone': '555-0100',
+          'active': true,
+        },
+      ],
+    );
+    final apiClient = testApiClient();
+    addTearDown(apiClient.close);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.light(),
+        home: FellowshipScreen(
+          apiClient: apiClient,
+          localRepository: repository,
+        ),
+      ),
+    );
+    await pumpFellowship(tester);
+
+    await scrollUntilVisible(
+      tester,
+      find.byKey(const ValueKey('fellowship-contact-call-3')),
+    );
+
+    expect(
+      find.byKey(const ValueKey('fellowship-contact-call-3')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('fellowship-contact-text-3')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('fellowship-contact-email-3')),
+      findsNothing,
+    );
+  });
+
+  testWidgets('structured email renders an email quick action', (tester) async {
+    final repository = FakeLocalFellowshipRepository(
+      contacts: [
+        {
+          'id': 4,
+          'handle': 'Email Contact',
+          'contact_type': 'sponsor',
+          'email': 'contact@example.test',
+          'active': true,
+        },
+      ],
+    );
+    final apiClient = testApiClient();
+    addTearDown(apiClient.close);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.light(),
+        home: FellowshipScreen(
+          apiClient: apiClient,
+          localRepository: repository,
+        ),
+      ),
+    );
+    await pumpFellowship(tester);
+
+    await scrollUntilVisible(
+      tester,
+      find.byKey(const ValueKey('fellowship-contact-email-4')),
+    );
+
+    expect(
+      find.byKey(const ValueKey('fellowship-contact-call-4')),
+      findsNothing,
+    );
+    expect(
+      find.byKey(const ValueKey('fellowship-contact-text-4')),
+      findsNothing,
+    );
+    expect(
+      find.byKey(const ValueKey('fellowship-contact-email-4')),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('legacy-only contact renders no native quick action', (
+    tester,
+  ) async {
+    final repository = FakeLocalFellowshipRepository(
+      contacts: [
+        {
+          'id': 5,
+          'handle': 'Legacy Contact',
+          'contact_type': 'fellowship',
+          'contact_method': '555-0100',
+          'active': true,
+        },
+      ],
+    );
+    final apiClient = testApiClient();
+    addTearDown(apiClient.close);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.light(),
+        home: FellowshipScreen(
+          apiClient: apiClient,
+          localRepository: repository,
+        ),
+      ),
+    );
+    await pumpFellowship(tester);
+
+    await scrollUntilVisible(tester, find.text('Legacy Contact'));
+
+    expect(
+      find.byKey(const ValueKey('fellowship-contact-call-5')),
+      findsNothing,
+    );
+    expect(
+      find.byKey(const ValueKey('fellowship-contact-text-5')),
+      findsNothing,
+    );
+    expect(
+      find.byKey(const ValueKey('fellowship-contact-email-5')),
+      findsNothing,
+    );
+  });
+
+  testWidgets('tapping a quick action does not navigate to Contact Profile', (
+    tester,
+  ) async {
+    final repository = FakeLocalFellowshipRepository(
+      contacts: [
+        {
+          'id': 6,
+          'handle': 'Phone Contact',
+          'contact_type': 'sponsor',
+          'phone': '555-0100',
+          'active': true,
+        },
+      ],
+    );
+    final apiClient = testApiClient();
+    addTearDown(apiClient.close);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.light(),
+        home: FellowshipScreen(
+          apiClient: apiClient,
+          localRepository: repository,
+        ),
+      ),
+    );
+    await pumpFellowship(tester);
+
+    await scrollUntilVisible(
+      tester,
+      find.byKey(const ValueKey('fellowship-contact-call-6')),
+    );
+    await tester.tap(find.byKey(const ValueKey('fellowship-contact-call-6')));
+    await pumpFellowship(tester);
+
+    expect(find.byKey(const ValueKey('contact-profile-screen')), findsNothing);
+  });
+
+  testWidgets('normal row tap still opens Contact Profile', (tester) async {
+    final repository = FakeLocalFellowshipRepository(
+      contacts: [
+        {
+          'id': 7,
+          'handle': 'Phone Contact',
+          'contact_type': 'sponsor',
+          'phone': '555-0100',
+          'active': true,
+        },
+      ],
+    );
+    final apiClient = testApiClient();
+    addTearDown(apiClient.close);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.light(),
+        home: FellowshipScreen(
+          apiClient: apiClient,
+          localRepository: repository,
+        ),
+      ),
+    );
+    await pumpFellowship(tester);
+
+    await scrollUntilVisible(
+      tester,
+      find.byKey(const ValueKey('fellowship-contact-7')),
+    );
+    await tester.tap(find.byKey(const ValueKey('fellowship-contact-7')));
+    await pumpFellowship(tester);
+
+    expect(
+      find.byKey(const ValueKey('contact-profile-screen')),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('quick action launch failure is handled safely', (tester) async {
+    final repository = FakeLocalFellowshipRepository(
+      contacts: [
+        {
+          'id': 8,
+          'handle': 'Phone Contact',
+          'contact_type': 'sponsor',
+          'phone': '555-0100',
+          'active': true,
+        },
+      ],
+    );
+    final apiClient = testApiClient();
+    addTearDown(apiClient.close);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.light(),
+        home: Scaffold(
+          body: FellowshipScreen(
+            apiClient: apiClient,
+            localRepository: repository,
+            contactActions: FellowshipContactActions(
+              launcher: (uri) async => false,
+            ),
+          ),
+        ),
+      ),
+    );
+    await pumpFellowship(tester);
+
+    await scrollUntilVisible(
+      tester,
+      find.byKey(const ValueKey('fellowship-contact-call-8')),
+    );
+    await tester.tap(find.byKey(const ValueKey('fellowship-contact-call-8')));
+    await pumpFellowship(tester);
+
+    expect(find.text('Could not open the phone app.'), findsOneWidget);
   });
 }
