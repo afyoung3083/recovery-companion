@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:cryptography/cryptography.dart';
 import 'package:path_provider/path_provider.dart';
 
+import 'recovery_backup_protector.dart';
 import 'secure_offline_cache_store.dart';
 
 class LocalRecoveryStoreException implements Exception {
@@ -33,7 +34,10 @@ class LocalRecoveryStore {
     required this.dataFile,
     required this.keyStore,
     Cipher? cipher,
-  }) : _cipher = cipher ?? AesGcm.with256bits();
+    RecoveryBackupProtector? backupProtector,
+  }) : _cipher = cipher ?? AesGcm.with256bits(),
+       _backupProtector =
+           backupProtector ?? RecoveryBackupProtector.createDefault();
 
   static const int envelopeVersion = 1;
   static const int dataSchemaVersion = 1;
@@ -46,6 +50,11 @@ class LocalRecoveryStore {
   final File dataFile;
   final SecureKeyValueStore keyStore;
   final Cipher _cipher;
+  final RecoveryBackupProtector _backupProtector;
+  RecoveryBackupProtectionStatus? _backupProtectionIssue;
+
+  RecoveryBackupProtectionStatus? get backupProtectionIssue =>
+      _backupProtectionIssue;
 
   static Future<LocalRecoveryStore> openDefault() async {
     final directory = await getApplicationSupportDirectory();
@@ -69,6 +78,8 @@ class LocalRecoveryStore {
     if (!await dataFile.exists()) {
       return _emptyDocument();
     }
+
+    await _protectBackup();
 
     final encodedEnvelope = await dataFile.readAsString();
 
@@ -126,6 +137,11 @@ class LocalRecoveryStore {
   ///
   /// The old file is retained as a temporary backup until the new encrypted
   /// file has successfully replaced it.
+  ///
+  /// If backup exclusion cannot be enforced after the write succeeds, the
+  /// encrypted file is left in place and the caller receives a controlled error.
+  /// This preserves recovery data while ensuring the failure is not silently
+  /// ignored.
   Future<void> write(Map<String, dynamic> data) async {
     await dataFile.parent.create(recursive: true);
 
@@ -175,6 +191,8 @@ class LocalRecoveryStore {
       if (await backupFile.exists()) {
         await backupFile.delete();
       }
+
+      await _protectBackup();
     } catch (_) {
       if (!await dataFile.exists() && await backupFile.exists()) {
         await backupFile.rename(dataFile.path);
@@ -207,6 +225,41 @@ class LocalRecoveryStore {
     }
 
     await keyStore.delete(key: encryptionKeyName);
+  }
+
+  Future<void> _protectBackup() async {
+    if (!await dataFile.exists()) {
+      _backupProtectionIssue = null;
+      return;
+    }
+
+    try {
+      await _backupProtector.protectFile(dataFile.path);
+      _backupProtectionIssue = null;
+    } on RecoveryBackupProtectionException catch (error) {
+      _backupProtectionIssue = RecoveryBackupProtectionStatus(
+        code: 'BACKUP_PROTECTION_FAILED',
+        message: _safeBackupProtectionMessage(error.message),
+      );
+    } catch (_) {
+      _backupProtectionIssue = const RecoveryBackupProtectionStatus(
+        code: 'BACKUP_PROTECTION_FAILED',
+        message: 'Backup exclusion could not be enforced.',
+      );
+    }
+  }
+
+  String _safeBackupProtectionMessage(String message) {
+    final trimmed = message.trim();
+    if (trimmed.isEmpty) {
+      return 'Backup exclusion could not be enforced.';
+    }
+
+    if (trimmed.contains(dataFile.path)) {
+      return 'Backup exclusion could not be enforced.';
+    }
+
+    return trimmed;
   }
 
   Map<String, dynamic> _emptyDocument() {
