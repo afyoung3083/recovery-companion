@@ -17,7 +17,7 @@ import UserNotifications
 
     let methodChannel = FlutterMethodChannel(
       name: "recovery_companion/recovery_backup_protector",
-      binaryMessenger: engineBridge.binaryMessenger
+      binaryMessenger: engineBridge.applicationRegistrar.messenger()
     )
 
     methodChannel.setMethodCallHandler { [weak self] call, result in
