@@ -48,7 +48,7 @@ import UserNotifications
       result(FlutterError(
         code: "FILE_NOT_FOUND",
         message: "Recovery file does not exist.",
-        details: fileURL.path
+        details: nil
       ))
       return
     }
