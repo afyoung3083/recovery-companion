@@ -1,0 +1,120 @@
+name: iOS Preflight CI
+
+on:
+  push:
+    branches:
+      - sprint-60-ios-testflight-beta
+    paths:
+      - ".github/workflows/ios-preflight.yml"
+      - "mobile/ios/**"
+      - "mobile/lib/**"
+      - "mobile/test/**"
+      - "mobile/pubspec.yaml"
+      - "mobile/pubspec.lock"
+  pull_request:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/ios-preflight.yml"
+      - "mobile/ios/**"
+      - "mobile/lib/**"
+      - "mobile/test/**"
+      - "mobile/pubspec.yaml"
+      - "mobile/pubspec.lock"
+
+permissions:
+  contents: read
+
+jobs:
+  ios-preflight:
+    name: Unsigned iOS release preflight
+    runs-on: macos-26
+    defaults:
+      run:
+        working-directory: mobile
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Select Xcode 26.6
+        shell: bash
+        run: |
+          set -euo pipefail
+          xcode_path="/Applications/Xcode_26.6.app"
+          if [[ ! -d "$xcode_path" ]]; then
+            echo "Expected Xcode installation was not found: $xcode_path" >&2
+            exit 1
+          fi
+          sudo xcode-select --switch "$xcode_path/Contents/Developer"
+
+      - name: Set up Flutter 3.47.1
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.47.1"
+          channel: stable
+          cache: true
+
+      - name: Report native and Flutter toolchain
+        shell: bash
+        run: |
+          set -euo pipefail
+          xcodebuild -version
+          xcrun --sdk iphoneos --show-sdk-version
+          flutter --version
+
+      - name: Enforce Xcode and iPhoneOS SDK minimums
+        shell: bash
+        run: |
+          set -euo pipefail
+          xcode_major="$(xcodebuild -version | awk '/Xcode / {split($2, parts, "."); print parts[1]; exit}')"
+          sdk_major="$(xcrun --sdk iphoneos --show-sdk-version | awk -F. '{print $1}')"
+          if [[ -z "$xcode_major" || "$xcode_major" -lt 26 ]]; then
+            echo "Xcode major version must be at least 26; observed: ${xcode_major:-unknown}" >&2
+            exit 1
+          fi
+          if [[ -z "$sdk_major" || "$sdk_major" -lt 26 ]]; then
+            echo "iPhoneOS SDK major version must be at least 26; observed: ${sdk_major:-unknown}" >&2
+            exit 1
+          fi
+
+      - name: Install mobile dependencies
+        run: flutter pub get
+
+      - name: Run iOS identity regression test
+        run: flutter test test/ios_release_identity_test.dart
+
+      - name: Run recovery-store regression test
+        run: flutter test test/local_recovery_store_test.dart
+
+      - name: Run branding regression test
+        run: flutter test test/app_branding_assets_test.dart
+
+      - name: Analyze mobile application
+        run: flutter analyze
+
+      - name: Build unsigned iOS release
+        run: flutter build ios --release --no-codesign
+
+      - name: Verify built app metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          app_path="build/ios/iphoneos/Runner.app"
+          plist_path="$app_path/Info.plist"
+          if [[ ! -f "$plist_path" ]]; then
+            echo "Built app metadata was not found: $plist_path" >&2
+            exit 1
+          fi
+          bundle_id="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$plist_path")"
+          display_name="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleDisplayName' "$plist_path")"
+          marketing_version="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$plist_path")"
+          build_number="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$plist_path")"
+          minimum_os="$(/usr/libexec/PlistBuddy -c 'Print :MinimumOSVersion' "$plist_path")"
+          [[ "$bundle_id" == "com.recoverycompanionlabs.recoverycompanion" ]]
+          [[ "$display_name" == "Recovery Companion" ]]
+          [[ "$marketing_version" == "1.22.0" ]]
+          [[ "$build_number" == "13" ]]
+          [[ "$minimum_os" == "15.0" ]]
+          printf 'CFBundleIdentifier=%s\nCFBundleDisplayName=%s\nCFBundleShortVersionString=%s\nCFBundleVersion=%s\nMinimumOSVersion=%s\n' \
+            "$bundle_id" "$display_name" "$marketing_version" "$build_number" "$minimum_os"
