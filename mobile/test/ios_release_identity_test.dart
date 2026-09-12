@@ -15,6 +15,12 @@ void main() {
 
     expect(pbxproj, contains(appBundleConfig));
     expect(pbxproj, isNot(contains(staleAppBundleConfig)));
+    expect(pbxproj, contains('CODE_SIGN_STYLE = Manual;'));
+    expect(pbxproj, contains('DEVELOPMENT_TEAM = PHT55YXVYM;'));
+    expect(pbxproj,
+        contains('PROVISIONING_PROFILE_SPECIFIER = "Recovery Companion App Store Connect";'));
+    expect(pbxproj,
+        contains('"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "Apple Distribution";'));
 
     expect(infoPlist, contains('<string>Recovery Companion</string>'));
     expect(infoPlist, contains('<key>CFBundleDisplayName</key>'));

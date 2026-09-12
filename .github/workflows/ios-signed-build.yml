@@ -1,0 +1,441 @@
+name: iOS Signed Build
+
+on:
+  push:
+    branches:
+      - sprint-60-ios-testflight-beta
+    paths:
+      - ".github/workflows/ios-signed-build.yml"
+      - "mobile/ios/**"
+      - "mobile/lib/**"
+      - "mobile/test/**"
+      - "mobile/pubspec.yaml"
+      - "mobile/pubspec.lock"
+
+permissions:
+  contents: read
+
+jobs:
+  signed-ios-build:
+    name: Build signed iOS IPA
+    runs-on: macos-26
+    environment: testflight
+
+    defaults:
+      run:
+        working-directory: mobile
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Select Xcode 26.6
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          xcode_path="/Applications/Xcode_26.6.app"
+
+          if [[ ! -d "$xcode_path" ]]; then
+            echo "Expected Xcode installation was not found: $xcode_path" >&2
+            exit 1
+          fi
+
+          sudo xcode-select --switch "$xcode_path/Contents/Developer"
+
+          xcodebuild -version
+          xcrun --sdk iphoneos --show-sdk-version
+
+      - name: Set up Flutter 3.47.1
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.47.1"
+          channel: stable
+          cache: true
+
+      - name: Install mobile dependencies
+        run: flutter pub get
+
+      - name: Run focused iOS regression tests
+        run: |
+          flutter test test/ios_release_identity_test.dart
+          flutter test test/local_recovery_store_test.dart
+          flutter test test/app_branding_assets_test.dart
+          flutter test test/ios_backup_protection_contract_test.dart
+          flutter analyze
+
+      - name: Install Apple distribution signing material
+        shell: bash
+        env:
+          BUILD_CERTIFICATE_BASE64: ${{ secrets.BUILD_CERTIFICATE_BASE64 }}
+          P12_PASSWORD: ${{ secrets.P12_PASSWORD }}
+          BUILD_PROVISION_PROFILE_BASE64: ${{ secrets.BUILD_PROVISION_PROFILE_BASE64 }}
+          KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
+        run: |
+          set -euo pipefail
+
+          : "${BUILD_CERTIFICATE_BASE64:?Missing BUILD_CERTIFICATE_BASE64}"
+          : "${P12_PASSWORD:?Missing P12_PASSWORD}"
+          : "${BUILD_PROVISION_PROFILE_BASE64:?Missing BUILD_PROVISION_PROFILE_BASE64}"
+          : "${KEYCHAIN_PASSWORD:?Missing KEYCHAIN_PASSWORD}"
+
+          cert_path="$RUNNER_TEMP/build_certificate.p12"
+          profile_path="$RUNNER_TEMP/build_profile.mobileprovision"
+          profile_plist="$RUNNER_TEMP/profile.plist"
+          keychain_path="$RUNNER_TEMP/app-signing.keychain-db"
+
+          printf '%s' "$BUILD_CERTIFICATE_BASE64" \
+            | /usr/bin/base64 -D > "$cert_path"
+
+          printf '%s' "$BUILD_PROVISION_PROFILE_BASE64" \
+            | /usr/bin/base64 -D > "$profile_path"
+
+          security create-keychain \
+            -p "$KEYCHAIN_PASSWORD" \
+            "$keychain_path"
+
+          security set-keychain-settings \
+            -lut 21600 \
+            "$keychain_path"
+
+          security unlock-keychain \
+            -p "$KEYCHAIN_PASSWORD" \
+            "$keychain_path"
+
+          security import "$cert_path" \
+            -k "$keychain_path" \
+            -P "$P12_PASSWORD" \
+            -A \
+            -f pkcs12
+
+          security set-key-partition-list \
+            -S apple-tool:,apple:,codesign: \
+            -s \
+            -k "$KEYCHAIN_PASSWORD" \
+            "$keychain_path"
+
+          security list-keychains \
+            -d user \
+            -s "$keychain_path"
+
+          identity_output="$(
+            security find-identity \
+              -v \
+              -p codesigning \
+              "$keychain_path"
+          )"
+
+          echo "$identity_output"
+
+          echo "$identity_output" \
+            | grep -q 'Apple Distribution'
+
+          security cms \
+            -D \
+            -i "$profile_path" \
+            > "$profile_plist"
+
+          profile_name="$(
+            /usr/libexec/PlistBuddy \
+              -c 'Print :Name' \
+              "$profile_plist"
+          )"
+
+          profile_uuid="$(
+            /usr/libexec/PlistBuddy \
+              -c 'Print :UUID' \
+              "$profile_plist"
+          )"
+
+          team_id="$(
+            /usr/libexec/PlistBuddy \
+              -c 'Print :TeamIdentifier:0' \
+              "$profile_plist"
+          )"
+
+          application_id="$(
+            /usr/libexec/PlistBuddy \
+              -c 'Print :Entitlements:application-identifier' \
+              "$profile_plist"
+          )"
+
+          get_task_allow="$(
+            /usr/libexec/PlistBuddy \
+              -c 'Print :Entitlements:get-task-allow' \
+              "$profile_plist"
+          )"
+
+          [[ "$profile_name" == "Recovery Companion App Store Connect" ]]
+          [[ "$team_id" == "PHT55YXVYM" ]]
+          [[ "$application_id" == *".com.recoverycompanionlabs.recoverycompanion" ]]
+          [[ "$get_task_allow" == "false" ]]
+
+          mkdir -p \
+            "$HOME/Library/MobileDevice/Provisioning Profiles"
+
+          cp "$profile_path" \
+            "$HOME/Library/MobileDevice/Provisioning Profiles/$profile_uuid.mobileprovision"
+
+          echo "PROFILE_UUID=$profile_uuid" >> "$GITHUB_ENV"
+
+      - name: Create App Store Connect export options
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          cat > "$RUNNER_TEMP/ExportOptions.plist" <<'EOF'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>method</key>
+            <string>app-store-connect</string>
+
+            <key>signingStyle</key>
+            <string>manual</string>
+
+            <key>teamID</key>
+            <string>PHT55YXVYM</string>
+
+            <key>provisioningProfiles</key>
+            <dict>
+              <key>com.recoverycompanionlabs.recoverycompanion</key>
+              <string>Recovery Companion App Store Connect</string>
+            </dict>
+          </dict>
+          </plist>
+          EOF
+
+          plutil -lint "$RUNNER_TEMP/ExportOptions.plist"
+
+      - name: Build signed IPA
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          flutter build ipa \
+            --release \
+            --export-options-plist="$RUNNER_TEMP/ExportOptions.plist"
+
+      - name: Locate signed IPA
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          shopt -s nullglob
+          ipas=(build/ios/ipa/*.ipa)
+
+          if [[ "${#ipas[@]}" -ne 1 ]]; then
+            echo "Expected exactly one IPA, found ${#ipas[@]}" >&2
+            exit 1
+          fi
+
+          ipa_path="$(pwd)/${ipas[0]}"
+
+          echo "IPA_PATH=$ipa_path" >> "$GITHUB_ENV"
+
+          ipa_size="$(stat -f '%z' "$ipa_path")"
+          ipa_sha="$(shasum -a 256 "$ipa_path" | awk '{print $1}')"
+
+          echo "IPA_FILE=$(basename "$ipa_path")"
+          echo "IPA_SIZE=$ipa_size"
+          echo "IPA_SHA256=$ipa_sha"
+
+      - name: Verify signed IPA
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          verify_dir="$RUNNER_TEMP/ipa-verify"
+
+          mkdir -p "$verify_dir"
+
+          unzip -q \
+            "$IPA_PATH" \
+            -d "$verify_dir"
+
+          app_path="$(
+            find "$verify_dir/Payload" \
+              -maxdepth 1 \
+              -type d \
+              -name '*.app' \
+              -print \
+              -quit
+          )"
+
+          if [[ -z "$app_path" ]]; then
+            echo "Signed app bundle was not found inside IPA." >&2
+            exit 1
+          fi
+
+          plist_path="$app_path/Info.plist"
+
+          [[ -f "$plist_path" ]]
+          [[ -f "$app_path/embedded.mobileprovision" ]]
+
+          bundle_id="$(
+            /usr/libexec/PlistBuddy \
+              -c 'Print :CFBundleIdentifier' \
+              "$plist_path"
+          )"
+
+          display_name="$(
+            /usr/libexec/PlistBuddy \
+              -c 'Print :CFBundleDisplayName' \
+              "$plist_path"
+          )"
+
+          marketing_version="$(
+            /usr/libexec/PlistBuddy \
+              -c 'Print :CFBundleShortVersionString' \
+              "$plist_path"
+          )"
+
+          build_number="$(
+            /usr/libexec/PlistBuddy \
+              -c 'Print :CFBundleVersion' \
+              "$plist_path"
+          )"
+
+          minimum_os="$(
+            /usr/libexec/PlistBuddy \
+              -c 'Print :MinimumOSVersion' \
+              "$plist_path"
+          )"
+
+          [[ "$bundle_id" == "com.recoverycompanionlabs.recoverycompanion" ]]
+          [[ "$display_name" == "Recovery Companion" ]]
+          [[ "$marketing_version" == "1.22.0" ]]
+          [[ "$build_number" == "13" ]]
+          [[ "$minimum_os" == "15.0" ]]
+
+          codesign \
+            --verify \
+            --deep \
+            --strict \
+            --verbose=2 \
+            "$app_path"
+
+          codesign_info="$(
+            codesign \
+              -d \
+              --verbose=4 \
+              "$app_path" \
+              2>&1
+          )"
+
+          echo "$codesign_info" \
+            | grep 'Identifier=com.recoverycompanionlabs.recoverycompanion'
+
+          echo "$codesign_info" \
+            | grep 'TeamIdentifier=PHT55YXVYM'
+
+          echo "$codesign_info" \
+            | grep 'Authority=Apple Distribution'
+
+          codesign \
+            -d \
+            --entitlements :- \
+            "$app_path" \
+            > "$RUNNER_TEMP/signed-entitlements.plist" \
+            2>/dev/null
+
+          signed_application_id="$(
+            /usr/libexec/PlistBuddy \
+              -c 'Print :application-identifier' \
+              "$RUNNER_TEMP/signed-entitlements.plist"
+          )"
+
+          signed_team_id="$(
+            /usr/libexec/PlistBuddy \
+              -c 'Print :com.apple.developer.team-identifier' \
+              "$RUNNER_TEMP/signed-entitlements.plist"
+          )"
+
+          [[ "$signed_application_id" == *".com.recoverycompanionlabs.recoverycompanion" ]]
+          [[ "$signed_team_id" == "PHT55YXVYM" ]]
+
+          if /usr/libexec/PlistBuddy \
+            -c 'Print :get-task-allow' \
+            "$RUNNER_TEMP/signed-entitlements.plist" \
+            >/dev/null 2>&1
+          then
+            get_task_allow="$(
+              /usr/libexec/PlistBuddy \
+                -c 'Print :get-task-allow' \
+                "$RUNNER_TEMP/signed-entitlements.plist"
+            )"
+
+            [[ "$get_task_allow" == "false" ]]
+          fi
+
+          security cms \
+            -D \
+            -i "$app_path/embedded.mobileprovision" \
+            > "$RUNNER_TEMP/embedded-profile.plist"
+
+          embedded_name="$(
+            /usr/libexec/PlistBuddy \
+              -c 'Print :Name' \
+              "$RUNNER_TEMP/embedded-profile.plist"
+          )"
+
+          embedded_uuid="$(
+            /usr/libexec/PlistBuddy \
+              -c 'Print :UUID' \
+              "$RUNNER_TEMP/embedded-profile.plist"
+          )"
+
+          embedded_team="$(
+            /usr/libexec/PlistBuddy \
+              -c 'Print :TeamIdentifier:0' \
+              "$RUNNER_TEMP/embedded-profile.plist"
+          )"
+
+          embedded_app_id="$(
+            /usr/libexec/PlistBuddy \
+              -c 'Print :Entitlements:application-identifier' \
+              "$RUNNER_TEMP/embedded-profile.plist"
+          )"
+
+          [[ "$embedded_name" == "Recovery Companion App Store Connect" ]]
+          [[ "$embedded_uuid" == "$PROFILE_UUID" ]]
+          [[ "$embedded_team" == "PHT55YXVYM" ]]
+          [[ "$embedded_app_id" == *".com.recoverycompanionlabs.recoverycompanion" ]]
+
+          echo "CFBundleIdentifier=$bundle_id"
+          echo "CFBundleDisplayName=$display_name"
+          echo "CFBundleShortVersionString=$marketing_version"
+          echo "CFBundleVersion=$build_number"
+          echo "MinimumOSVersion=$minimum_os"
+
+      - name: Upload signed IPA artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: recovery-companion-ios-signed-1.22.0-13
+          path: mobile/build/ios/ipa/*.ipa
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Clean signing material
+        if: always()
+        shell: bash
+        working-directory: .
+        run: |
+          if [[ -n "${PROFILE_UUID:-}" ]]; then
+            rm -f \
+              "$HOME/Library/MobileDevice/Provisioning Profiles/$PROFILE_UUID.mobileprovision"
+          fi
+
+          rm -f "$RUNNER_TEMP/build_certificate.p12"
+          rm -f "$RUNNER_TEMP/build_profile.mobileprovision"
+          rm -f "$RUNNER_TEMP/profile.plist"
+          rm -f "$RUNNER_TEMP/ExportOptions.plist"
+          rm -f "$RUNNER_TEMP/signed-entitlements.plist"
+          rm -f "$RUNNER_TEMP/embedded-profile.plist"
+
+          rm -rf "$RUNNER_TEMP/ipa-verify"
+
+          security delete-keychain \
+            "$RUNNER_TEMP/app-signing.keychain-db" \
+            >/dev/null 2>&1 || true
