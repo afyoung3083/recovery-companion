@@ -114,9 +114,9 @@ jobs:
             -k "$KEYCHAIN_PASSWORD" \
             "$keychain_path"
 
-          security list-keychains \
-            -d user \
-            -s "$keychain_path"
+          security list-keychains -d user -s \
+            "$keychain_path" \
+            $(security list-keychains -d user | tr -d '"')
 
           identity_output="$(
             security find-identity \
@@ -126,52 +126,22 @@ jobs:
           )"
 
           echo "$identity_output"
+          echo "$identity_output" | grep -q 'Apple Distribution'
 
-          echo "$identity_output" \
-            | grep -q 'Apple Distribution'
+          security cms -D -i "$profile_path" > "$profile_plist"
 
-          security cms \
-            -D \
-            -i "$profile_path" \
-            > "$profile_plist"
-
-          profile_name="$(
-            /usr/libexec/PlistBuddy \
-              -c 'Print :Name' \
-              "$profile_plist"
-          )"
-
-          profile_uuid="$(
-            /usr/libexec/PlistBuddy \
-              -c 'Print :UUID' \
-              "$profile_plist"
-          )"
-
-          team_id="$(
-            /usr/libexec/PlistBuddy \
-              -c 'Print :TeamIdentifier:0' \
-              "$profile_plist"
-          )"
-
-          application_id="$(
-            /usr/libexec/PlistBuddy \
-              -c 'Print :Entitlements:application-identifier' \
-              "$profile_plist"
-          )"
-
-          get_task_allow="$(
-            /usr/libexec/PlistBuddy \
-              -c 'Print :Entitlements:get-task-allow' \
-              "$profile_plist"
-          )"
+          profile_name=$(/usr/libexec/PlistBuddy -c 'Print :Name' "$profile_plist")
+          profile_uuid=$(/usr/libexec/PlistBuddy -c 'Print :UUID' "$profile_plist")
+          team_id=$(/usr/libexec/PlistBuddy -c 'Print :TeamIdentifier:0' "$profile_plist")
+          application_id=$(/usr/libexec/PlistBuddy -c 'Print :Entitlements:application-identifier' "$profile_plist")
+          get_task_allow=$(/usr/libexec/PlistBuddy -c 'Print :Entitlements:get-task-allow' "$profile_plist")
 
           [[ "$profile_name" == "Recovery Companion App Store Connect" ]]
           [[ "$team_id" == "PHT55YXVYM" ]]
           [[ "$application_id" == *".com.recoverycompanionlabs.recoverycompanion" ]]
           [[ "$get_task_allow" == "false" ]]
 
-          mkdir -p \
-            "$HOME/Library/MobileDevice/Provisioning Profiles"
+          mkdir -p "$HOME/Library/MobileDevice/Provisioning Profiles"
 
           cp "$profile_path" \
             "$HOME/Library/MobileDevice/Provisioning Profiles/$profile_uuid.mobileprovision"
@@ -234,8 +204,8 @@ jobs:
 
           echo "IPA_PATH=$ipa_path" >> "$GITHUB_ENV"
 
-          ipa_size="$(stat -f '%z' "$ipa_path")"
-          ipa_sha="$(shasum -a 256 "$ipa_path" | awk '{print $1}')"
+          ipa_size=$(stat -f '%z' "$ipa_path")
+          ipa_sha=$(shasum -a 256 "$ipa_path" | awk '{print $1}')
 
           echo "IPA_FILE=$(basename "$ipa_path")"
           echo "IPA_SIZE=$ipa_size"
@@ -247,12 +217,9 @@ jobs:
           set -euo pipefail
 
           verify_dir="$RUNNER_TEMP/ipa-verify"
-
           mkdir -p "$verify_dir"
 
-          unzip -q \
-            "$IPA_PATH" \
-            -d "$verify_dir"
+          unzip -q "$IPA_PATH" -d "$verify_dir"
 
           app_path="$(
             find "$verify_dir/Payload" \
@@ -273,35 +240,11 @@ jobs:
           [[ -f "$plist_path" ]]
           [[ -f "$app_path/embedded.mobileprovision" ]]
 
-          bundle_id="$(
-            /usr/libexec/PlistBuddy \
-              -c 'Print :CFBundleIdentifier' \
-              "$plist_path"
-          )"
-
-          display_name="$(
-            /usr/libexec/PlistBuddy \
-              -c 'Print :CFBundleDisplayName' \
-              "$plist_path"
-          )"
-
-          marketing_version="$(
-            /usr/libexec/PlistBuddy \
-              -c 'Print :CFBundleShortVersionString' \
-              "$plist_path"
-          )"
-
-          build_number="$(
-            /usr/libexec/PlistBuddy \
-              -c 'Print :CFBundleVersion' \
-              "$plist_path"
-          )"
-
-          minimum_os="$(
-            /usr/libexec/PlistBuddy \
-              -c 'Print :MinimumOSVersion' \
-              "$plist_path"
-          )"
+          bundle_id=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$plist_path")
+          display_name=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleDisplayName' "$plist_path")
+          marketing_version=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$plist_path")
+          build_number=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$plist_path")
+          minimum_os=$(/usr/libexec/PlistBuddy -c 'Print :MinimumOSVersion' "$plist_path")
 
           [[ "$bundle_id" == "com.recoverycompanionlabs.recoverycompanion" ]]
           [[ "$display_name" == "Recovery Companion" ]]
@@ -309,29 +252,13 @@ jobs:
           [[ "$build_number" == "13" ]]
           [[ "$minimum_os" == "15.0" ]]
 
-          codesign \
-            --verify \
-            --deep \
-            --strict \
-            --verbose=2 \
-            "$app_path"
+          codesign --verify --deep --strict --verbose=2 "$app_path"
 
-          codesign_info="$(
-            codesign \
-              -d \
-              --verbose=4 \
-              "$app_path" \
-              2>&1
-          )"
+          codesign_info=$(codesign -d --verbose=4 "$app_path" 2>&1)
 
-          echo "$codesign_info" \
-            | grep 'Identifier=com.recoverycompanionlabs.recoverycompanion'
-
-          echo "$codesign_info" \
-            | grep 'TeamIdentifier=PHT55YXVYM'
-
-          echo "$codesign_info" \
-            | grep 'Authority=Apple Distribution'
+          echo "$codesign_info" | grep 'Identifier=com.recoverycompanionlabs.recoverycompanion'
+          echo "$codesign_info" | grep 'TeamIdentifier=PHT55YXVYM'
+          echo "$codesign_info" | grep 'Authority=Apple Distribution'
 
           codesign \
             -d \
@@ -340,17 +267,17 @@ jobs:
             > "$RUNNER_TEMP/signed-entitlements.plist" \
             2>/dev/null
 
-          signed_application_id="$(
+          signed_application_id=$(
             /usr/libexec/PlistBuddy \
               -c 'Print :application-identifier' \
               "$RUNNER_TEMP/signed-entitlements.plist"
-          )"
+          )
 
-          signed_team_id="$(
+          signed_team_id=$(
             /usr/libexec/PlistBuddy \
               -c 'Print :com.apple.developer.team-identifier' \
               "$RUNNER_TEMP/signed-entitlements.plist"
-          )"
+          )
 
           [[ "$signed_application_id" == *".com.recoverycompanionlabs.recoverycompanion" ]]
           [[ "$signed_team_id" == "PHT55YXVYM" ]]
@@ -360,11 +287,11 @@ jobs:
             "$RUNNER_TEMP/signed-entitlements.plist" \
             >/dev/null 2>&1
           then
-            get_task_allow="$(
+            get_task_allow=$(
               /usr/libexec/PlistBuddy \
                 -c 'Print :get-task-allow' \
                 "$RUNNER_TEMP/signed-entitlements.plist"
-            )"
+            )
 
             [[ "$get_task_allow" == "false" ]]
           fi
@@ -374,29 +301,10 @@ jobs:
             -i "$app_path/embedded.mobileprovision" \
             > "$RUNNER_TEMP/embedded-profile.plist"
 
-          embedded_name="$(
-            /usr/libexec/PlistBuddy \
-              -c 'Print :Name' \
-              "$RUNNER_TEMP/embedded-profile.plist"
-          )"
-
-          embedded_uuid="$(
-            /usr/libexec/PlistBuddy \
-              -c 'Print :UUID' \
-              "$RUNNER_TEMP/embedded-profile.plist"
-          )"
-
-          embedded_team="$(
-            /usr/libexec/PlistBuddy \
-              -c 'Print :TeamIdentifier:0' \
-              "$RUNNER_TEMP/embedded-profile.plist"
-          )"
-
-          embedded_app_id="$(
-            /usr/libexec/PlistBuddy \
-              -c 'Print :Entitlements:application-identifier' \
-              "$RUNNER_TEMP/embedded-profile.plist"
-          )"
+          embedded_name=$(/usr/libexec/PlistBuddy -c 'Print :Name' "$RUNNER_TEMP/embedded-profile.plist")
+          embedded_uuid=$(/usr/libexec/PlistBuddy -c 'Print :UUID' "$RUNNER_TEMP/embedded-profile.plist")
+          embedded_team=$(/usr/libexec/PlistBuddy -c 'Print :TeamIdentifier:0' "$RUNNER_TEMP/embedded-profile.plist")
+          embedded_app_id=$(/usr/libexec/PlistBuddy -c 'Print :Entitlements:application-identifier' "$RUNNER_TEMP/embedded-profile.plist")
 
           [[ "$embedded_name" == "Recovery Companion App Store Connect" ]]
           [[ "$embedded_uuid" == "$PROFILE_UUID" ]]
@@ -423,8 +331,7 @@ jobs:
         working-directory: .
         run: |
           if [[ -n "${PROFILE_UUID:-}" ]]; then
-            rm -f \
-              "$HOME/Library/MobileDevice/Provisioning Profiles/$PROFILE_UUID.mobileprovision"
+            rm -f "$HOME/Library/MobileDevice/Provisioning Profiles/$PROFILE_UUID.mobileprovision"
           fi
 
           rm -f "$RUNNER_TEMP/build_certificate.p12"
