@@ -114,7 +114,7 @@ jobs:
           [[ "$bundle_id" == "com.recoverycompanionlabs.recoverycompanion" ]]
           [[ "$display_name" == "Recovery Companion" ]]
           [[ "$marketing_version" == "1.22.0" ]]
-          [[ "$build_number" == "13" ]]
+          [[ "$build_number" == "14" ]]
           [[ "$minimum_os" == "15.0" ]]
           printf 'CFBundleIdentifier=%s\nCFBundleDisplayName=%s\nCFBundleShortVersionString=%s\nCFBundleVersion=%s\nMinimumOSVersion=%s\n' \
             "$bundle_id" "$display_name" "$marketing_version" "$build_number" "$minimum_os"

@@ -61,6 +61,7 @@ jobs:
       - name: Run focused iOS regression tests
         run: |
           flutter test test/ios_release_identity_test.dart
+          flutter test test/ios_build_credentials_test.dart
           flutter test test/local_recovery_store_test.dart
           flutter test test/app_branding_assets_test.dart
           flutter test test/ios_backup_protection_contract_test.dart
@@ -182,11 +183,39 @@ jobs:
 
       - name: Build signed IPA
         shell: bash
+        env:
+          RECOVERY_API_TOKEN: ${{ secrets.RECOVERY_API_TOKEN }}
         run: |
           set -euo pipefail
+          set +x
+          umask 077
+
+          defines_path="$RUNNER_TEMP/recovery-ios-dart-defines.json"
+          trap 'rm -f "$defines_path"' EXIT
+
+          python3 - <<'PY'
+          import base64
+          import json
+          import os
+          from pathlib import Path
+
+          token = os.environ.get("RECOVERY_API_TOKEN", "")
+          if len(token) < 32 or any(not 33 <= ord(c) <= 126 for c in token):
+              raise SystemExit("RECOVERY_API_TOKEN is missing or invalid; refusing to build.")
+          if token.startswith("sk-"):
+              raise SystemExit("Use the beta backend token, not an OpenAI API key.")
+
+          encoded = base64.b64encode(f"RECOVERY_API_TOKEN={token}".encode()).decode()
+          print(f"::add-mask::{encoded}")
+          path = Path(os.environ["RUNNER_TEMP"]) / "recovery-ios-dart-defines.json"
+          with path.open("w", encoding="utf-8") as handle:
+              json.dump({"RECOVERY_API_TOKEN": token}, handle)
+          print("Beta build configuration prepared.")
+          PY
 
           flutter build ipa \
             --release \
+            --dart-define-from-file="$defines_path" \
             --export-options-plist="$RUNNER_TEMP/ExportOptions.plist"
 
       - name: Locate signed IPA
@@ -251,7 +280,7 @@ jobs:
           [[ "$bundle_id" == "com.recoverycompanionlabs.recoverycompanion" ]]
           [[ "$display_name" == "Recovery Companion" ]]
           [[ "$marketing_version" == "1.22.0" ]]
-          [[ "$build_number" == "13" ]]
+          [[ "$build_number" == "14" ]]
           [[ "$minimum_os" == "15.0" ]]
 
           codesign --verify --deep --strict --verbose=2 "$app_path"
@@ -319,13 +348,7 @@ jobs:
           echo "CFBundleVersion=$build_number"
           echo "MinimumOSVersion=$minimum_os"
 
-      - name: Upload signed IPA artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: recovery-companion-ios-signed-1.22.0-13
-          path: mobile/build/ios/ipa/*.ipa
-          if-no-files-found: error
-          retention-days: 7
+      # Distribute signed IPAs through TestFlight, not public artifacts.
 
       - name: Upload IPA to App Store Connect
         if: startsWith(github.ref, 'refs/tags/ios-testflight-')
@@ -382,7 +405,7 @@ jobs:
           rm -f "$RUNNER_TEMP/build_certificate.p12"
           rm -f "$RUNNER_TEMP/build_profile.mobileprovision"
           rm -f "$RUNNER_TEMP/profile.plist"
-          rm -f "$RUNNER_TEMP/ExportOptions.plist"
+          rm -f "$RUNNER_TEMP/ExportOptions.plist" "$RUNNER_TEMP/recovery-ios-dart-defines.json"
           rm -f "$RUNNER_TEMP/signed-entitlements.plist"
           rm -f "$RUNNER_TEMP/embedded-profile.plist"
           rm -rf "$RUNNER_TEMP/ipa-verify"
