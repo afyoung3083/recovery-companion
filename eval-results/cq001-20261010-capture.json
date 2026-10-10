@@ -1,0 +1,123 @@
+{
+  "schema_version": 1,
+  "status": "complete",
+  "model": "gpt-5",
+  "quality_verdict": "NOT_EVALUATED",
+  "human_review_required": true,
+  "baseline_commit": "15bcd44b5ad41290c1e90e3bd7dfea1e07defb53",
+  "prompt_sha256": {
+    "baseline": "a2fcb460eeacab8d38d8d9c97d7d45aed6667d0dee53a5eec7f68e47aa1e78ca",
+    "candidate": "51ec7053002333b5a46c3f82b4bce2641e358804262eabc1cd54a14deed4c643"
+  },
+  "settings": {
+    "reasoning": "low",
+    "verbosity": "low",
+    "store": false,
+    "max_output_tokens": 1400,
+    "max_retries": 0
+  },
+  "planned_requests": 6,
+  "requests_attempted": 6,
+  "results": [
+    {
+      "id": "CQ-001",
+      "name": "Step 4 question must not become a confirmation/referral loop",
+      "review_criteria": [
+        "First turn asks which nuance or passage, not merely whether it understood the request.",
+        "After clarification, explains a common understanding of resentment and its relevance to inventory; gives useful substance before any optional question.",
+        "Final turn provides an illustrative example, distinguishing common interpretation from certainty about the author's exact intent."
+      ],
+      "critical_failures": [
+        "Only paraphrases the request and requires confirmation.",
+        "Only redirects the educational question to a sponsor, therapist, or DSR partner.",
+        "Invents quotations or claims to have inspected a text."
+      ],
+      "variants": {
+        "baseline": {
+          "conversation": [
+            {
+              "role": "user",
+              "content": "I need to understand a nuance with step 4."
+            },
+            {
+              "role": "assistant",
+              "content": "Got it. What specific part of Step 4 are you unsure about?"
+            },
+            {
+              "role": "user",
+              "content": "I wanted to understand what Bill Wilson was getting at about resentments."
+            },
+            {
+              "role": "assistant",
+              "content": "In the Big Book’s Step 4, Bill W. treats resentment as the “number one offender” because it blocks spiritual growth and sets off the fear/self-will cycle that leads back to drinking. The inventory aims to see resentment clearly, not justify it.\n\nCore points he makes:\n- List who/what you resent, what happened, and how it affected you (self-esteem, security, ambitions, pocketbook, personal/sex relations).\n- Then look for your part: where were you selfish, dishonest, self-seeking, or frightened.\n- Reframe the offender as “spiritually sick,” ask God to help you be tolerant and free of anger (“God save me from being angry. Thy will be done.”).\n- Drop the “dubious luxury of resentment” and turn thoughts to helping others—because holding onto anger poisons you, not them.\n\nIs there a specific line or nuance in the resentment section you want to unpack?"
+            },
+            {
+              "role": "user",
+              "content": "I am asking for understanding, not an assignment. Can you explain with a simple example?"
+            },
+            {
+              "role": "assistant",
+              "content": "Sure. Here’s the nuance with a simple example:\n\nExample: “My coworker got credit for my idea.”\n- What it affects: self-esteem (I want respect), security (fear of losing promotion), ambitions (blocked goals), pocketbook (maybe bonus), personal/sex relations (I’m snappy at home).\n- Why Bill calls resentment “number one offender”: it keeps me spiritually blocked and points me back toward self-will and fear.\n- “My part” isn’t about excusing them; it’s about seeing my side of the street: I was fearful (of status/money), self-seeking (needing recognition), maybe dishonest (I didn’t speak up), or inconsiderate (cold-shouldered them).\n- Shift in outlook: view them as spiritually sick too; pray “God save me from being angry. Thy will be done,” so I’m freed from the poison.\n- Result: I can take sane action (clarify credit calmly if needed) without the burning grudge. The point is clarity and willingness, not proving I’m right."
+            }
+          ],
+          "usage": [
+            {
+              "input_tokens": 2128,
+              "output_tokens": 238
+            },
+            {
+              "input_tokens": 2167,
+              "output_tokens": 624
+            },
+            {
+              "input_tokens": 2387,
+              "output_tokens": 404
+            }
+          ]
+        },
+        "candidate": {
+          "conversation": [
+            {
+              "role": "user",
+              "content": "I need to understand a nuance with step 4."
+            },
+            {
+              "role": "assistant",
+              "content": "What part are you wrestling with—resentments, fears, sex conduct, harms/assets, or the “searching and fearless moral inventory” idea itself (e.g., thorough vs. perfection, what to include, how to do columns)?"
+            },
+            {
+              "role": "user",
+              "content": "I wanted to understand what Bill Wilson was getting at about resentments."
+            },
+            {
+              "role": "assistant",
+              "content": "Core points Bill makes about resentments in Step 4:\n\n- Why they matter: Resentment is the top relapse trigger and blocks the “sunlight of the Spirit.” If it runs the show, we drink or stay spiritually sick.\n- What to do first: Put every resentment on paper—person/institution/principle, what happened, and how it affects you (self-esteem, security, ambitions, relationships, sex, pocketbook).\n- Reframe the target: See the offender as spiritually sick like we are. Ask for freedom from anger and to show the tolerance we’d give a sick person. This isn’t excusing harm; it defuses the poison in us.\n- Find “our part”: Where were we selfish, dishonest, self-seeking, or frightened—either in the situation or in how we’ve been replaying it. When we were truly victimized, “our part” is about our present reactions and beliefs, not blame for the original harm.\n- Direction after inventory: We stop living on resentment and turn thoughts to helping others; then we’ll make amends where appropriate (not to dangerous people), guided by a sponsor.\n\nQuick example:\n- Who/what: My boss—took credit for my work.\n- Affects: Self-esteem, security, ambition, pocketbook, relations.\n- Our part: I people-pleased, stayed silent from fear, gossiped, planned payback.\n- Prayer/action: Ask to be free of anger; speak directly and appropriately, or let it go; focus on useful work/helping someone else.\n\nIs there a specific line or passage you want to unpack (e.g., “number one offender,” “sick like me,” or the columns)?"
+            },
+            {
+              "role": "user",
+              "content": "I am asking for understanding, not an assignment. Can you explain with a simple example?"
+            },
+            {
+              "role": "assistant",
+              "content": "Here’s a simple, non-instructional example that shows Bill’s point:\n\n- Situation: A coworker publicly belittles my idea in a meeting. I stew for days.\n- What resentment does: It keeps me replaying the scene, justifying myself, and fantasizing revenge. That blocks any peace—and in Bill’s view, it’s the stuff that leads us back to the drink.\n- Bill’s reframe: See the coworker as “sick” like me—driven by fear, self-seeking, insecurity. I ask to be freed from anger and to show tolerance I’d give a sick person. This doesn’t excuse it; it changes my inner posture so the poison isn’t running me.\n- “My part” (not blame for their behavior): I was dishonest about my fear of looking dumb, I gossiped, I inflated the story to feel superior. Even if I choose to address their behavior, I do it from sanity, not payback.\n- Result: The heat drops. I can either calmly address it or let it go, and turn attention to something useful. The shift is from “they ruined my life” to “I don’t have to live on anger today.”\n\nIf you want, I can give a second example where the harm was real (e.g., a betrayal) and show how “our part” stays about today’s response, not blaming the victim."
+            }
+          ],
+          "usage": [
+            {
+              "input_tokens": 1716,
+              "output_tokens": 183
+            },
+            {
+              "input_tokens": 1788,
+              "output_tokens": 824
+            },
+            {
+              "input_tokens": 2167,
+              "output_tokens": 534
+            }
+          ]
+        }
+      }
+    }
+  ]
+}
