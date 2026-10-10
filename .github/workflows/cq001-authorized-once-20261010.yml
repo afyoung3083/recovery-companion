@@ -1,0 +1,128 @@
+name: Authorized CQ-001 comparison 20261010
+run-name: CQ-001 six-request comparison authorized by Andy
+
+# One expressly authorized run, isolated from the normal opt-in PR workflow.
+# The GitHub connector exposes writes but not workflow_dispatch. Do not merge.
+on:
+  push:
+    branches:
+      - eval/cq001-authorized-once-20261010
+    paths:
+      - .github/workflows/cq001-authorized-once-20261010.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cq001-authorized-once-20261010
+  cancel-in-progress: false
+
+jobs:
+  comparison:
+    if: >-
+      github.repository == 'afyoung3083/recovery-companion' &&
+      github.event_name == 'push' &&
+      github.ref == 'refs/heads/eval/cq001-authorized-once-20261010' &&
+      github.run_number == '1' && github.run_attempt == '1' &&
+      contains(github.event.head_commit.message, 'Authorize one CQ-001 comparison: six requests maximum')
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      OPENAI_API_KEY: ''
+    steps:
+      - name: Check out the reviewed immutable candidate
+        uses: actions/checkout@v6
+        with:
+          ref: 67435ac127958913797166a83fc3f1ec85fff51c
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+
+      - name: Install existing dependencies
+        run: python -m pip install -r requirements.txt
+
+      - name: Verify source and budget before exposing the API credential
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = '67435ac127958913797166a83fc3f1ec85fff51c'
+          python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+          from evals import conversation_comparison as cq
+          cases = cq.select_cases(cq.load_cases(), 'CQ-001')
+          assert len(cases) == 1 and len(cases[0]['user_turns']) == 3
+          assert cq.required_calls(cases, 6) == 6
+          assert cq.MAX_OUTPUT_TOKENS == 1400
+          assert cq.configured_model() == 'gpt-5'
+          prompts = cq.read_prompts()
+          assert set(prompts) == {'baseline', 'candidate'}
+          assert os.environ.get('OPENAI_API_KEY', '') == ''
+          metadata = {
+              'authorization': 'Andy authorized this six-request CQ-001 comparison in chat.',
+              'candidate_commit': '67435ac127958913797166a83fc3f1ec85fff51c',
+              'baseline_commit': cq.BASELINE_COMMIT,
+              'run_id': os.environ['GITHUB_RUN_ID'],
+              'run_attempt': os.environ['GITHUB_RUN_ATTEMPT'],
+              'case_id': 'CQ-001',
+              'maximum_requests': 6,
+              'maximum_output_tokens_per_response': 1400,
+              'automatic_retries': 0,
+              'data': 'Fictional fixture only; no recovery records.',
+          }
+          destination = Path(os.environ['RUNNER_TEMP']) / 'cq001-context.json'
+          destination.write_text(json.dumps(metadata, indent=2) + '\n', encoding='utf-8')
+          print('PASS: frozen source, exactly six planned requests, no API credential in preflight.')
+          PY
+          python -m pytest -q
+          python -m tests.run_conversation_comparison --cases CQ-001 --max-calls 6
+
+      - name: Run the one authorized six-request comparison
+        id: live_comparison
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: >-
+          python -m tests.run_conversation_comparison
+          --live --allow-paid --cases CQ-001 --max-calls 6
+          --output "$RUNNER_TEMP/cq001-comparison.json"
+
+      - name: Preserve fictional evidence including a partial report on failure
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cq001-authorized-comparison
+          path: |
+            ${{ runner.temp }}/cq001-comparison.json
+            ${{ runner.temp }}/cq001-context.json
+          retention-days: 7
+          if-no-files-found: warn
+
+      - name: Display only the fictional evaluation report
+        if: always()
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+          import uuid
+          assert os.environ.get('OPENAI_API_KEY', '') == ''
+          path = Path(os.environ['RUNNER_TEMP']) / 'cq001-comparison.json'
+          if not path.is_file():
+              print('No comparison report exists. Do not retry automatically.')
+              raise SystemExit(0)
+          report = json.loads(path.read_text(encoding='utf-8'))
+          assert report.get('requests_attempted', 0) <= 6
+          assert all(item.get('id') == 'CQ-001' for item in report.get('results', []))
+          # Model text is untrusted: suspend workflow-command interpretation.
+          marker = uuid.uuid4().hex
+          print(f'::stop-commands::{marker}')
+          print('BEGIN_CQ001_REPORT')
+          print(json.dumps(report, indent=2, ensure_ascii=False))
+          print('END_CQ001_REPORT')
+          print(f'::{marker}::')
+          print('No automatic retry. This capture is not a human approval or deployment.')
+          PY
