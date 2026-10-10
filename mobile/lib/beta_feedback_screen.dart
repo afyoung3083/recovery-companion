@@ -212,19 +212,32 @@ class _BetaFeedbackScreenState extends State<BetaFeedbackScreen> {
               DropdownButtonFormField<String>(
                 key: const ValueKey('beta-feedback-type'),
                 initialValue: _feedbackType,
+                isExpanded: true,
                 decoration: const InputDecoration(labelText: 'Feedback type'),
                 items: const [
                   DropdownMenuItem(
                     value: 'Bug',
-                    child: Text('Bug / something broke'),
+                    child: Text(
+                      'Bug / something broke',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
                   DropdownMenuItem(
                     value: 'Usability',
-                    child: Text('Confusing or hard to use'),
+                    child: Text(
+                      'Confusing or hard to use',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
                   DropdownMenuItem(
                     value: 'Suggestion',
-                    child: Text('Suggestion / idea'),
+                    child: Text(
+                      'Suggestion / idea',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
                   DropdownMenuItem(value: 'Other', child: Text('Other')),
                 ],
@@ -328,6 +341,11 @@ class _BetaFeedbackScreenState extends State<BetaFeedbackScreen> {
         ),
 
         const SizedBox(height: 24),
+
+        const AppSectionTitle(
+          title: 'Safe diagnostics',
+          subtitle: 'Technical context helps reproduce bugs without attaching your recovery records.',
+        ),
 
         SizedBox(
           width: double.infinity,
