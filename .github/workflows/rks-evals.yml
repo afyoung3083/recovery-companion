@@ -3,27 +3,96 @@ name: RKS Evaluations
 on:
   pull_request:
   workflow_dispatch:
+    inputs:
+      allow_paid_evaluations:
+        description: 'Authorize paid OpenAI calls for this manual run only'
+        type: boolean
+        required: true
+        default: false
+      suite:
+        description: 'Conversation comparison or the legacy 20-case RKS suite'
+        type: choice
+        options:
+          - conversation
+          - legacy-rks
+        default: conversation
+      case_ids:
+        description: 'Conversation IDs, comma-separated (fictional fixtures only)'
+        type: string
+        default: CQ-001
+      max_calls:
+        description: 'Hard request cap for conversation comparison, including both prompts'
+        type: choice
+        options:
+          - '6'
+          - '12'
+        default: '6'
+
+permissions:
+  contents: read
 
 jobs:
   rks-evals:
+    name: Offline evaluation contracts and unit tests
     runs-on: ubuntu-latest
-
+    timeout-minutes: 15
+    env:
+      OPENAI_API_KEY: ''
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/checkout@v6
         with:
-          python-version: "3.12"
-
+          persist-credentials: false
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
       - name: Install dependencies
-        run: pip install -r requirements.txt
+        run: python -m pip install -r requirements.txt
+      - name: Run unit tests without API credentials
+        run: python -m pytest -q
+      - name: Show offline conversation comparison plan
+        run: python -m tests.run_conversation_comparison
 
-      - name: Run unit tests
-        run: python -m pytest -v
-
-      - name: Run RKS evaluations
+  live-evals:
+    name: Explicitly authorized live AI evaluation
+    # Never give an automatic PR run access to the OpenAI credential.
+    if: github.event_name == 'workflow_dispatch' && inputs.allow_paid_evaluations == true
+    needs: rks-evals
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - name: Install dependencies
+        run: python -m pip install -r requirements.txt
+      - name: Compare selected conversations for human review
+        if: inputs.suite == 'conversation'
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          CASE_IDS: ${{ inputs.case_ids }}
+          MAX_CALLS: ${{ inputs.max_calls }}
+        run: >-
+          python -m tests.run_conversation_comparison
+          --live --allow-paid --cases "$CASE_IDS" --max-calls "$MAX_CALLS"
+          --output "$RUNNER_TEMP/conversation-comparison.json"
+      - name: Upload fictional comparison transcripts
+        if: inputs.suite == 'conversation' && success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fictional-conversation-comparison
+          path: ${{ runner.temp }}/conversation-comparison.json
+          retention-days: 7
+          if-no-files-found: error
+      - name: Run legacy RKS evaluations (separately authorized suite)
+        if: inputs.suite == 'legacy-rks'
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         run: python -m tests.run_rks_evals
