@@ -1,6 +1,9 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import 'api_client.dart';
+import 'app_components.dart';
 import 'app_theme.dart';
 import 'beta_support_action.dart';
 import 'daily_checkin_screen.dart';
@@ -54,7 +57,16 @@ class RecoveryCompanionApp extends StatelessWidget {
 }
 
 class HomeShell extends StatefulWidget {
-  const HomeShell({super.key});
+  const HomeShell({
+    this.localStoreLoader,
+    this.reminderFactory,
+    this.apiClient,
+    super.key,
+  });
+
+  final Future<LocalRecoveryStore> Function()? localStoreLoader;
+  final ReminderScheduler Function(ValueChanged<String>)? reminderFactory;
+  final ApiClient? apiClient;
 
   @override
   State<HomeShell> createState() => _HomeShellState();
@@ -81,6 +93,10 @@ class _HomeShellState extends State<HomeShell> {
   LocalWeeklyReviewRepository? _localWeeklyReviewRepository;
 
   bool _localInitializationPending = true;
+  bool _localInitializationFailed = false;
+  ReminderKind? _pendingReminder;
+  bool _reminderRouteOpen = false;
+  int _dashboardRefreshVersion = 0;
 
   static const List<_Destination> _destinations = [
     _Destination(label: 'Dashboard', icon: Icons.dashboard_outlined),
@@ -94,7 +110,7 @@ class _HomeShellState extends State<HomeShell> {
   void initState() {
     super.initState();
 
-    _apiClient = ApiClient(
+    _apiClient = widget.apiClient ?? ApiClient(
       baseUrl: MobileConfig.apiBaseUrl,
       apiToken: MobileConfig.apiToken,
     );
@@ -103,17 +119,31 @@ class _HomeShellState extends State<HomeShell> {
       cache: SecureOfflineCacheStore(storage: FlutterSecureKeyValueStore()),
     );
 
-    _reminderScheduler = ReminderScheduler(
-      onNotificationTap: _openReminderPayload,
-    );
+    _reminderScheduler =
+        widget.reminderFactory?.call(_openReminderPayload) ??
+        ReminderScheduler(onNotificationTap: _openReminderPayload);
 
-    _initializeReminderNavigation();
-    _initializeLocalRecovery();
+    unawaited(_initializeLocalRecovery());
+    unawaited(_initializeReminderNavigation());
   }
 
   Future<void> _initializeLocalRecovery() async {
+    setState(() {
+      _localInitializationPending = true;
+      _localInitializationFailed = false;
+    });
+
     try {
-      final store = await LocalRecoveryStore.openDefault();
+      final loader = widget.localStoreLoader ?? LocalRecoveryStore.openDefault;
+      final store = await loader();
+
+      if (!mounted) {
+        return;
+      }
+
+      // Verify readability before exposing forms. Never clear or replace
+      // unreadable recovery records or silently use the legacy API instead.
+      await store.read();
 
       if (!mounted) {
         return;
@@ -142,6 +172,12 @@ class _HomeShellState extends State<HomeShell> {
           store: store,
         );
       });
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          _localInitializationFailed = true;
+        });
+      }
     } finally {
       if (mounted) {
         setState(() {
@@ -149,6 +185,8 @@ class _HomeShellState extends State<HomeShell> {
         });
       }
     }
+
+    _dispatchPendingReminder();
   }
 
   Future<void> _initializeReminderNavigation() async {
@@ -172,47 +210,76 @@ class _HomeShellState extends State<HomeShell> {
   }
 
   void _openReminderPayload(String payload) {
-    if (!mounted) {
-      return;
-    }
-
     final kind = reminderKindFromPayload(payload);
 
-    if (kind == null) {
+    if (!mounted || kind == null || _reminderRouteOpen) {
       return;
     }
 
-    late final String title;
-    late final Widget screen;
+    // Retain the request during startup, including a failed startup that
+    // the user subsequently retries. Never construct a server-first form.
+    _pendingReminder = kind;
+    _dispatchPendingReminder();
+  }
 
-    switch (kind) {
-      case ReminderKind.dailyRecovery:
-        title = 'Daily Recovery';
-        screen = DailyCheckInScreen(
-          apiClient: _apiClient,
-          offlineReadService: _offlineReadService,
-          localRepository: _localDailyCheckInRepository,
-        );
+  void _dispatchPendingReminder() {
+    final kind = _pendingReminder;
 
-      case ReminderKind.weeklyReview:
-        title = 'Weekly Review';
-        screen = WeeklyReviewScreen(
-          apiClient: _apiClient,
-          localRepository: _localWeeklyReviewRepository,
-        );
+    if (!mounted ||
+        kind == null ||
+        _localInitializationPending ||
+        _localInitializationFailed ||
+        _reminderRouteOpen ||
+        _localDailyCheckInRepository == null ||
+        _localWeeklyReviewRepository == null) {
+      return;
     }
 
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => Scaffold(
-          appBar: AppBar(
-            title: Text(title),
-            actions: const [BetaSupportAction()],
-          ),
-          body: screen,
-        ),
-      ),
-    );
+    _pendingReminder = null;
+    _reminderRouteOpen = true;
+
+    // Navigation runs after the current frame, not during widget building.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        unawaited(_showReadyReminder(kind));
+      }
+    });
+    WidgetsBinding.instance.ensureVisualUpdate();
+  }
+
+  Future<void> _showReadyReminder(ReminderKind kind) async {
+    try {
+      late final String title;
+      late final Widget screen;
+
+      switch (kind) {
+        case ReminderKind.dailyRecovery:
+          title = 'Daily Recovery';
+          screen = DailyCheckInScreen(
+            apiClient: _apiClient,
+            offlineReadService: _offlineReadService,
+            localRepository: _localDailyCheckInRepository!,
+          );
+
+        case ReminderKind.weeklyReview:
+          title = 'Weekly Review';
+          screen = WeeklyReviewScreen(
+            apiClient: _apiClient,
+            localRepository: _localWeeklyReviewRepository!,
+          );
+      }
+
+      await _openFeature(title: title, screen: screen);
+    } finally {
+      _reminderRouteOpen = false;
+
+      if (mounted) {
+        // Refresh the existing Dashboard state, not its route or app state.
+        setState(() {
+          _dashboardRefreshVersion++;
+        });
+      }
+    }
   }
 
   Future<void> _openFeature({required String title, required Widget screen}) {
@@ -292,11 +359,38 @@ class _HomeShellState extends State<HomeShell> {
 
   @override
   void dispose() {
-    _apiClient.close();
+    if (widget.apiClient == null) {
+      _apiClient.close();
+    }
     super.dispose();
   }
 
   Widget _buildSelectedScreen() {
+    if (_localInitializationPending) {
+      return const Center(
+        key: ValueKey('local-recovery-startup-loading'),
+        child: CircularProgressIndicator(),
+      );
+    }
+
+    if (_localInitializationFailed) {
+      return ListView(
+        padding: const EdgeInsets.all(20),
+        children: [
+          AppStatusMessage(
+            key: const ValueKey('local-recovery-startup-error'),
+            title: 'Recovery data could not be opened',
+            message:
+                'Your records were not deleted. Retry before opening '
+                'or saving a check-in.',
+            icon: Icons.lock_outline,
+            actionLabel: 'Retry',
+            onAction: () => unawaited(_initializeLocalRecovery()),
+          ),
+        ],
+      );
+    }
+
     switch (_selectedIndex) {
       case 0:
         return DashboardScreen(
@@ -309,6 +403,7 @@ class _HomeShellState extends State<HomeShell> {
           localProfileRepository: _localProfileRepository,
           localStepWorkRepository: _localStepWorkRepository,
           localInitializationPending: _localInitializationPending,
+          refreshVersion: _dashboardRefreshVersion,
         );
 
       case 1:
