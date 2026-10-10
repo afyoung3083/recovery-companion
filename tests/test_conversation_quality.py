@@ -38,7 +38,7 @@ class FakeGenerator:
 
 
 def test_corpus_is_multiturn_and_covers_usefulness_and_boundaries():
-    assert len(CASES) == 14
+    assert len(CASES) == 18
     assert len({c['id'] for c in CASES}) == len(CASES)
     tags = {tag for case in CASES for tag in case['tags']}
     assert {'education', 'listening', 'continuity', 'safety', 'privacy',
