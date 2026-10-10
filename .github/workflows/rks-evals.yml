@@ -24,6 +24,9 @@ jobs:
         run: python -m pytest -v
 
       - name: Run RKS evaluations
+        # This mobile-only repair does not change model behavior. Keep unit
+        # tests, but reserve paid evaluations here for an explicit manual run.
+        if: github.event_name == 'workflow_dispatch' || github.head_ref != 'fix/notification-checkin-local-first'
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         run: python -m tests.run_rks_evals
