@@ -29,6 +29,7 @@ class DashboardScreen extends StatefulWidget {
     this.localProfileRepository,
     this.localStepWorkRepository,
     this.localInitializationPending = false,
+    this.refreshVersion = 0,
     super.key,
   });
 
@@ -39,6 +40,7 @@ class DashboardScreen extends StatefulWidget {
   // True only while the owning screen is still opening local-first storage.
   // Prevents a network/offline-cache fallback from racing local init.
   final bool localInitializationPending;
+  final int refreshVersion;
   final LocalDailyCheckInRepository? localDailyCheckInRepository;
   final LocalFellowshipRepository? localFellowshipRepository;
   final LocalJournalRepository? localJournalRepository;
@@ -97,7 +99,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
         oldWidget.localRepository == null && widget.localRepository != null;
 
     if (!widget.localInitializationPending &&
-        (stoppedPending || repositoryBecameAvailable)) {
+        (stoppedPending ||
+            repositoryBecameAvailable ||
+            oldWidget.refreshVersion != widget.refreshVersion)) {
       setState(() {
         _dashboardFuture = _loadDashboard();
       });

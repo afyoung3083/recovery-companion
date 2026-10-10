@@ -9,7 +9,9 @@ int occurrenceCount(String text, String pattern) {
 void main() {
   test('Beta support is available throughout app navigation', () {
     final expectations = {
-      'lib/main.dart': 3,
+      // Home shell plus shared feature route; notification routes reuse it.
+      // Actual cold/warm notification support access is covered by widget tests.
+      'lib/main.dart': 2,
       'lib/dashboard_screen.dart': 1,
       'lib/more_screen.dart': 1,
       'lib/contact_profile_screen.dart': 1,
