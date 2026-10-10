@@ -342,11 +342,6 @@ class _BetaFeedbackScreenState extends State<BetaFeedbackScreen> {
 
         const SizedBox(height: 24),
 
-        const AppSectionTitle(
-          title: 'Safe diagnostics',
-          subtitle: 'Technical context helps reproduce bugs without attaching your recovery records.',
-        ),
-
         SizedBox(
           width: double.infinity,
           child: FilledButton.icon(
